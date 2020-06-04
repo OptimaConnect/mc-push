@@ -454,13 +454,13 @@ async function addQueryActivity(payload, seed) {
 			let target_send_date_time
 			if (seed){
 				target_send_date_time =
-				`CAST(CASE	WHEN MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
-								THEN SYSUTCDATETIME()
-							ELSE MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC'
-				END AS smalldatetime)`
+				`CASE	WHEN MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
+							THEN SYSUTCDATETIME()
+						ELSE MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC'
+				END`
 			}
 			else {
-				target_send_date_time = "CAST(MPT.message_target_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC' AS smalldatetime)"
+				target_send_date_time = "MPT.message_target_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC'"
 			}
 
 			messageQuery = 
@@ -468,7 +468,7 @@ async function addQueryActivity(payload, seed) {
 			(cast(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + row_number() over (order by (select null)) AS MOBILE_MESSAGE_ID,
 			${appCardNumber}            AS LOYALTY_CARD_NUMBER,
 			MPT.message_content         AS MESSAGE_CONTENT,
-			${target_send_date_time}    AS TARGET_SEND_DATE_TIME,
+			FORMAT(${target_send_date_time}, 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
 			MPT.message_status          AS STATUS,
 			MPT.message_short_content   AS SHORT_MESSAGE_CONTENT
 			FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
