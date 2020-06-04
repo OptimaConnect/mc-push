@@ -322,7 +322,8 @@ define([
 
         // set date inputs to todays date
         $("#automation_run_date").val(todayDate);
-        $("#message_target_send_date").val(todayDate);
+        $("#message_target_send_datetime").val(todayDate);
+        $("#message_seed_send_datetime").val(todayDate);
         $("#offer_start_date").val(todayDate);
         $("#offer_end_date").val(todayDate);
 
@@ -496,7 +497,7 @@ define([
         } else if ( stepToValidate == 1 ) {
 
 
-            var step1Selectors = ["#message_target_send_date", "#message_title", "#cell_code", "#cell_name", "#campaign_name", "#campaign_id", "#campaign_code", "#message_url"];
+            var step1Selectors = ["#message_target_send_datetime", "#message_seed_send_datetime", "#message_title", "#cell_code", "#cell_name", "#campaign_name", "#campaign_id", "#campaign_code", "#message_url"];
             var step1ErrorCount = 0;
 
             for ( var l = 0; l < step1Selectors.length; l++ ) {
@@ -510,9 +511,9 @@ define([
             }
 
             console.log("The message send date string is:");
-            console.log($("#message_target_send_date").val());
+            console.log($("#message_target_send_datetime").val());
 
-            if ( !validateTheDateFormat($("#message_target_send_date").val()) ) {
+            if ( !validateTheDateFormat($("#message_target_send_datetime").val()) ) {
                 
                 step1ErrorCount++;
 
