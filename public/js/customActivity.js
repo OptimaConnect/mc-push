@@ -324,8 +324,8 @@ define([
         $("#automation_run_date").val(todayDate);
         $("#message_target_send_datetime").val(todayDate);
         $("#message_seed_send_datetime").val(todayDate);
-        $("#offer_start_date").val(todayDate);
-        $("#offer_end_date").val(todayDate);
+        $("#offer_start_datetime").val(todayDate);
+        $("#offer_end_datetime").val(todayDate);
 
     }
 
@@ -531,7 +531,7 @@ define([
 
         } else if ( stepToValidate == 2 ) {
 
-            var step2Selectors = ["#offer_short_content", "#offer_start_date", "#offer_end_date", "#offer_type", "#offer_image_url"];
+            var step2Selectors = ["#offer_short_content", "#offer_start_datetime", "#offer_end_datetime", "#offer_type", "#offer_image_url"];
             var step2ErrorCount = 0;
 
             var step2CommSelectors = ["#offer_cell_code", "#offer_cell_name", "#offer_campaign_name", "#offer_campaign_id", "#offer_campaign_code"]
@@ -576,11 +576,11 @@ define([
             }
 
             console.log("The offer start date string is:");
-            console.log($("#offer_start_date").val());
+            console.log($("#offer_start_datetime").val());
             console.log("The offer end date string is:");
-            console.log($("#offer_end_date").val());
+            console.log($("#offer_end_datetime").val());
 
-            if ( !validateTheDateFormat($("#offer_start_date").val()) || !validateTheDateFormat($("#offer_end_date").val()) ) {
+            if ( !validateTheDateFormat($("#offer_start_datetime").val()) || !validateTheDateFormat($("#offer_end_datetime").val()) ) {
                 
                 step2ErrorCount++;
             }
