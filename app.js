@@ -1,6 +1,7 @@
 'use strict';
 
 // Module Dependencies
+require('dotenv').config();
 const axios 			= require('axios');
 var express     		= require('express');
 var bodyParser  		= require('body-parser');
@@ -449,8 +450,32 @@ async function addQueryActivity(payload, seed) {
 		
 		} else if ( payloadAttributes.push_type == "message" ) {
 
-			// message query TESTED
-			messageQuery = "SELECT 'Matalan' AS SCHEME_ID, (cast(DATEDIFF(SS,'2020-01-01',getdate()) as bigint) * 100000) + row_number() over (order by (select null)) AS MOBILE_MESSAGE_ID, " + appCardNumber + " AS LOYALTY_CARD_NUMBER, MPT.message_content AS MESSAGE_CONTENT, CONCAT(MPT.message_target_send_date, ' ', MPT.message_target_send_time) AS TARGET_SEND_DATE_TIME, MPT.message_status AS STATUS, MPT.message_short_content AS SHORT_MESSAGE_CONTENT FROM [" + payloadAttributes.update_contact + "] as UpdateContactDE INNER JOIN [" + sourceDataModel + "] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] as MPT ON MPT.push_key = " + payloadAttributes.key + "";
+			// message query
+			let target_send_date_time
+			if (seed){
+				target_send_date_time =
+				`CASE	WHEN MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
+							THEN SYSUTCDATETIME()
+						ELSE MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC'
+				END`
+			}
+			else {
+				target_send_date_time = "MPT.message_target_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC'"
+			}
+
+			messageQuery = 
+			`SELECT 'Matalan'            AS SCHEME_ID,
+			(cast(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + row_number() over (order by (select null)) AS MOBILE_MESSAGE_ID,
+			${appCardNumber}            AS LOYALTY_CARD_NUMBER,
+			MPT.message_content         AS MESSAGE_CONTENT,
+			FORMAT(${target_send_date_time}, 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
+			MPT.message_status          AS STATUS,
+			MPT.message_short_content   AS SHORT_MESSAGE_CONTENT
+			FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
+			INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+			LEFT JOIN [${marketingCloud.mobilePushMainTable}] as MPT
+			ON MPT.push_key = ${payloadAttributes.key}`
+
 			console.dir(messageQuery);
 			const messageQueryId = await sendQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, marketingCloud.messageTableName, "IF008 Message - " + dateString + " - " + payloadAttributes.query_name, "Message Assignment in IF008 for " + payloadAttributes.query_name);
 			if ( seed ) {
