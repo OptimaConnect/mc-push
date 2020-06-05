@@ -510,15 +510,6 @@ define([
                 }
             }
 
-            console.log("The message send date string is:");
-            console.log($("#message_target_send_datetime").val());
-
-            if ( !validateTheDateFormat($("#message_target_send_datetime").val()) ) {
-                
-                step1ErrorCount++;
-
-            }
-
             if ( step1ErrorCount == 0 ) {
 
                 return true;
