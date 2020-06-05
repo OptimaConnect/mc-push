@@ -571,11 +571,6 @@ define([
             console.log("The offer end date string is:");
             console.log($("#offer_end_datetime").val());
 
-            if ( !validateTheDateFormat($("#offer_start_datetime").val()) || !validateTheDateFormat($("#offer_end_datetime").val()) ) {
-                
-                step2ErrorCount++;
-            }
-
             if ( step2ErrorCount == 0 ) {
 
                 return true;

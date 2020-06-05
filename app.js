@@ -427,8 +427,8 @@ async function addQueryActivity(payload, seed) {
 						MPT.offer_id AS OFFER_ID,
 						NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
 						FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS [VISIBLE_FROM_DATE_TIME],
-						FORMAT(MPT.offer_start_datetime AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
-						FORMAT(MPT.offer_end_datetime AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+						FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
+						FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
 						MPT.offer_redemptions                           AS NO_REDEMPTIONS_ALLOWED,
 						MPT.offer_status                                AS STATUS,
 						ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
@@ -458,8 +458,8 @@ async function addQueryActivity(payload, seed) {
 					NULLIF(MPT.offer_online_code_1, 'no-code')  AS VOUCHER_ON_LINE_CODE,
 					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
 					FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS [VISIBLE_FROM_DATE_TIME],
-					FORMAT(MPT.offer_start_datetime AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
-					FORMAT(MPT.offer_end_datetime AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+					FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
+					FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
 					ISNULL(MPT.offer_redemptions, 1)    AS NO_REDEMPTIONS_ALLOWED,
 					MPT.offer_status                    AS STATUS
 					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
