@@ -489,7 +489,6 @@ async function addQueryActivity(payload, seed) {
 				MPT.message_content         AS MESSAGE_CONTENT,
 				FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
 				MPT.message_status          AS STATUS,
-				MPT.message_short_content   AS SHORT_MESSAGE_CONTENT
 				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
 				INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
 				LEFT JOIN [${marketingCloud.mobilePushMainTable}] as MPT
