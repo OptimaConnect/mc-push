@@ -57,6 +57,7 @@ define([
         lookupControlGroups();
         lookupUpdateContacts();
         loadEvents();
+        showOrHideOfferFormsBasedOnType();
     }
 
     function initialize (data) {
@@ -136,8 +137,6 @@ define([
 
             // trigger steps
             triggerSteps(argumentsSummaryPayload.buildPayload, argPromotionType);
-
-
         }      
     }
 
@@ -254,24 +253,7 @@ define([
         });
 
         // render relevant steps based on input
-        $('#offer_channel').change(function() {
-
-            if ( $("#offer_channel").val() == '3' || $("#offer_channel").val() == 3) {
-                // informational, show cell code and de-couple from promotion widget
-                $("#offer_cell_box").show();
-
-                // hide promotion dropdown
-                $("#promotion_element").hide();
-
-            } else {
-
-                $("#offer_cell_box").hide();
-                // show offer promotion
-                $("#promotion_element").show();
-
-            }
-
-        });
+        $('#offer_channel').change(showOrHideOfferFormsBasedOnType);
 
         $('#offer_promotion').change(function() {
             // get data attributes from dd and prepop hidden fields
@@ -354,6 +336,40 @@ define([
 
         apiWaitTime = apiWaitTime + 200;
 
+    }
+
+    function showOrHideOfferFormsBasedOnType() {
+
+        if ( $("#offer_channel").val() == '3' || $("#offer_channel").val() == 3) {
+            // informational, show cell code and de-couple from promotion widget
+            $("#offer_cell_box").show();
+            // hide promotion dropdown
+            $("#promotion_element").hide();
+            $("#show_validity_form").hide();
+            
+            const offer_validity_val = $("#offer_validity").val();
+
+            if ($("#offer_validity").val() == "true") {
+                $("#offer_validity").val("false").change();
+            }
+        
+            $("#click_through_url_form").show();
+            $("#info_button_text_form").show();
+
+        } else {
+
+            $("#offer_cell_box").hide();
+            // show offer promotion
+            $("#promotion_element").show();
+            
+            if ($("#offer_validity").val() == "false" && $("#show_validity_form").is(":hidden")) {
+                $("#offer_validity").val("true").change();
+            }
+            $("#show_validity_form").show();
+
+            $("#click_through_url_form").hide();
+            $("#info_button_text_form").hide();
+        }
     }
 
     function prePopulateFields(argumentsSummaryPayload) {
@@ -525,7 +541,7 @@ define([
             var step2Selectors = ["#offer_short_content", "#offer_start_datetime", "#offer_end_datetime", "#offer_type", "#offer_image_url"];
             var step2ErrorCount = 0;
 
-            var step2CommSelectors = ["#offer_cell_code", "#offer_cell_name", "#offer_campaign_name", "#offer_campaign_id", "#offer_campaign_code"]
+            var step2CommSelectors = ["#offer_cell_code", "#offer_cell_name", "#offer_campaign_name", "#offer_campaign_code"]
 
             for ( var m = 0; m < step2Selectors.length; m++ ) {
 
@@ -899,8 +915,7 @@ define([
                 connection.trigger('nextStep');
             }
 
-        } 
-
+        }
     }
 
     function onClickedBack () {
