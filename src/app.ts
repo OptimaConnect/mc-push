@@ -1,19 +1,20 @@
 'use strict';
 
 // Module Dependencies
-require('dotenv').config();
-const axios 			= require('axios');
-var express     		= require('express');
-var bodyParser  		= require('body-parser');
-var errorhandler 		= require('errorhandler');
-var http        		= require('http');
-var path        		= require('path');
-var request     		= require('request');
-var routes      		= require('./routes');
-var activity    		= require('./routes/activity');
+import dotenv 			from 'dotenv';
+import axios 			from 'axios';
+import express 			from 'express';
+import bodyParser  		from 'body-parser';
+import errorhandler 	from 'errorhandler';
+import http        		from 'http';
+import path        		from 'path';
+import request     		from 'request';
+import routes      		from './routes';
+import activity    		from './routes/activity';
 var urlencodedparser 	= bodyParser.urlencoded({extended:false});
 var app 				= express();
 var local       		= false;
+dotenv.config();
 
 
 // access Heroku variables
@@ -94,17 +95,17 @@ const getOauth2Token = () => new Promise((resolve, reject) => {
 			"client_secret": marketingCloud.clientSecret
 		}
 	})
-	.then(function (oauthResponse) {
+	.then(function (oauthResponse: { data: { access_token: string; }; }) {
 		console.dir('Bearer '.concat(oauthResponse.data.access_token));
 		return resolve('Bearer '.concat(oauthResponse.data.access_token));
 	})
-	.catch(function (error) {
+	.catch(function (error: any) {
 		console.dir("Error getting Oauth Token");
 		return reject(error);
 	});
 });
 
-async function definePayloadAttributes(payload, seed) {
+async function definePayloadAttributes(payload: string | any[]) {
 
 	console.dir("Payload passed to attributes function is:");
 	console.dir(payload);
@@ -216,56 +217,54 @@ async function definePayloadAttributes(payload, seed) {
 	}
 
 };
-const sendQuery = (targetId, targetKey, query, target, name, description) => new Promise((resolve, reject) => {
+async function sendQuery (targetId: string, targetKey: string, query: string, target: string, name: string, description: string): Promise<string> {
 
-	getOauth2Token().then((tokenResponse) => {
+	let tokenResponse = await getOauth2Token();
+	//console.dir("Oauth Token");
+	//console.dir(tokenResponse);
+	/**
+	* targetUpdateTypeId
+	* 0 = Overwrite
+	* 1 = Add/Update (requires PK)
+	* 2 = Append
+	*/
+	var queryDefinitionPayload = {
+		"name": name,
+		"description": description,
+		"queryText": query,
+		"targetName": target,
+		"targetKey": targetKey,
+		"targetId": targetId,
+		"targetUpdateTypeId": 2,
+		"categoryId": marketingCloud.queryFolder
+	}
 
-		//console.dir("Oauth Token");
-		//console.dir(tokenResponse);
-
-		/**
-		* targetUpdateTypeId
-		* 0 = Overwrite
-		* 1 = Add/Update (requires PK)
-		* 2 = Append
-		*/
-
-		var queryDefinitionPayload = {
-		    "name": name,
-		    "description": description,
-		    "queryText": query,
-		    "targetName": target,
-		    "targetKey": targetKey,
-		    "targetId": targetId,
-		    "targetUpdateTypeId": 2,
-		    "categoryId": marketingCloud.queryFolder
-		}
-
-	   	axios({
+	try {
+		let response = await axios({
 			method: 'post',
 			url: automationUrl,
 			headers: {'Authorization': tokenResponse},
 			data: queryDefinitionPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data.queryDefinitionId);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
 		});
 
-	})
+		console.dir(response.data);
+		return response.data.queryDefinitionId;
+	}
+	catch(error) {
+		console.dir(error.response);
+		return Promise.reject(error.response)
+	}
+};
 
-});
+type ReturnIds = {
+	[key: string]: string;
+}
 
-
-async function addQueryActivity(payload, seed) {
+async function addQueryActivity(payload: any, seed: boolean): Promise<ReturnIds> {
 
 	console.dir("Payload for Query");
 	console.dir(payload);
-	var returnIds = [];
+	var returnIds: ReturnIds;
 
 	var m = new Date();
 	var dateString =
@@ -351,7 +350,7 @@ async function addQueryActivity(payload, seed) {
 		}
 
 		// everyone gets contacted in some way so send one of the above queries to marketing cloud
-		const communicationQueryId = await sendQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, marketingCloud.communicationTableName, "IF028 - Communication History - " + dateString + " - " + payloadAttributes.query_name, "Communication Cell Assignment in IF028 for " + payloadAttributes.query_name);
+		const communicationQueryId: string = await sendQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, marketingCloud.communicationTableName, "IF028 - Communication History - " + dateString + " - " + payloadAttributes.query_name, "Communication Cell Assignment in IF028 for " + payloadAttributes.query_name);
 		if ( seed ) {
 			await runQuery(communicationQueryId)
 		} else {		
@@ -508,11 +507,11 @@ async function addQueryActivity(payload, seed) {
 	} catch(e) {
 
 		console.dir(e);
-
+		return Promise.reject();
 	}
 };
 
-const logQuery = (queryId, type, scheduledDate) => new Promise((resolve, reject) => {
+const logQuery = (queryId: unknown, type: any, scheduledDate: any) => new Promise((resolve, reject) => {
 
 	console.dir("type:");
 	console.dir(type);
@@ -544,11 +543,11 @@ const logQuery = (queryId, type, scheduledDate) => new Promise((resolve, reject)
 			headers: {'Authorization': tokenResponse},
 			data: queryPayload
 		})
-		.then(function (response) {
+		.then(function (response: { data: unknown; }) {
 			console.dir(response.data);
 			return resolve(response.data);
 		})
-		.catch(function (error) {
+		.catch(function (error: any) {
 			console.dir(error);
 			return reject(error);
 		});
@@ -556,7 +555,7 @@ const logQuery = (queryId, type, scheduledDate) => new Promise((resolve, reject)
 	
 });
 
-const getIncrements = () => new Promise((resolve, reject) => {
+const getIncrements = () => new Promise<IncrementObject>((resolve, reject) => {
 	getOauth2Token().then((tokenResponse) => {
 
 		axios.get(incrementsUrl, { 
@@ -564,19 +563,23 @@ const getIncrements = () => new Promise((resolve, reject) => {
 				Authorization: tokenResponse
 			}
 		})
-		.then(response => {
+		.then((response: { data: { items: any[]; }; }) => {
 			// If request is good...
 			console.dir(response.data.items[0].values);
 			return resolve(response.data.items[0].values);
 		})
-		.catch((error) => {
+		.catch((error: any) => {
 		    console.dir("Error getting increments");
 		    return reject(error);
 		});
 	})
 });
 
-const getCommCellIncrements = () => new Promise((resolve, reject) => {
+type CommCellIncrementData = {
+	communication_cell_code_id_increment: number
+}
+
+const getCommCellIncrements = () => new Promise<CommCellIncrementData>((resolve, reject) => {
 	getOauth2Token().then((tokenResponse) => {
 
 		axios.get(commCellIncrementUrl, { 
@@ -584,35 +587,38 @@ const getCommCellIncrements = () => new Promise((resolve, reject) => {
 				Authorization: tokenResponse
 			}
 		})
-		.then(response => {
+		.then((response: { data: { items: any[]; }; }) => {
 			// If request is good...
 			console.dir(response.data.items[0].values);
 			return resolve(response.data.items[0].values);
 		})
-		.catch((error) => {
+		.catch((error: any) => {
 		    console.dir("Error getting increments");
 		    return reject(error);
 		});
 	})
 });
 
-const updateIncrements = (currentIncrement) => new Promise((resolve, reject) => {
+type IncrementObject = {
+	increment: number
+}
+
+const updateIncrements = (currentIncrement: IncrementObject) => new Promise((resolve, reject) => {
 
 	console.dir("Current Increment");
 	console.dir(currentIncrement.increment);
 
-	var newIncrement = parseInt(currentIncrement.increment) + 1;
+	var newIncrement = currentIncrement.increment + 1;
 
-	var updatedIncrementObject = {};
-	updatedIncrementObject.increment = parseInt(newIncrement);
-
-	console.dir(updatedIncrementObject);
+	console.dir(newIncrement);
 
 	var insertPayload = [{
         "keys": {
             "id": 1
         },
-        "values": updatedIncrementObject
+        "values": {
+			"increment" : newIncrement
+		}
 	}];
 		
 	console.dir(insertPayload);
@@ -624,11 +630,11 @@ const updateIncrements = (currentIncrement) => new Promise((resolve, reject) => 
 			headers: {'Authorization': tokenResponse},
 			data: insertPayload
 		})
-		.then(function (response) {
+		.then(function (response: { data: unknown; }) {
 			console.dir(response.data);
 			return resolve(response.data);
 		})
-		.catch(function (error) {
+		.catch(function (error: any) {
 			console.dir(error);
 			return reject(error);
 		});
@@ -636,7 +642,7 @@ const updateIncrements = (currentIncrement) => new Promise((resolve, reject) => 
 	
 });
 
-const updateCommunicationCellIncrement = (key) => new Promise((resolve, reject) => {
+const updateCommunicationCellIncrement = (key: number) => new Promise((resolve, reject) => {
 
 	console.dir("current key is");
 	console.dir(key);
@@ -646,7 +652,7 @@ const updateCommunicationCellIncrement = (key) => new Promise((resolve, reject) 
             "increment_key": 1
         },
         "values": {
-        	"communication_cell_code_id_increment": parseInt(key) + 3
+        	"communication_cell_code_id_increment": key + 3
         }
 	}];
 		
@@ -659,11 +665,11 @@ const updateCommunicationCellIncrement = (key) => new Promise((resolve, reject) 
 			headers: {'Authorization': tokenResponse},
 			data: insertPayload
 		})
-		.then(function (response) {
+		.then(function (response: { data: unknown; }) {
 			console.dir(response.data);
 			return resolve(response.data);
 		})
-		.catch(function (error) {
+		.catch(function (error: any) {
 			console.dir(error);
 			return reject(error);
 		});
@@ -671,7 +677,7 @@ const updateCommunicationCellIncrement = (key) => new Promise((resolve, reject) 
 	
 });
 
-const saveToCommunicationDataExtension = (payload, key) => new Promise((resolve, reject) => {
+const saveToCommunicationDataExtension = (payload: { not_control: any; control: any; }, key: number) => new Promise((resolve, reject) => {
 
 	console.dir("Payload:");
 	console.dir(payload);
@@ -680,14 +686,14 @@ const saveToCommunicationDataExtension = (payload, key) => new Promise((resolve,
 
 	var insertPayload = [{
         "keys": {
-            "communication_cell_id": (parseInt(key) + 1)
+            "communication_cell_id": (key + 1)
         },
         "values": payload.control,
 
 	},
 	{
         "keys": {
-            "communication_cell_id": (parseInt(key) + 2)
+            "communication_cell_id": (key + 2)
         },
         "values": payload.not_control,
         
@@ -702,11 +708,11 @@ const saveToCommunicationDataExtension = (payload, key) => new Promise((resolve,
 			headers: {'Authorization': tokenResponse},
 			data: insertPayload
 		})
-		.then(function (response) {
+		.then(function (response: { data: unknown; }) {
 			console.dir(response.data);
 			return resolve(response.data);
 		})
-		.catch(function (error) {
+		.catch(function (error: any) {
 			console.dir(error);
 			return reject(error);
 		});
@@ -716,7 +722,7 @@ const saveToCommunicationDataExtension = (payload, key) => new Promise((resolve,
 
 
 
-const saveToDataExtension = (pushPayload, incrementData) => new Promise((resolve, reject) => {
+const saveToDataExtension = (pushPayload: {}, incrementData: IncrementObject) => new Promise((resolve, reject) => {
 
 	console.dir("Payload:");
 	console.dir(pushPayload);
@@ -726,7 +732,7 @@ const saveToDataExtension = (pushPayload, incrementData) => new Promise((resolve
 
 	var insertPayload = [{
         "keys": {
-            "push_key": parseInt(incrementData.increment)
+            "push_key": incrementData.increment
         },
         "values": pushPayload
 	}];
@@ -740,11 +746,11 @@ const saveToDataExtension = (pushPayload, incrementData) => new Promise((resolve
 			headers: {'Authorization': tokenResponse},
 			data: insertPayload
 		})
-		.then(function (response) {
+		.then(function (response: { data: unknown; }) {
 			console.dir(response.data);
 			return resolve(response.data);
 		})
-		.catch(function (error) {
+		.catch(function (error: any) {
 			console.dir(error);
 			return reject(error);
 		});
@@ -752,7 +758,7 @@ const saveToDataExtension = (pushPayload, incrementData) => new Promise((resolve
 	
 });
 
-const updateDataExtension = (updatedPushPayload, existingKey) => new Promise((resolve, reject) => {
+const updateDataExtension = (updatedPushPayload: {}, existingKey: string) => new Promise((resolve, reject) => {
 
 	console.dir("Payload:");
 	console.dir(updatedPushPayload);
@@ -776,11 +782,11 @@ const updateDataExtension = (updatedPushPayload, existingKey) => new Promise((re
 			headers: {'Authorization': tokenResponse},
 			data: insertPayload
 		})
-		.then(function (response) {
+		.then(function (response: { data: unknown; }) {
 			console.dir(response.data);
 			return resolve(response.data);
 		})
-		.catch(function (error) {
+		.catch(function (error: any) {
 			console.dir(error);
 			return reject(error);
 		});
@@ -789,29 +795,28 @@ const updateDataExtension = (updatedPushPayload, existingKey) => new Promise((re
 });
 
 
-async function buildAndUpdate(payload, key) {
+async function buildAndUpdate(payload: any, key: any) {
 	try {
 
-		const updatedPushPayload = await updatePushPayload(payload);
-		const updatedPushObject = await updateDataExtension(updatedPushPayload, key);
-
+		const updatedPushPayload = updatePushPayload(payload);
 		return updatedPushPayload;
 
 	} catch(err) {
 
 		console.dir(err);
+		return Promise.reject(err);
 	}
 }
 
-async function buildAndSend(payload) {
+async function buildAndSend(payload: any) {
 	try {
 		const incrementData = await getIncrements();
 		const commCellIncrementData = await getCommCellIncrements();
 
-		const pushPayload = await buildPushPayload(payload, commCellIncrementData.communication_cell_code_id_increment);
+		const pushPayload = buildPushPayload(payload, commCellIncrementData.communication_cell_code_id_increment);
 		const pushObject = await saveToDataExtension(pushPayload, incrementData);
 
-		const commPayload = await buildCommPayload(pushPayload);
+		const commPayload = buildCommPayload(pushPayload);
 		const commObject = await saveToCommunicationDataExtension(commPayload, commCellIncrementData.communication_cell_code_id_increment);
 
 		await updateIncrements(incrementData);
@@ -820,25 +825,30 @@ async function buildAndSend(payload) {
 		return pushPayload;
 	} catch(err) {
 		console.dir(err);
+		return Promise.reject(err);
 	}
 }
 
-function getDateString(dateOffSetted) {
+function getDateString(dateOffSetted: string | number | Date) {
 	let date_ob = new Date(dateOffSetted);
 	let date = ("0" + date_ob.getDate()).slice(-2);
 	let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
 	let year = date_ob.getFullYear();
 	let hours = date_ob.getHours();
 	let minutes = date_ob.getMinutes();
-    let seconds = date_ob.getSeconds();
+	let seconds = date_ob.getSeconds();
+	
+	let minutesString: string;
+	let secondsString: string;
+
     if ( minutes < 10 ) {
-        minutes = "0" + minutes;
+        minutesString = "0" + minutes;
     }
     if ( seconds < 10 ) {
-        seconds = "0" + seconds;
+        secondsString = "0" + seconds;
     }
 	
-	let dateString = year + "/" + month + "/" + date + " " + hours + ":" + minutes + ":" + seconds;	
+	let dateString = year + "/" + month + "/" + date + " " + hours + ":" + minutesString + ":" + secondsString;
 	return dateString;
 }
 
@@ -855,8 +865,12 @@ function getDateAndOffSet() {
     return estDate; 
 }
 
-function buildPushPayload(payload, commCellKey) {
-	var mobilePushData = {};
+type MobilePushData = {
+	[key: string]: any;
+}
+
+function buildPushPayload(payload: string | any[], commCellKey: number) {
+	let mobilePushData: MobilePushData
 	for ( var i = 0; i < payload.length; i++ ) {
 		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
@@ -864,7 +878,7 @@ function buildPushPayload(payload, commCellKey) {
 	}
 	if ( mobilePushData["push_type"] == 'message' || mobilePushData["push_type"] == 'offer' && mobilePushData["offer_channel"] == '3' ) {
 		mobilePushData["communication_key"] = commCellKey;
-		mobilePushData["communication_control_key"] = parseInt(commCellKey) + 1;		
+		mobilePushData["communication_control_key"] = commCellKey + 1;		
 	}
 
 	if ( mobilePushData.push_type == 'message') {
@@ -879,8 +893,8 @@ function buildPushPayload(payload, commCellKey) {
 	return mobilePushData;
 }
 
-function updatePushPayload(payload) {
-	var mobilePushData = {};
+function updatePushPayload(payload: string | any[]) {
+	let mobilePushData: MobilePushData
 	for ( var i = 0; i < payload.length; i++ ) {
 		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
@@ -907,7 +921,7 @@ function updatePushPayload(payload) {
 	return mobilePushData;
 }
 
-function buildCommPayload(payload, type) {
+function buildCommPayload(payload: { [x: string]: any; }) {
 
 	var communicationCellData = {
 			"not_control": {
@@ -937,20 +951,21 @@ function buildCommPayload(payload, type) {
 	return communicationCellData;
 }
 
-async function sendBackPayload(payload) {
+async function sendBackPayload(payload: any) {
 	try {
 		const getIncrementsForSendback = await getIncrements();
 		const getCommCellForSendback =  await getCommCellIncrements();
-		var sendBackPromotionKey = parseInt(getIncrementsForSendback.increment);
+		var sendBackPromotionKey = getIncrementsForSendback.increment;
 		const fullAssociationPayload = await buildAndSend(payload);
 		return sendBackPromotionKey;
 	} catch(err) {
 		console.dir(err);
+		return Promise.reject(err);
 	}
 
 }
 
-async function sendBackUpdatedPayload(payload) {
+async function sendBackUpdatedPayload(payload: string | any[]) {
 
 	var messageKeyToUpdate;
 	var h;
@@ -969,7 +984,7 @@ async function sendBackUpdatedPayload(payload) {
 
 }
 
-const executeQuery = (executeThisQueryId) => new Promise((resolve, reject) => {
+const executeQuery = (executeThisQueryId: string) => new Promise((resolve, reject) => {
 
 	console.dir("Executing this query Id");
 	console.dir(executeThisQueryId);
@@ -984,11 +999,11 @@ const executeQuery = (executeThisQueryId) => new Promise((resolve, reject) => {
 			url: queryPayload,
 			headers: {'Authorization': tokenResponse},
 		})
-		.then(function (response) {
+		.then(function (response: { data: unknown; }) {
 			console.dir(response.data);
 			return resolve(response.data);
 		})
-		.catch(function (error) {
+		.catch(function (error: any) {
 			console.dir(error);
 			return reject(error);
 		});
@@ -996,7 +1011,7 @@ const executeQuery = (executeThisQueryId) => new Promise((resolve, reject) => {
 	
 });
 
-async function runQuery(executeThisQueryId) {
+async function runQuery(executeThisQueryId: string) {
 	try {
 		const returnQueryStatus = await executeQuery(executeThisQueryId);
 		console.dir("The query status is");
@@ -1015,7 +1030,7 @@ Authorization: Bearer {{Oauth Key}}
 Content-Type: application/json
 
 */
-app.post('/run/query/:queryId', async function(req, res) {
+app.post('/run/query/:queryId', async function(req: { params: { queryId: string; }; }, res: { send: (arg0: string) => void; }) {
 
 	//res.send("Enviro is " + req.params.enviro + " | Interface is " + req.params.interface + " | Folder is " + req.params.folder);
 	console.dir("Query ID sent from Automation Studio");
@@ -1032,7 +1047,7 @@ app.post('/run/query/:queryId', async function(req, res) {
 });
 
 // insert data into data extension
-app.post('/dataextension/add/', async function (req, res){ 
+app.post('/dataextension/add/', async function (req: { body: any; }, res: { send: (arg0: string) => void; }){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
@@ -1044,7 +1059,7 @@ app.post('/dataextension/add/', async function (req, res){
 });
 
 // insert data into data extension
-app.post('/dataextension/update/', async function (req, res){ 
+app.post('/dataextension/update/', async function (req: { body: any; }, res: { send: (arg0: string) => void; }){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
@@ -1056,7 +1071,7 @@ app.post('/dataextension/update/', async function (req, res){
 });
 
 // insert data into data extension
-app.post('/automation/create/query', async function (req, res){ 
+app.post('/automation/create/query', async function (req: { body: any; }, res: { send: (arg0: string) => void; }){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
@@ -1069,7 +1084,7 @@ app.post('/automation/create/query', async function (req, res){
 });
 
 // insert data into data extension
-app.post('/automation/create/query/seed', async function (req, res){ 
+app.post('/automation/create/query/seed', async function (req: { body: any; }, res: { send: (arg0: string) => void; }){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
@@ -1082,7 +1097,7 @@ app.post('/automation/create/query/seed', async function (req, res){
 });
 
 //Fetch increment values
-app.get("/dataextension/lookup/increments", (req, res, next) => {
+app.get("/dataextension/lookup/increments", (req: any, res: { json: (arg0: any) => void; }, next: any) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -1091,11 +1106,11 @@ app.get("/dataextension/lookup/increments", (req, res, next) => {
 				Authorization: tokenResponse
 			}
 		})
-		.then(response => {
+		.then((response: { data: any; }) => {
 			// If request is good... 
 			res.json(response.data);
 		})
-		.catch((error) => {
+		.catch((error: any) => {
 		    console.dir("Error getting increments");
 		    console.dir(error);
 		});
@@ -1103,7 +1118,7 @@ app.get("/dataextension/lookup/increments", (req, res, next) => {
 });
 
 //Fetch increment values
-app.get("/dataextension/lookup/commincrements", (req, res, next) => {
+app.get("/dataextension/lookup/commincrements", (req: any, res: { json: (arg0: any) => void; }, next: any) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -1112,11 +1127,11 @@ app.get("/dataextension/lookup/commincrements", (req, res, next) => {
 				Authorization: tokenResponse
 			}
 		})
-		.then(response => {
+		.then((response: { data: any; }) => {
 			// If request is good... 
 			res.json(response.data);
 		})
-		.catch((error) => {
+		.catch((error: any) => {
 		    console.dir("Error getting increments");
 		    console.dir(error);
 		});
@@ -1124,7 +1139,7 @@ app.get("/dataextension/lookup/commincrements", (req, res, next) => {
 });
 
 //Fetch rows from control group data extension
-app.get("/dataextension/lookup/controlgroups", (req, res, next) => {
+app.get("/dataextension/lookup/controlgroups", (req: any, res: { json: (arg0: any) => void; }, next: any) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -1133,11 +1148,11 @@ app.get("/dataextension/lookup/controlgroups", (req, res, next) => {
 				Authorization: tokenResponse
 			}
 		})
-		.then(response => {
+		.then((response: { data: any; }) => {
 			// If request is good... 
 			res.json(response.data);
 		})
-		.catch((error) => {
+		.catch((error: any) => {
 		    console.dir("Error getting control groups");
 		    console.dir(error);
 		});
@@ -1146,7 +1161,7 @@ app.get("/dataextension/lookup/controlgroups", (req, res, next) => {
 });
 
 //Fetch rows from update contacts data extension
-app.get("/dataextension/lookup/updatecontacts", (req, res, next) => {
+app.get("/dataextension/lookup/updatecontacts", (req: any, res: { json: (arg0: any) => void; }, next: any) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -1155,11 +1170,11 @@ app.get("/dataextension/lookup/updatecontacts", (req, res, next) => {
 				Authorization: tokenResponse
 			}
 		})
-		.then(response => {
+		.then((response: { data: any; }) => {
 			// If request is good... 
 			res.json(response.data);
 		})
-		.catch((error) => {
+		.catch((error: any) => {
 		    console.dir("Error getting update contacts");
 		    console.dir(error);
 		});
@@ -1168,7 +1183,7 @@ app.get("/dataextension/lookup/updatecontacts", (req, res, next) => {
 });
 
 //Fetch rows from update contacts data extension
-app.get("/dataextension/lookup/promotions", (req, res, next) => {
+app.get("/dataextension/lookup/promotions", (req: any, res: { json: (arg0: any) => void; }, next: any) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -1177,11 +1192,11 @@ app.get("/dataextension/lookup/promotions", (req, res, next) => {
 				Authorization: tokenResponse
 			}
 		})
-		.then(response => {
+		.then((response: { data: any; }) => {
 			// If request is good... 
 			res.json(response.data);
 		})
-		.catch((error) => {
+		.catch((error: any) => {
 		    console.dir("Error getting update contacts");
 		    console.dir(error);
 		});

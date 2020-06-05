@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        "outDir": "./built",
+        "allowJs": true,
+        "target": "ES2018",
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": true,
+        "module": "CommonJS"
+    },
+    "include": [
+        "./src/**/*"
+    ]
+}
