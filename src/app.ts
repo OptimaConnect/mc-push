@@ -15,44 +15,42 @@ dotenv.config();
 
 
 // access Heroku variables
-if ( !local ) {
-	var marketingCloud = {
-	  authUrl: 							process.env.authUrl,
-	  clientId: 						process.env.clientId,
-	  clientSecret: 					process.env.clientSecret,
-	  restUrl: 							process.env.restUrl,
-	  appUrl: 							process.env.baseUrl,
-	  communicationCellDataExtension: 	process.env.communicationCellDataExtension,
-	  controlGroupsDataExtension: 		process.env.controlGroupsDataExtension,
-	  updateContactsDataExtension: 		process.env.updateContactsDataExtension,
-	  promotionsDataExtension: 			process.env.promotionsDataExtension,
-	  insertDataExtension: 				process.env.insertDataExtension,
-	  incrementDataExtension: 			process.env.incrementDataExtension,
-	  commCellIncrementDataExtension: 	process.env.commCellIncrementDataExtension,
-	  seedDataExtension: 				process.env.seedlist,
-	  automationEndpoint: 				process.env.automationEndpoint,
-	  promotionTableName: 				process.env.promotionTableName,
-	  communicationTableName: 			process.env.communicationTableName,
-	  assignmentTableName: 				process.env.assignmentTableName,
-	  messageTableName: 				process.env.messageTableName,
-	  offerTableName: 					process.env.offerTableName,
-	  mobilePushMainTable: 				process.env.mobilePushMainTable,
-	  partyCardDetailsTable:  			process.env.partyCardDetailsTable,
-	  promotionDescriptionTable: 		process.env.promotionDescriptionTable,
-	  seedListTable: 					process.env.seedListTable,
-	  automationScheduleExtension:  	process.env.automationScheduleExtension,
-	  communicationHistoryID: 			process.env.communicationHistoryID,
-	  communicationHistoryKey: 			process.env.communicationHistoryKey,
-	  assignmentID: 					process.env.assignmentID,
-	  assignmentKey: 					process.env.assignmentKey,
-	  messageID: 						process.env.messageID,
-	  messageKey: 						process.env.messageKey,
-	  offerID: 							process.env.offerID,
-	  offerKey: 						process.env.offerKey,
-	  queryFolder: 						process.env.queryFolder
-	};
-	console.dir(marketingCloud);
-}
+var marketingCloud = {
+	authUrl: process.env.authUrl,
+	clientId: process.env.clientId,
+	clientSecret: process.env.clientSecret,
+	restUrl: process.env.restUrl,
+	appUrl: process.env.baseUrl,
+	communicationCellDataExtension: process.env.communicationCellDataExtension,
+	controlGroupsDataExtension: process.env.controlGroupsDataExtension,
+	updateContactsDataExtension: process.env.updateContactsDataExtension,
+	promotionsDataExtension: process.env.promotionsDataExtension,
+	insertDataExtension: process.env.insertDataExtension,
+	incrementDataExtension: process.env.incrementDataExtension,
+	commCellIncrementDataExtension: process.env.commCellIncrementDataExtension,
+	seedDataExtension: process.env.seedlist,
+	automationEndpoint: process.env.automationEndpoint,
+	promotionTableName: process.env.promotionTableName,
+	communicationTableName: process.env.communicationTableName,
+	assignmentTableName: process.env.assignmentTableName,
+	messageTableName: process.env.messageTableName,
+	offerTableName: process.env.offerTableName,
+	mobilePushMainTable: process.env.mobilePushMainTable,
+	partyCardDetailsTable: process.env.partyCardDetailsTable,
+	promotionDescriptionTable: process.env.promotionDescriptionTable,
+	seedListTable: process.env.seedListTable,
+	automationScheduleExtension: process.env.automationScheduleExtension,
+	communicationHistoryID: process.env.communicationHistoryID,
+	communicationHistoryKey: process.env.communicationHistoryKey,
+	assignmentID: process.env.assignmentID,
+	assignmentKey: process.env.assignmentKey,
+	messageID: process.env.messageID,
+	messageKey: process.env.messageKey,
+	offerID: process.env.offerID,
+	offerKey: process.env.offerKey,
+	queryFolder: process.env.queryFolder
+};
+console.dir(marketingCloud);
 
 // url constants
 const scheduleUrl 					= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.automationScheduleExtension 	+ "/rowset";
@@ -214,7 +212,7 @@ async function definePayloadAttributes(payload: string | any[]) {
 	}
 
 };
-async function sendQuery (targetId: string, targetKey: string, query: string, target: string, name: string, description: string): Promise<string> {
+async function sendQuery (targetId: string | undefined, targetKey: string | undefined, query: string, target: string | undefined, name: string | undefined, description: string): Promise<string> {
 
 	let tokenResponse = await getOauth2Token();
 	//console.dir("Oauth Token");
@@ -261,7 +259,7 @@ async function addQueryActivity(payload: any, seed: boolean): Promise<ReturnIds>
 
 	console.dir("Payload for Query");
 	console.dir(payload);
-	var returnIds: ReturnIds;
+	let returnIds: ReturnIds = {}
 
 	var m = new Date();
 	var dateString =
@@ -301,10 +299,10 @@ async function addQueryActivity(payload: any, seed: boolean): Promise<ReturnIds>
 			target_send_date_time = "MPT.message_target_send_datetime AT TIME ZONE 'GMT Standard Time'";
 			visible_from_date_time = "MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time'";
 		}
-		var communicationQuery;
-		var memberOfferQuery;
-		var messageQuery;
-		var assignmentQuery;
+		let communicationQuery: string = "";
+		let memberOfferQuery: string = "";
+		let messageQuery: string = "";
+		let assignmentQuery: string = "";
 
 		if ( payloadAttributes.push_type == 'message' ) {
 
@@ -835,8 +833,8 @@ function getDateString(dateOffSetted: string | number | Date) {
 	let minutes = date_ob.getMinutes();
 	let seconds = date_ob.getSeconds();
 	
-	let minutesString: string;
-	let secondsString: string;
+	let minutesString: string = minutes.toString();
+	let secondsString: string = seconds.toString();
 
     if ( minutes < 10 ) {
         minutesString = "0" + minutes;
@@ -867,7 +865,7 @@ type MobilePushData = {
 }
 
 function buildPushPayload(payload: string | any[], commCellKey: number) {
-	let mobilePushData: MobilePushData
+	let mobilePushData: MobilePushData = {};
 	for ( var i = 0; i < payload.length; i++ ) {
 		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
@@ -891,7 +889,7 @@ function buildPushPayload(payload: string | any[], commCellKey: number) {
 }
 
 function updatePushPayload(payload: string | any[]) {
-	let mobilePushData: MobilePushData
+	let mobilePushData: MobilePushData = {}
 	for ( var i = 0; i < payload.length; i++ ) {
 		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
