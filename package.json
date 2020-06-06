@@ -8,11 +8,11 @@
   "scripts": {
     "start": "node ./built/app.js",
     "build": "tsc && npm run copy:public",
-    "copy:public": "copyfiles --up 1 --exclude *.js --exclude *.ts \"src/public/**/*\" built"
+    "copy:public": "copyfiles --up 1 \"src/public/**/*\" built"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Rafterman82/mc-jb-custom-activity.git"
+    "url": "https://github.com/OptimaConnect/mc-push.git"
   },
   "keywords": [
     "journey",
@@ -20,16 +20,12 @@
     "salesforce marketing cloud",
     "heroku"
   ],
-  "author": "Paul Rafter",
+  "author": "Optima Connect",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Rafterman82/mc-jb-custom-activity/issues"
-  },
-  "homepage": "https://github.com/Rafterman82/mc-jb-custom-activity#readme",
+  "homepage": "https://github.com/OptimaConnect/mc-push",
   "dependencies": {
     "axios": "^0.19.2",
     "body-parser": "^1.19.0",
-    "copyfiles": "^2.3.0",
     "dotenv": "^8.2.0",
     "easy-soap-request": "^3.3.1",
     "emojionearea": "3.1.8",
@@ -42,13 +38,14 @@
     "textcomplete": "^0.18.1"
   },
   "devDependencies": {
-    "ts-node": "^8.10.2",
-    "ts-node-dev": "^1.0.0-pre.44",
     "@types/body-parser": "^1.19.0",
     "@types/errorhandler": "^1.5.0",
     "@types/express": "^4.17.6",
     "@types/node": "^14.0.11",
     "@types/request": "^2.48.5",
+    "copyfiles": "^2.3.0",
+    "ts-node": "^8.10.2",
+    "ts-node-dev": "^1.0.0-pre.44",
     "typescript": "^3.9.5"
   }
 }
