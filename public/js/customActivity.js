@@ -513,7 +513,7 @@ define([
         } else if ( stepToValidate == 1 ) {
 
 
-            var step1Selectors = ["#message_target_send_datetime", "#message_seed_send_datetime", "#message_title", "#cell_code", "#cell_name", "#campaign_name", "#campaign_id", "#campaign_code", "#message_url"];
+            var step1Selectors = ["#message_target_send_datetime", "#message_seed_send_datetime", "#message_title", "#cell_code", "#cell_name", "#campaign_name", "#campaign_code", "#message_url"];
             var step1ErrorCount = 0;
 
             for ( var l = 0; l < step1Selectors.length; l++ ) {
