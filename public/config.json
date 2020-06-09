@@ -53,16 +53,16 @@
       }
     },
     "wizardSteps": [{
-        "label": "Messasge Type",
+        "label": "Message Type",
         "key": "step0"
       },
       {
-        "label": "PUSH Message Setup",
+        "label": "Push Message Setup",
         "key": "step1",
         "active": false
       },
       {
-        "label": "PUSH OFFER Setup",
+        "label": "Offer Setup",
         "key": "step2",
         "active": false
       },
