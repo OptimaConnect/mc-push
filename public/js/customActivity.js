@@ -19,8 +19,8 @@ define([
     var instoreSetupStepEnabled     = false;
     var steps                       = [
         { "label": "Message Type", "key": "step0" },
-        { "label": "PUSH Message Setup", "key": "step1", "active": false },
-        { "label": "PUSH Offer Setup", "key": "step2", "active": false },
+        { "label": "Push Message Setup", "key": "step1", "active": false },
+        { "label": "Offer Setup", "key": "step2", "active": false },
         { "label": "Summary", "key": "step3" }
     ];
     var currentStep = steps[0].key;
