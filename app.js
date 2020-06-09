@@ -216,7 +216,8 @@ async function definePayloadAttributes(payload, seed) {
 	}
 
 };
-const sendQuery = (targetId, targetKey, query, target, name, description) => new Promise((resolve, reject) => {
+
+const createSQLQuery = (targetId, targetKey, query, target, name, description) => new Promise((resolve, reject) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -283,8 +284,8 @@ async function addQueryActivity(payload, seed) {
 		console.dir("The Payload Attributes type is");
 		console.dir(payloadAttributes.push_type);
 
-		var sourceDataModel;
-		var appCardNumber;
+		let sourceDataModel;
+		let appCardNumber;
 		let target_send_date_time;
 		let visible_from_date_time;
 
@@ -305,10 +306,11 @@ async function addQueryActivity(payload, seed) {
 			target_send_date_time = "MPT.message_target_send_datetime AT TIME ZONE 'GMT Standard Time'";
 			visible_from_date_time = "MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time'";
 		}
-		var communicationQuery;
-		var memberOfferQuery;
-		var messageQuery;
-		var assignmentQuery;
+
+		let communicationQuery;
+		let memberOfferQuery;
+		let messageQuery;
+		let assignmentQuery;
 
 		if ( payloadAttributes.push_type == 'message' ) {
 
@@ -318,48 +320,46 @@ async function addQueryActivity(payload, seed) {
 				MPT.communication_key	AS COMMUNICATION_CELL_ID,
 				CAST(${target_send_date_time} AS datetime) AS CONTACT_DATE
 				FROM [${payloadAttributes.update_contact}] AS bucket
-				LEFT JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = '${payloadAttributes.key}'`
 
 			console.dir(communicationQuery);
 
 		} else if ( payloadAttributes.push_type == 'offer' && payloadAttributes.offer_channel != '3' ) {
-			// TODO - Update this to pull communication cell id from promotion widget table?
+			// TODO - Update this to pull communication cell id from promotion widget table - possibly unneeded - communication_key may already have come from the promo widget
 			// this is legit promotion, use promo key and join for comm data NOT TESTED
 			communicationQuery =
 				`SELECT bucket.PARTY_ID AS PARTY_ID,
 				MPT.communication_key 	AS COMMUNICATION_CELL_ID,
 				CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
 				FROM [${payloadAttributes.update_contact}] AS bucket
-				LEFT JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = '${payloadAttributes.key}'`
 
 			console.dir(communicationQuery);
 
 		} else if ( payloadAttributes.push_type == 'offer' && payloadAttributes.offer_channel == '3') {
 
-			// this is informational, comm cell should come from offer page TESTED
+			// this is informational, comm cell should come from offer page
 			communicationQuery =
 				`SELECT bucket.PARTY_ID AS PARTY_ID,
 				MPT.communication_key 	AS COMMUNICATION_CELL_ID,
 				CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
 				FROM [${payloadAttributes.update_contact}] as bucket
-				LEFT JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = '${payloadAttributes.key}'`
 
 			console.dir(communicationQuery);
-		}
-
-		// everyone gets contacted in some way so send one of the above queries to marketing cloud
-		const communicationQueryId = await sendQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, marketingCloud.communicationTableName, "IF028 - Communication History - " + dateString + " - " + payloadAttributes.query_name, "Communication Cell Assignment in IF028 for " + payloadAttributes.query_name);
-		if ( seed ) {
-			await runQuery(communicationQueryId)
-		} else {		
-			await logQuery(communicationQueryId, payloadAttributes.query_reoccuring, payloadAttributes.query_date);
+		}		
+		
+		// Create and run comms history SQL - not needed for seeds
+		if (!seed) {
+			const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, marketingCloud.communicationTableName, `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
+			await runSQLQuery(communicationQueryId)
 			returnIds["communication_query_id"] = communicationQueryId;
 		}
 
-		// now we handle whether this is legit offer or a informational offer
+		// now we handle whether this is a voucher offer or a informational offer
 		if ( payloadAttributes.push_type == "offer" ) {
 
 			if ( payloadAttributes.offer_channel != "3" || payloadAttributes.offer_channel != 3 ) {				
@@ -368,7 +368,7 @@ async function addQueryActivity(payload, seed) {
 				MPT.offer_mc_id_1       AS MC_UNIQUE_PROMOTION_ID,
 				GETDATE()               AS ASSIGNMENT_DATETIME
 				FROM [${payloadAttributes.update_contact}] AS bucket
-				LEFT JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = '${payloadAttributes.key}'`
 
 				let instore_assignment_query =
@@ -376,7 +376,7 @@ async function addQueryActivity(payload, seed) {
 				MPT.offer_mc_id_6       AS MC_UNIQUE_PROMOTION_ID,
 				GETDATE()               AS ASSIGNMENT_DATETIME
 				FROM [${payloadAttributes.update_contact}] AS bucket
-				LEFT JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = '${payloadAttributes.key}'`
 
 				if ( payloadAttributes.promotion_type == 'online') {
@@ -396,14 +396,10 @@ async function addQueryActivity(payload, seed) {
 					console.dir(assignmentQuery);
 				}
 
-				// send the assignment query
-				const assignmentQueryId = await sendQuery(marketingCloud.assignmentID, marketingCloud.assignmentKey, assignmentQuery, marketingCloud.assignmentTableName, "IF024 Assignment - " + dateString + " - " + payloadAttributes.query_name, "Assignment in PROMOTION_ASSIGNMENT in IF024 for " + payloadAttributes.query_name);
-				if ( seed ) {
-					await runQuery(assignmentQueryId)
-				} else {
-					await logQuery(assignmentQueryId, payloadAttributes.query_reoccuring, payloadAttributes.query_date);
-					returnIds["assignment_query_id"] = assignmentQueryId;
-				}
+				// create and run the voucher assignment query
+				const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentID, marketingCloud.assignmentKey, assignmentQuery, marketingCloud.assignmentTableName, `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
+				await runSQLQuery(assignmentQueryId);
+				returnIds["assignment_query_id"] = assignmentQueryId;
 			}
 
 			if ((payloadAttributes.promotion_type == 'online' || payloadAttributes.promotion_type == 'online_instore')
@@ -437,7 +433,8 @@ async function addQueryActivity(payload, seed) {
 						ON MPT.push_key = '${payloadAttributes.key}'
 						INNER JOIN [${sourceDataModel}] AS PCD
 						ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-					) A 
+						WHERE ${appCardNumber} IS NOT NULL
+					) A
 					LEFT JOIN (
 						SELECT  CouponCode
 						,       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RN
@@ -445,8 +442,6 @@ async function addQueryActivity(payload, seed) {
 						WHERE   IsClaimed = 0
 					) VP
 					ON A.RN = VP.RN`
-
-				console.dir(memberOfferQuery)
 			}
 			else {
 
@@ -466,19 +461,16 @@ async function addQueryActivity(payload, seed) {
 					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 					ON MPT.push_key = '${payloadAttributes.key}'
 					INNER JOIN [${sourceDataModel}] AS PCD
-					ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID`;
-			}		
+					ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+					WHERE ${appCardNumber} IS NOT NULL`;
+			}	
 			
-			// always send the member offer query
 			console.dir(memberOfferQuery);
-			const memberOfferQueryId = await sendQuery(marketingCloud.offerID, marketingCloud.offerKey, memberOfferQuery, marketingCloud.offerTableName, "IF008 Offer - " + dateString + " - " + payloadAttributes.query_name, "Member Offer Assignment in IF008 for " + payloadAttributes.query_name);
-			if (seed) {
-				await runQuery(memberOfferQueryId)
-			} else {
-				await logQuery(memberOfferQueryId, payloadAttributes.query_reoccuring, payloadAttributes.query_date);
-				returnIds["member_offer_query_id"] = memberOfferQueryId;
-			}
 
+			const memberOfferQueryId = await createSQLQuery(marketingCloud.offerID, marketingCloud.offerKey, memberOfferQuery, marketingCloud.offerTableName, `IF008 Offer - ${dateString} - ${payloadAttributes.query_name}`, `Member Offer Assignment in IF008 for ${payloadAttributes.query_name}`);
+			await runSQLQuery(memberOfferQueryId);
+			returnIds["member_offer_query_id"] = memberOfferQueryId;
+			
 		} else if ( payloadAttributes.push_type == "message" ) {
 
 			// message query
@@ -491,17 +483,14 @@ async function addQueryActivity(payload, seed) {
 				MPT.message_status          AS STATUS,
 				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
 				INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-				LEFT JOIN [${marketingCloud.mobilePushMainTable}] as MPT
-				ON MPT.push_key = ${payloadAttributes.key}`
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
+				ON MPT.push_key = ${payloadAttributes.key}
+				WHERE ${appCardNumber} IS NOT NULL`
 
 			console.dir(messageQuery);
-			const messageQueryId = await sendQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, marketingCloud.messageTableName, "IF008 Message - " + dateString + " - " + payloadAttributes.query_name, "Message Assignment in IF008 for " + payloadAttributes.query_name);
-			if ( seed ) {
-				await runQuery(messageQueryId)
-			} else {			
-				await logQuery(messageQueryId, payloadAttributes.query_reoccuring, payloadAttributes.query_date);
-				returnIds["member_message_query_id"] = messageQueryId;
-			}
+			const messageQueryId = await createSQLQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, marketingCloud.messageTableName, `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
+			await runSQLQuery(messageQueryId);
+			returnIds["member_message_query_id"] = messageQueryId;
 		}
 		return returnIds;
 
@@ -792,7 +781,7 @@ const updateDataExtension = (updatedPushPayload, existingKey) => new Promise((re
 async function buildAndUpdate(payload, key) {
 	try {
 
-		const updatedPushPayload = await updatePushPayload(payload);
+		const updatedPushPayload = updatePushPayload(payload);
 		const updatedPushObject = await updateDataExtension(updatedPushPayload, key);
 
 		return updatedPushPayload;
@@ -808,10 +797,10 @@ async function buildAndSend(payload) {
 		const incrementData = await getIncrements();
 		const commCellIncrementData = await getCommCellIncrements();
 
-		const pushPayload = await buildPushPayload(payload, commCellIncrementData.communication_cell_code_id_increment);
+		const pushPayload = buildPushPayload(payload, commCellIncrementData.communication_cell_code_id_increment);
 		const pushObject = await saveToDataExtension(pushPayload, incrementData);
 
-		const commPayload = await buildCommPayload(pushPayload);
+		const commPayload = buildCommPayload(pushPayload);
 		const commObject = await saveToCommunicationDataExtension(commPayload, commCellIncrementData.communication_cell_code_id_increment);
 
 		await updateIncrements(incrementData);
@@ -996,7 +985,7 @@ const executeQuery = (executeThisQueryId) => new Promise((resolve, reject) => {
 	
 });
 
-async function runQuery(executeThisQueryId) {
+async function runSQLQuery(executeThisQueryId) {
 	try {
 		const returnQueryStatus = await executeQuery(executeThisQueryId);
 		console.dir("The query status is");
@@ -1022,7 +1011,7 @@ app.post('/run/query/:queryId', async function(req, res) {
 	console.dir(req.params.queryId);
 	var executeThisQueryId = req.params.queryId;
 	try {
-		const returnQueryResponse = await runQuery(executeThisQueryId);
+		const returnQueryResponse = await runSQLQuery(executeThisQueryId);
 		console.dir("The query response object is");
 		console.dir(returnQueryResponse);
 		res.send(JSON.stringify(returnQueryResponse));

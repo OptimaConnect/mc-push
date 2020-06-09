@@ -162,7 +162,7 @@
                 </div>
             </div>
             <div class="slds-col slds-size_1-of-3">
-                <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
+                <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" hidden>
                     <fieldset class="slds-form-element slds-form-element_stacked">
                         <legend class="slds-form-element__legend slds-form-element__label">Automation Setup</legend>
                     </fieldset>
@@ -443,6 +443,19 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="slds-form-element sfmc-input">
+                                <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Offer
+                                    Type</label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-select_container">
+                                        <select class="slds-select" id="offer_type">
+                                            <option selected value="1">Standard</option>
+                                            <option value="2">JOIN</option>
+                                            <option value="3">RREG</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="slds-form-element sfmc-input" id="promotion_element">
                                 <label class="slds-form-element__label"><b>Promotion</b></label>
                                 <div class="slds-form-element__control">
@@ -472,19 +485,6 @@
                                         <option value="true">Yes</option>
                                         <option value="false">No</option>
                                     </select>
-                                </div>
-                            </div>
-                            <div class="slds-form-element sfmc-input">
-                                <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Offer
-                                    Type</label>
-                                <div class="slds-form-element__control">
-                                    <div class="slds-select_container">
-                                        <select class="slds-select" id="offer_type">
-                                            <option selected value="1">Standard</option>
-                                            <option value="2">JOIN</option>
-                                            <option value="3">RREG</option>
-                                        </select>
-                                    </div>
                                 </div>
                             </div>
                             <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="offer_cell_box">
@@ -606,7 +606,7 @@
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_save">Save</button></li>
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_update">Update</button></li>
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_seed" disabled>Send to Seedlist</button></li>
-                            <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_create" disabled>Create Automation</button></li>
+                            <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_create" disabled>Schedule for broadcast</button></li>
                         </ul>
                     </div>
                 </article>

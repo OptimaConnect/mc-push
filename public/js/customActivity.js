@@ -682,8 +682,9 @@ define([
                     if ( debug ) {
                         console.log(result.items[i]);
                     }
-                    // do something with substr[i]
-                    $("#control_group").append("<option value=" + encodeURI(result.items[i].values.dataextensionname) + ">" + result.items[i].values.dataextensionname + "</option>");
+
+                    let de = result.items[i].values;
+                    $("#control_group").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
                 }
                 updateApiStatus("controlgroup-api", true);
             }
@@ -712,8 +713,9 @@ define([
                         if ( debug ) {
                             console.log(result.items[i].keys);
                         }
-                        // do something with `substr[i]
-                        $("#offer_promotion").append("<option data-attribute-redemptions=" + result.items[i].values.instore_code_1_redemptions + " data-attribute-control=" + result.items[i].values.communication_cell_id_control + " data-attribute-cell=" + result.items[i].values.communication_cell_id + " data-attribute-mc6=" + result.items[i].values.mc_id_6 + " data-attribute-mc1=" + result.items[i].values.mc_id_1 + " data-attribute-instore-code=" + result.items[i].values.instore_code_1 + " data-attribute-online-code=" + result.items[i].values.global_code_1 + " data-attribute-online-promotion-type=" + result.items[i].values.onlinepromotiontype + " data-attribute-promotion-type=" + result.items[i].values.promotiontype + " data-attribute-voucher-pot=" + result.items[i].values.unique_code_1 + " value=" + result.items[i].keys.promotion_key + ">" + result.items[i].values.campaign_name + "</option>");
+
+                        let deRow = result.items[i].values;
+                        $("#offer_promotion").append(`<option data-attribute-redemptions=${deRow.instore_code_1_redemptions} data-attribute-control=${deRow.communication_cell_id_control} data-attribute-cell=${deRow.communication_cell_id} data-attribute-cell-name=${deRow.cell_name} data-attribute-mc6=${deRow.mc_id_6} data-attribute-mc1=${deRow.mc_id_1} data-attribute-instore-code=${deRow.instore_code_1} data-attribute-online-code=${deRow.global_code_1} data-attribute-online-promotion-type=${deRow.onlinepromotiontype} data-attribute-promotion-type=${deRow.promotiontype} data-attribute-voucher-pot=${deRow.unique_code_1} value=${result.items[i].keys.promotion_key}>${deRow.campaign_name}</option>`);
                     }                   
                 }
 
@@ -743,8 +745,9 @@ define([
                     if ( debug ) {
                         console.log(result.items[i]);
                     }
-                    // do something with substr[i]
-                    $("#update_contacts").append("<option value=" + encodeURI(result.items[i].values.dataextensionname) + ">" + result.items[i].values.dataextensionname + "</option>");
+                    
+                    let de = result.items[i].values;
+                    $("#update_contacts").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
                 }
                 updateApiStatus("updatecontacts-api", true);
             }
@@ -1165,7 +1168,7 @@ define([
                     console.log(data);
                     $("#query_key_hidden").val(data);
                     $("#main_setup_query_id").html(data);
-                    $("#control_action_create").html("Automation Created");
+                    $("#control_action_create").html("Scheduled for broadcast");
                     $("#control_action_create").prop('disabled', true);
                 }
                 , error: function(jqXHR, textStatus, err){
