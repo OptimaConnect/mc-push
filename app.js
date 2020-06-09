@@ -295,16 +295,16 @@ async function addQueryActivity(payload, seed) {
 			sourceDataModel = marketingCloud.seedListTable;
 			appCardNumber = "PCD.MATALAN_CARD_NUMBER";
 			target_send_date_time =
-				`CASE	WHEN MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
+				`CASE	WHEN MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
 							THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
-						ELSE MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time'
+						ELSE MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time'
 				END`;
 			visible_from_date_time = "SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'"
 		} else {
 			sourceDataModel = marketingCloud.partyCardDetailsTable;
 			appCardNumber = "PCD.APP_CARD_NUMBER";
-			target_send_date_time = "MPT.message_target_send_datetime AT TIME ZONE 'GMT Standard Time'";
-			visible_from_date_time = "MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time'";
+			target_send_date_time = "MPT.[message_target_send_datetime] AT TIME ZONE 'GMT Standard Time'";
+			visible_from_date_time = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
 		}
 
 		let communicationQuery;
@@ -423,8 +423,8 @@ async function addQueryActivity(payload, seed) {
 						MPT.offer_id AS OFFER_ID,
 						NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
 						FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS [VISIBLE_FROM_DATE_TIME],
-						FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
-						FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+						FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
+						FORMAT(MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
 						MPT.offer_redemptions                           AS NO_REDEMPTIONS_ALLOWED,
 						MPT.offer_status                                AS STATUS,
 						ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
@@ -453,8 +453,8 @@ async function addQueryActivity(payload, seed) {
 					NULLIF(MPT.offer_online_code_1, 'no-code')  AS VOUCHER_ON_LINE_CODE,
 					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
 					FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS [VISIBLE_FROM_DATE_TIME],
-					FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
-					FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+					FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
+					FORMAT(MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
 					ISNULL(MPT.offer_redemptions, 1)    AS NO_REDEMPTIONS_ALLOWED,
 					MPT.offer_status                    AS STATUS
 					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
@@ -480,7 +480,7 @@ async function addQueryActivity(payload, seed) {
 				${appCardNumber}            AS LOYALTY_CARD_NUMBER,
 				MPT.message_content         AS MESSAGE_CONTENT,
 				FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
-				MPT.message_status          AS STATUS,
+				MPT.message_status          AS STATUS
 				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
 				INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
