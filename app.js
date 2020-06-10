@@ -51,7 +51,8 @@ if ( !local ) {
 	  messageKey: 						process.env.messageKey,
 	  offerID: 							process.env.offerID,
 	  offerKey: 						process.env.offerKey,
-	  queryFolder: 						process.env.queryFolder
+	  queryFolder: 						process.env.queryFolder,
+	  mobilePushMainKey:				process.env.mobilePushMainKey
 	};
 	console.dir(marketingCloud);
 }
@@ -67,6 +68,7 @@ const incrementsUrl 				= marketingCloud.restUrl + "data/v1/customobjectdata/key
 const updateIncrementUrl 			= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.incrementDataExtension 		+ "/rowset";
 const commCellIncrementUrl 			= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.commCellIncrementDataExtension + "/rowset";
 const updateCommCellIncrementUrl  	= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.commCellIncrementDataExtension + "/rowset";
+const mobilePushMainTableUrl  		= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.mobilePushMainKey				+ "/rowset";
 
 
 const automationUrl 		= marketingCloud.automationEndpoint;
@@ -1070,6 +1072,29 @@ app.post('/automation/create/query/seed', async function (req, res){
 	
 });
 
+// Fetch existing row from mobile push main table
+app.get("/dataextension/lookup/mobilepushmain/:pushKey", (req, res, next) => {
+	getOauth2Token().then((tokenResponse) => {
+		const fullRequestUrl = `${mobilePushMainTableUrl}?$filter=push_key eq ${req.params.pushKey}`;
+
+		axios.get(fullRequestUrl, { 
+			headers: { 
+				Authorization: tokenResponse
+			}
+		})
+		.then(response => {
+			// If request is good... 
+			res.json(response.data);
+		})
+		.catch((error) => {
+		    console.dir("Error getting push main data");
+			console.dir(error);
+			next(error)
+		});
+	})
+});
+
+
 //Fetch increment values
 app.get("/dataextension/lookup/increments", (req, res, next) => {
 
@@ -1086,7 +1111,7 @@ app.get("/dataextension/lookup/increments", (req, res, next) => {
 		})
 		.catch((error) => {
 		    console.dir("Error getting increments");
-		    console.dir(error);
+			console.dir(error);
 		});
 	})
 });
