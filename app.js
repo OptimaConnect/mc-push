@@ -882,7 +882,7 @@ function updatePushPayload(payload) {
 	console.dir("The current DT stamp is");
 	console.dir(currentDateTimeStamp);
 
-	mobilePushData.date_added = currentDateTimeStamp;
+	mobilePushData.date_updated = currentDateTimeStamp;
 	if ( mobilePushData.push_type == 'message') {
 		mobilePushData.message_status = 'A';
 	} else {
