@@ -3,17 +3,18 @@
 // Module Dependencies
 require('dotenv').config();
 const axios 			= require('axios');
-var express     		= require('express');
-var bodyParser  		= require('body-parser');
-var errorhandler 		= require('errorhandler');
-var http        		= require('http');
-var path        		= require('path');
-var request     		= require('request');
-var routes      		= require('./routes');
-var activity    		= require('./routes/activity');
-var urlencodedparser 	= bodyParser.urlencoded({extended:false});
-var app 				= express();
-var local       		= false;
+const express     		= require('express');
+const bodyParser  		= require('body-parser');
+const errorhandler 		= require('errorhandler');
+const http        		= require('http');
+const path        		= require('path');
+const request     		= require('request');
+const moment 			= require('moment-timezone');
+const routes      		= require('./routes');
+const activity    		= require('./routes/activity');
+const urlencodedparser 	= bodyParser.urlencoded({extended:false});
+const app 				= express();
+const local       		= false;
 
 
 // access Heroku variables
@@ -863,41 +864,14 @@ async function buildAndSend(payload) {
 	}
 }
 
-function getDateString(dateOffSetted) {
-	let date_ob = new Date(dateOffSetted);
-	let date = ("0" + date_ob.getDate()).slice(-2);
-	let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
-	let year = date_ob.getFullYear();
-	let hours = date_ob.getHours();
-	let minutes = date_ob.getMinutes();
-    let seconds = date_ob.getSeconds();
-    if ( minutes < 10 ) {
-        minutes = "0" + minutes;
-    }
-    if ( seconds < 10 ) {
-        seconds = "0" + seconds;
-    }
-	
-	let dateString = year + "/" + month + "/" + date + " " + hours + ":" + minutes + ":" + seconds;	
-	return dateString;
-}
-
-function getDateAndOffSet() {
-    var dt = new Date();
-    //console.log(dt); // Gives Tue Mar 22 2016 09:30:00 GMT+0530 (IST)
-
-    dt.setTime(dt.getTime()+dt.getTimezoneOffset()*60*1000);
-    //console.log(dt); // Gives Tue Mar 22 2016 04:00:00 GMT+0530 (IST)
-
-    var offset = -300; //Timezone offset for EST in minutes.
-    var estDate = new Date(dt.getTime() + offset*60*1000);
-    console.log(estDate);
-    return estDate; 
+function getSfmcDatetimeNow() {
+	const sfmcNow = moment().tz("Etc/GMT+6");
+	return sfmcNow.format();
 }
 
 function buildPushPayload(payload, commCellKey) {
-	var mobilePushData = {};
-	for ( var i = 0; i < payload.length; i++ ) {
+	let mobilePushData = {};
+	for ( let i = 0; i < payload.length; i++ ) {
 		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
 
@@ -907,11 +881,12 @@ function buildPushPayload(payload, commCellKey) {
 		mobilePushData["communication_control_key"] = parseInt(commCellKey) + 1;		
 	}
 	
-	var currentDateTimeStamp = getDateString(getDateAndOffSet());
+	const currentDateTimeStamp = getSfmcDatetimeNow();
 	console.dir("The current DT stamp is");
 	console.dir(currentDateTimeStamp);
 
 	mobilePushData.date_updated = currentDateTimeStamp;
+	mobilePushData.date_created = currentDateTimeStamp;
 
 	console.dir("building push payload")
 	console.dir(mobilePushData);
@@ -920,14 +895,14 @@ function buildPushPayload(payload, commCellKey) {
 }
 
 function updatePushPayload(payload) {
-	var mobilePushData = {};
-	for ( var i = 0; i < payload.length; i++ ) {
+	let mobilePushData = {};
+	for ( let i = 0; i < payload.length; i++ ) {
 		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
 
 	}
 
-	var currentDateTimeStamp = getDateString(getDateAndOffSet());
+	const currentDateTimeStamp = getSfmcDatetimeNow();
 	console.dir("The current DT stamp is");
 	console.dir(currentDateTimeStamp);
 
