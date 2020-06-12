@@ -223,7 +223,13 @@ async function definePayloadAttributes(payload, seed) {
 
 };
 
-const createSQLQuery = (targetId, targetKey, query, target, name, description) => new Promise((resolve, reject) => {
+const updateTypes = {
+	Overwrite: 0,
+	AddUpdate: 1,
+	Append: 2
+}
+
+const createSQLQuery = (targetId, targetKey, query, updateType, target, name, description) => new Promise((resolve, reject) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -244,7 +250,7 @@ const createSQLQuery = (targetId, targetKey, query, target, name, description) =
 		    "targetName": target,
 		    "targetKey": targetKey,
 		    "targetId": targetId,
-		    "targetUpdateTypeId": 1,
+		    "targetUpdateTypeId": updateType,
 		    "categoryId": marketingCloud.queryFolder
 		}
 
@@ -323,7 +329,7 @@ async function addQueryActivity(payload, seed) {
 				CAST(${target_send_date_time} AS datetime) AS CONTACT_DATE
 				FROM [${payloadAttributes.update_contact}] AS bucket
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-				ON MPT.push_key = '${payloadAttributes.key}'`
+				ON MPT.push_key = ${payloadAttributes.key}`
 
 			console.dir(communicationQuery);
 
@@ -336,7 +342,7 @@ async function addQueryActivity(payload, seed) {
 				CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
 				FROM [${payloadAttributes.update_contact}] AS bucket
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-				ON MPT.push_key = '${payloadAttributes.key}'`
+				ON MPT.push_key = ${payloadAttributes.key}`
 
 			console.dir(communicationQuery);
 
@@ -349,14 +355,14 @@ async function addQueryActivity(payload, seed) {
 				CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
 				FROM [${payloadAttributes.update_contact}] as bucket
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-				ON MPT.push_key = '${payloadAttributes.key}'`
+				ON MPT.push_key = ${payloadAttributes.key}`
 
 			console.dir(communicationQuery);
 		}		
 		
 		// Create and run comms history SQL - not needed for seeds
 		if (!seed) {
-			const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, marketingCloud.communicationTableName, `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
+			const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
 			await runSQLQuery(communicationQueryId)
 			returnIds["communication_query_id"] = communicationQueryId;
 		}
@@ -371,7 +377,7 @@ async function addQueryActivity(payload, seed) {
 				GETDATE()               AS ASSIGNMENT_DATETIME
 				FROM [${payloadAttributes.update_contact}] AS bucket
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-				ON MPT.push_key = '${payloadAttributes.key}'`
+				ON MPT.push_key = ${payloadAttributes.key}`
 
 				let instore_assignment_query =
 				`SELECT bucket.PARTY_ID AS PARTY_ID,
@@ -379,7 +385,7 @@ async function addQueryActivity(payload, seed) {
 				GETDATE()               AS ASSIGNMENT_DATETIME
 				FROM [${payloadAttributes.update_contact}] AS bucket
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-				ON MPT.push_key = '${payloadAttributes.key}'`
+				ON MPT.push_key = ${payloadAttributes.key}`
 
 				let assignmentQuery;
 				if ( payloadAttributes.promotion_type == 'online') {
@@ -400,7 +406,7 @@ async function addQueryActivity(payload, seed) {
 				}
 
 				// create and run the voucher assignment query
-				const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentID, marketingCloud.assignmentKey, assignmentQuery, marketingCloud.assignmentTableName, `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
+				const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentID, marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
 				await runSQLQuery(assignmentQueryId);
 				returnIds["assignment_query_id"] = assignmentQueryId;
 			}
@@ -440,7 +446,7 @@ async function addQueryActivity(payload, seed) {
 						ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
 						FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
 						INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-						ON MPT.push_key = '${payloadAttributes.key}'
+						ON MPT.push_key = ${payloadAttributes.key}
 						INNER JOIN [${sourceDataModel}] AS PCD
 						ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
 						LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
@@ -477,7 +483,7 @@ async function addQueryActivity(payload, seed) {
 					SYSDATETIME()   AS DATE_UPDATED
 					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
 					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-					ON MPT.push_key = '${payloadAttributes.key}'
+					ON MPT.push_key = ${payloadAttributes.key}
 					INNER JOIN [${sourceDataModel}] AS PCD
 					ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
 					LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
@@ -515,8 +521,8 @@ async function addQueryActivity(payload, seed) {
 			console.dir(masterOfferQuery);
 			console.dir(memberOfferQuery);
 
-			const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferID, marketingCloud.masterOfferKey, masterOfferQuery, marketingCloud.masterOfferTableName, `Master Offer - ${dateString} - ${payloadAttributes.query_name}`, `Master Offer Assignment for ${payloadAttributes.query_name}`);
-			const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferID, marketingCloud.memberOfferKey, memberOfferQuery, marketingCloud.memberOfferTableName, `Member Offer - ${dateString} - ${payloadAttributes.query_name}`, `Member Offer Assignment for ${payloadAttributes.query_name}`);
+			const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferID, marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, `Master Offer - ${dateString} - ${payloadAttributes.query_name}`, `Master Offer Assignment for ${payloadAttributes.query_name}`);
+			const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferID, marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, `Member Offer - ${dateString} - ${payloadAttributes.query_name}`, `Member Offer Assignment for ${payloadAttributes.query_name}`);
 			await runSQLQuery(masterOfferQueryId);
 			await runSQLQuery(memberOfferQueryId);
 
@@ -527,12 +533,15 @@ async function addQueryActivity(payload, seed) {
 
 			// message query
 			let messageQuery = 
-				`SELECT 'Matalan'            AS SCHEME_ID,
+				`SELECT MPT.push_key,
+				'Matalan'            AS SCHEME_ID,
 				(cast(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + row_number() over (order by (select null)) AS MOBILE_MESSAGE_ID,
 				${appCardNumber}            AS LOYALTY_CARD_NUMBER,
 				MPT.message_content         AS MESSAGE_CONTENT,
 				FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
-				MPT.message_status          AS STATUS
+				MPT.message_status          AS STATUS,
+				SYSDATETIME()               AS DATE_CREATED,
+				SYSDATETIME()               AS DATE_UPDATED
 				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
 				INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
@@ -540,7 +549,7 @@ async function addQueryActivity(payload, seed) {
 				WHERE ${appCardNumber} IS NOT NULL`
 
 			console.dir(messageQuery);
-			const messageQueryId = await createSQLQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, marketingCloud.messageTableName, `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
+			const messageQueryId = await createSQLQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, updateTypes.Append, marketingCloud.messageTableName, `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
 			await runSQLQuery(messageQueryId);
 			returnIds["member_message_query_id"] = messageQueryId;
 		}
