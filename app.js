@@ -427,7 +427,7 @@ async function addQueryActivity(payload, seed) {
 						${appCardNumber} AS LOYALTY_CARD_NUMBER,
 						MPT.offer_id AS OFFER_ID,
 						NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
-						CASE 	WHEN mo.VISIBLE_FROM_DATE_TIME <> mo.START_DATE_TIME THEN mo.VISIBLE_FROM_DATE_TIME  /* If a seed, keep the existing visible from datetime */
+						CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
 								ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 								END AS [VISIBLE_FROM_DATE_TIME],
 						FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
@@ -465,7 +465,7 @@ async function addQueryActivity(payload, seed) {
 					MPT.offer_id        AS OFFER_ID,
 					NULLIF(MPT.offer_online_code_1, 'no-code')  AS VOUCHER_ON_LINE_CODE,
 					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
-					CASE 	WHEN mo.VISIBLE_FROM_DATE_TIME <> mo.START_DATE_TIME THEN mo.VISIBLE_FROM_DATE_TIME  /* If a seed, keep the existing visible from datetime */
+					CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
 							ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 							END AS [VISIBLE_FROM_DATE_TIME],
 					FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
@@ -507,7 +507,7 @@ async function addQueryActivity(payload, seed) {
 				mpt.offer_info_button_text 		AS INFO_BUTTON_TEXT,
 				SYSDATETIME()                   AS DATE_UPDATED
 				FROM [${marketingCloud.mobilePushMainTable}] AS mpt
-				LEFT JOIN [${marketingCloud.masterOfferDetailsTable}] AS o
+				LEFT JOIN [${marketingCloud.masterOfferTableName}] AS o
 				ON      mpt.OFFER_ID = o.OFFER_ID
 				WHERE   push_type = 'offer'
 				AND     push_key = ${payloadAttributes.key}`
