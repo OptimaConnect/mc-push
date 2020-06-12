@@ -440,7 +440,7 @@ async function addQueryActivity(payload, seed) {
 						FORMAT(MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
 						MPT.offer_redemptions                           AS NO_REDEMPTIONS_ALLOWED,
 						CASE    WHEN mo.STATUS IS NULL THEN 'A'
-								WHEN mo.STATUS = 'A' AND mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED THEN 'A'
+								WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
 								ELSE 'C' END			    AS STATUS,
 						SYSDATETIME()                       AS DATE_UPDATED,
 						ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
@@ -478,7 +478,7 @@ async function addQueryActivity(payload, seed) {
 					FORMAT(MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
 					ISNULL(MPT.offer_redemptions, 1)    AS NO_REDEMPTIONS_ALLOWED,
 					CASE    WHEN mo.STATUS IS NULL THEN 'A'
-							WHEN mo.STATUS = 'A' AND mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED THEN 'A'
+							WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
 							ELSE 'C' END			    AS STATUS,
 					SYSDATETIME()   AS DATE_UPDATED
 					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
@@ -501,7 +501,7 @@ async function addQueryActivity(payload, seed) {
 				FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS START_DATE_TIME,
 				FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS END_DATE_TIME,
 				CASE    WHEN o.STATUS IS NULL THEN 'A'
-						WHEN o.STATUS = 'A' AND o.DATE_MOBILIZE_SYNC < o.DATE_UPDATED THEN 'A'
+						WHEN o.STATUS = 'A' AND (o.DATE_MOBILIZE_SYNC < o.DATE_UPDATED OR o.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
 						ELSE 'C' END			AS STATUS,
 				mpt.offer_type 					AS OFFER_TYPE,
 				mpt.offer_image_url 			AS IMAGE_URL_1,
@@ -539,7 +539,7 @@ async function addQueryActivity(payload, seed) {
 				${appCardNumber}            AS LOYALTY_CARD_NUMBER,
 				MPT.message_content         AS MESSAGE_CONTENT,
 				FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
-				MPT.message_status          AS STATUS,
+				'A'							AS STATUS,
 				SYSDATETIME()               AS DATE_CREATED,
 				SYSDATETIME()               AS DATE_UPDATED
 				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
@@ -1048,7 +1048,7 @@ app.post('/run/query/:queryId', async function(req, res) {
 	}
 });
 
-// insert data into data extension
+// insert data into mobile_push_main data extension
 app.post('/dataextension/add/', async function (req, res){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
@@ -1060,7 +1060,7 @@ app.post('/dataextension/add/', async function (req, res){
 	}
 });
 
-// insert data into data extension
+// update data in mobile_push_main data extension
 app.post('/dataextension/update/', async function (req, res){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
@@ -1072,7 +1072,7 @@ app.post('/dataextension/update/', async function (req, res){
 	}
 });
 
-// insert data into data extension
+// create a SQL query activity
 app.post('/automation/create/query', async function (req, res){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
@@ -1085,7 +1085,6 @@ app.post('/automation/create/query', async function (req, res){
 	
 });
 
-// insert data into data extension
 app.post('/automation/create/query/seed', async function (req, res){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
