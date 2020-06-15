@@ -15,6 +15,7 @@ const activity    		= require('./routes/activity');
 const urlencodedparser 	= bodyParser.urlencoded({extended:false});
 const app 				= express();
 const local       		= false;
+const { ServiceBusClient } = require('@azure/service-bus');
 
 
 // access Heroku variables
@@ -60,6 +61,9 @@ if ( !local ) {
 	};
 	console.dir(marketingCloud);
 }
+
+const azureServiceBusConnectionString =	process.env.azureServiceBusConnectionString;
+const azureQueueName = process.env.azureQueueName;
 
 // url constants
 const scheduleUrl 					= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.automationScheduleExtension 	+ "/rowset";
@@ -362,8 +366,9 @@ async function addQueryActivity(payload, seed) {
 		
 		// Create and run comms history SQL - not needed for seeds
 		if (!seed) {
-			const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
-			await runSQLQuery(communicationQueryId)
+			const communicationQueryName = `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`;
+			const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
+			await runSQLQuery(communicationQueryId, communicationQueryName)
 			returnIds["communication_query_id"] = communicationQueryId;
 		}
 
@@ -406,8 +411,9 @@ async function addQueryActivity(payload, seed) {
 				}
 
 				// create and run the voucher assignment query
-				const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentID, marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
-				await runSQLQuery(assignmentQueryId);
+				const assignmentQueryName = `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`;
+				const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentID, marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, assignmentQueryName, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
+				await runSQLQuery(assignmentQueryId, assignmentQueryName);
 				returnIds["assignment_query_id"] = assignmentQueryId;
 			}
 			
@@ -521,10 +527,12 @@ async function addQueryActivity(payload, seed) {
 			console.dir(masterOfferQuery);
 			console.dir(memberOfferQuery);
 
-			const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferID, marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, `Master Offer - ${dateString} - ${payloadAttributes.query_name}`, `Master Offer Assignment for ${payloadAttributes.query_name}`);
-			const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferID, marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, `Member Offer - ${dateString} - ${payloadAttributes.query_name}`, `Member Offer Assignment for ${payloadAttributes.query_name}`);
-			await runSQLQuery(masterOfferQueryId);
-			await runSQLQuery(memberOfferQueryId);
+			const masterOfferQueryName = `Master Offer - ${dateString} - ${payloadAttributes.query_name}`;
+			const memberOfferQueryName = `Member Offer - ${dateString} - ${payloadAttributes.query_name}`;
+			const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferID, marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
+			const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferID, marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
+			await runSQLQuery(masterOfferQueryId, masterOfferQueryName);
+			await runSQLQuery(memberOfferQueryId, memberOfferQueryName);
 
 			returnIds["master_offer_query_id"] = masterOfferQueryId;
 			returnIds["member_offer_query_id"] = memberOfferQueryId;
@@ -549,8 +557,10 @@ async function addQueryActivity(payload, seed) {
 				WHERE ${appCardNumber} IS NOT NULL`
 
 			console.dir(messageQuery);
-			const messageQueryId = await createSQLQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, updateTypes.Append, marketingCloud.messageTableName, `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
-			await runSQLQuery(messageQueryId);
+
+			const messageQueryName = `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`;
+			const messageQueryId = await createSQLQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
+			await runSQLQuery(messageQueryId, messageQueryName);
 			returnIds["member_message_query_id"] = messageQueryId;
 		}
 		return returnIds;
@@ -1013,14 +1023,29 @@ const executeQuery = (executeThisQueryId) => new Promise((resolve, reject) => {
 	
 });
 
-async function runSQLQuery(executeThisQueryId) {
+async function runSQLQuery(executeThisQueryId, queryName) {
+	const sbClient = ServiceBusClient.createFromConnectionString(azureServiceBusConnectionString);
+	const queueClient = sbClient.createQueueClient(azureQueueName);
+	const sender = queueClient.createSender();
 	try {
-		const returnQueryStatus = await executeQuery(executeThisQueryId);
-		console.dir("The query status is");
-		console.dir(returnQueryStatus);
-		return returnQueryStatus;
+
+		const queryToRunMessage = {
+			body: {
+				queryId: executeThisQueryId,
+				queryName: queryName
+			},
+			contentType: "application/json",
+		}
+
+		await sender.send(queryToRunMessage);
+
+		console.dir(`Query queued for execution: ${JSON.stringify(queryToRunMessage.body)}`);
+		await queueClient.close();
+
 	} catch(err) {
-		console.dir(err);
+		console.dir(`Error occured: ${err}`);
+	} finally {
+		await sbClient.close();
 	}
 }
 
