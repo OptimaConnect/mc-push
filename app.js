@@ -540,13 +540,15 @@ async function addQueryActivity(payload, seed) {
 				MPT.message_content         AS MESSAGE_CONTENT,
 				FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
 				'A'							AS STATUS,
+				MPT.message_title           AS TITLE,
+				MPT.message_url             AS [URL],
 				SYSDATETIME()               AS DATE_CREATED,
 				SYSDATETIME()               AS DATE_UPDATED
 				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
 				INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
 				ON MPT.push_key = ${payloadAttributes.key}
-				WHERE ${appCardNumber} IS NOT NULL`
+				WHERE ${appCardNumber} IS NOT NULL`;
 
 			console.dir(messageQuery);
 			const messageQueryId = await createSQLQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, updateTypes.Append, marketingCloud.messageTableName, `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
