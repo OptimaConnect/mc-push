@@ -37,19 +37,14 @@ if ( !local ) {
 	  automationEndpoint: 				process.env.automationEndpoint,
 	  promotionTableName: 				process.env.promotionTableName,
 	  communicationTableName: 			process.env.communicationTableName,
-	  communicationHistoryID: 			process.env.communicationHistoryID,
 	  communicationHistoryKey: 			process.env.communicationHistoryKey,
 	  assignmentTableName: 				process.env.assignmentTableName,
-	  assignmentID: 					process.env.assignmentID,
 	  assignmentKey: 					process.env.assignmentKey,
 	  messageTableName: 				process.env.messageTableName,
-	  messageID: 						process.env.messageID,
 	  messageKey: 						process.env.messageKey,
 	  masterOfferTableName: 			process.env.masterOfferTableName,
-	  masterOfferID: 					process.env.masterOfferID,
 	  masterOfferKey: 					process.env.masterOfferKey,
 	  memberOfferTableName: 			process.env.memberOfferTableName,
-	  memberOfferID: 					process.env.memberOfferID,
 	  memberOfferKey: 					process.env.memberOfferKey,
 	  mobilePushMainTable: 				process.env.mobilePushMainTable,
 	  mobilePushMainKey:				process.env.mobilePushMainKey,
@@ -57,7 +52,8 @@ if ( !local ) {
 	  promotionDescriptionTable: 		process.env.promotionDescriptionTable,
 	  seedListTable: 					process.env.seedListTable,
 	  automationScheduleExtension:  	process.env.automationScheduleExtension,
-	  queryFolder: 						process.env.queryFolder
+	  queryFolder: 						process.env.queryFolder,
+	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey
 	};
 	console.dir(marketingCloud);
 }
@@ -77,6 +73,7 @@ const updateIncrementUrl 			= marketingCloud.restUrl + "hub/v1/dataevents/key:" 
 const commCellIncrementUrl 			= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.commCellIncrementDataExtension + "/rowset";
 const updateCommCellIncrementUrl  	= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.commCellIncrementDataExtension + "/rowset";
 const mobilePushMainTableUrl  		= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.mobilePushMainKey				+ "/rowset";
+const uniqueVoucherPotsUrl 			= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.uniqueVoucherPotsKey			+ "/rowset";
 
 
 const automationUrl 		= marketingCloud.automationEndpoint;
@@ -233,7 +230,7 @@ const updateTypes = {
 	Append: 2
 }
 
-const createSQLQuery = (targetId, targetKey, query, updateType, target, name, description) => new Promise((resolve, reject) => {
+const createSQLQuery = (targetKey, query, updateType, target, name, description) => new Promise((resolve, reject) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -253,7 +250,6 @@ const createSQLQuery = (targetId, targetKey, query, updateType, target, name, de
 		    "queryText": query,
 		    "targetName": target,
 		    "targetKey": targetKey,
-		    "targetId": targetId,
 		    "targetUpdateTypeId": updateType,
 		    "categoryId": marketingCloud.queryFolder
 		}
@@ -367,7 +363,7 @@ async function addQueryActivity(payload, seed) {
 		// Create and run comms history SQL - not needed for seeds
 		if (!seed) {
 			const communicationQueryName = `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`;
-			const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
+			const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
 			await runSQLQuery(communicationQueryId, communicationQueryName)
 			returnIds["communication_query_id"] = communicationQueryId;
 		}
@@ -412,12 +408,13 @@ async function addQueryActivity(payload, seed) {
 
 				// create and run the voucher assignment query
 				const assignmentQueryName = `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`;
-				const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentID, marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, assignmentQueryName, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
+				const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, assignmentQueryName, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
 				await runSQLQuery(assignmentQueryId, assignmentQueryName);
 				returnIds["assignment_query_id"] = assignmentQueryId;
 			}
 			
 			let memberOfferQuery;
+			let claimUniqueVoucherQuery;
 			if ((payloadAttributes.promotion_type == 'online' || payloadAttributes.promotion_type == 'online_instore')
 				&& payloadAttributes.online_promotion_type == 'unique') {
 
@@ -427,7 +424,7 @@ async function addQueryActivity(payload, seed) {
 					A.LOYALTY_CARD_NUMBER,
 					A.PARTY_ID,
 					A.OFFER_ID,
-					vp.CouponCode AS VOUCHER_ON_LINE_CODE,
+					ISNULL(A.EXISTING_ON_LINE_CODE, vp.CouponCode) AS VOUCHER_ON_LINE_CODE,
 					A.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
 					A.[VISIBLE_FROM_DATE_TIME],
 					A.[START_DATE_TIME],
@@ -441,6 +438,7 @@ async function addQueryActivity(payload, seed) {
 						PCD.PARTY_ID,
 						MPT.offer_id AS OFFER_ID,
 						NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
+						mo.VOUCHER_ON_LINE_CODE						AS EXISTING_ON_LINE_CODE,
 						CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
 								ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 								END AS [VISIBLE_FROM_DATE_TIME],
@@ -469,6 +467,20 @@ async function addQueryActivity(payload, seed) {
 						WHERE   IsClaimed = 0
 					) VP
 					ON A.RN = VP.RN`
+
+				claimUniqueVoucherQuery = 
+					`SELECT uv.CouponCode
+					,       1           AS IsClaimed
+					,       mo.PARTY_ID AS SubscriberKey
+					,       mo.PARTY_ID AS PARTY_ID
+					,       SYSDATETIMEOFFSET() AS ClaimedDate
+					FROM    [${marketingCloud.memberOfferTableName}] AS mo
+					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS mpt
+					ON      mo.OFFER_ID = mpt.OFFER_ID
+					INNER JOIN [${payloadAttributes.unique_code_1}] AS uv 
+					ON      mo.VOUCHER_ON_LINE_CODE = uv.CouponCode
+					WHERE   mpt.push_key = ${payloadAttributes.key}
+					AND 	uv.IsClaimed = 0`
 			}
 			else {
 
@@ -532,13 +544,23 @@ async function addQueryActivity(payload, seed) {
 
 			const masterOfferQueryName = `Master Offer - ${dateString} - ${payloadAttributes.query_name}`;
 			const memberOfferQueryName = `Member Offer - ${dateString} - ${payloadAttributes.query_name}`;
-			const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferID, marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
-			const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferID, marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
+			const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
+			const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
 			await runSQLQuery(masterOfferQueryId, masterOfferQueryName);
 			await runSQLQuery(memberOfferQueryId, memberOfferQueryName);
+			
+			let claimUniqueVoucherQueryId;
+			if (claimUniqueVoucherQuery) {
+				const voucherDeKey = await getKeyForVoucherDataExtensionByName(payloadAttributes.unique_code_1);
+
+				const claimUniqueVoucherQueryName = `Claim Unique Voucher - ${dateString} - ${payloadAttributes.query_name}`;
+				claimUniqueVoucherQueryId = await createSQLQuery(voucherDeKey, claimUniqueVoucherQuery, updateTypes.AddUpdate, payloadAttributes.unique_code_1, claimUniqueVoucherQueryName, claimUniqueVoucherQueryName);
+				await runSQLQuery(claimUniqueVoucherQueryId, claimUniqueVoucherQueryName);
+			}
 
 			returnIds["master_offer_query_id"] = masterOfferQueryId;
 			returnIds["member_offer_query_id"] = memberOfferQueryId;
+			returnIds["claim_unique_voucher_query_id"] = claimUniqueVoucherQueryId;
 			
 		} else if ( payloadAttributes.push_type == "message" ) {
 
@@ -564,7 +586,7 @@ async function addQueryActivity(payload, seed) {
 			console.dir(messageQuery);
 
 			const messageQueryName = `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`;
-			const messageQueryId = await createSQLQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
+			const messageQueryId = await createSQLQuery(marketingCloud.messageKey, messageQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
 			await runSQLQuery(messageQueryId, messageQueryName);
 			returnIds["member_message_query_id"] = messageQueryId;
 		}
@@ -1001,33 +1023,6 @@ async function sendBackUpdatedPayload(payload) {
 
 }
 
-const executeQuery = (executeThisQueryId) => new Promise((resolve, reject) => {
-
-	console.dir("Executing this query Id");
-	console.dir(executeThisQueryId);
-
-	var queryPayload = queryUrl + executeThisQueryId + "/actions/start/";
-	
-	console.dir(queryPayload);
-
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: queryPayload,
-			headers: {'Authorization': tokenResponse},
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
-
 async function runSQLQuery(executeThisQueryId, queryName) {
 	const sbClient = ServiceBusClient.createFromConnectionString(azureServiceBusConnectionString);
 	const queueClient = sbClient.createQueueClient(azureQueueName);
@@ -1051,6 +1046,28 @@ async function runSQLQuery(executeThisQueryId, queryName) {
 		console.dir(`Error occured: ${err}`);
 	} finally {
 		await sbClient.close();
+	}
+}
+
+async function getKeyForVoucherDataExtensionByName(voucherDEName) {
+	let tokenResponse = await getOauth2Token();
+
+	const fullRequestUrl = `${uniqueVoucherPotsUrl}?$filter=dataExtensionName eq ${voucherDEName}`;
+
+	try {
+		let response = await axios.get(fullRequestUrl, { 
+			headers: { 
+				Authorization: tokenResponse
+			}
+		});
+
+		let data = response.data.items[0];
+		return data.keys.id;
+	}
+	catch (error) {
+		console.dir("Error getting voucher DE Key");
+		console.dir(error);
+		reject(error);
 	}
 }
 
