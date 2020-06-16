@@ -425,6 +425,7 @@ async function addQueryActivity(payload, seed) {
 				memberOfferQuery =
 					`SELECT A.SCHEME_ID,
 					A.LOYALTY_CARD_NUMBER,
+					A.PARTY_ID,
 					A.OFFER_ID,
 					vp.CouponCode AS VOUCHER_ON_LINE_CODE,
 					A.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
@@ -437,6 +438,7 @@ async function addQueryActivity(payload, seed) {
 					FROM (
 						SELECT 'Matalan' AS SCHEME_ID,
 						${appCardNumber} AS LOYALTY_CARD_NUMBER,
+						PCD.PARTY_ID,
 						MPT.offer_id AS OFFER_ID,
 						NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
 						CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
@@ -474,6 +476,7 @@ async function addQueryActivity(payload, seed) {
 				memberOfferQuery =
 					`SELECT 'Matalan'   AS SCHEME_ID,
 					${appCardNumber}    AS LOYALTY_CARD_NUMBER,
+					PCD.PARTY_ID,
 					MPT.offer_id        AS OFFER_ID,
 					NULLIF(MPT.offer_online_code_1, 'no-code')  AS VOUCHER_ON_LINE_CODE,
 					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
