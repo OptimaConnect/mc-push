@@ -564,24 +564,53 @@ async function addQueryActivity(payload, seed) {
 			
 		} else if ( payloadAttributes.push_type == "message" ) {
 
-			// message query
-			let messageQuery = 
-				`SELECT MPT.push_key,
-				'Matalan'            AS SCHEME_ID,
-				(cast(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + row_number() over (order by (select null)) AS MOBILE_MESSAGE_ID,
-				${appCardNumber}            AS LOYALTY_CARD_NUMBER,
+			const messageUrl = "ISNULL(NULLIF(MPT.message_url,''),'content://my_rewards/my_offers_list')";
+
+			let messageQueryLiveSeeds =
+				`	UNION
+				SELECT MPT.push_key,
+				'Matalan'                   AS SCHEME_ID,
+				S.MATALAN_CARD_NUMBER       AS LOYALTY_CARD_NUMBER,
 				MPT.message_content         AS MESSAGE_CONTENT,
 				FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
 				'A'							AS STATUS,
 				MPT.message_title           AS TITLE,
-				MPT.message_url             AS [URL],
-				SYSDATETIME()               AS DATE_CREATED,
-				SYSDATETIME()               AS DATE_UPDATED
-				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
-				INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-				INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
-				ON MPT.push_key = ${payloadAttributes.key}
-				WHERE ${appCardNumber} IS NOT NULL`;
+				${messageUrl}	            AS [URL]
+				FROM [${marketingCloud.mobilePushMainTable}] AS MPT
+				CROSS JOIN [${marketingCloud.seedListTable}] AS S
+				WHERE MPT.push_key = ${payloadAttributes.key}
+				AND   S.MATALAN_CARD_NUMBER IS NOT NULL`
+
+			let messageQuery = 
+				`SELECT A.push_key
+				,		A.SCHEME_ID
+				,       (CAST(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS MOBILE_MESSAGE_ID
+				,       A.LOYALTY_CARD_NUMBER
+				,       A.MESSAGE_CONTENT
+				,       A.TARGET_SEND_DATE_TIME
+				,       A.STATUS
+				,       A.TITLE
+				,       A.[URL]
+				,       SYSDATETIME()   AS DATE_CREATED
+				,       SYSDATETIME()   AS DATE_UPDATED
+				FROM
+				(
+					SELECT MPT.push_key,
+					'Matalan'                   AS SCHEME_ID,
+					${appCardNumber}            AS LOYALTY_CARD_NUMBER,
+					MPT.message_content         AS MESSAGE_CONTENT,
+					FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
+					'A'							AS STATUS,
+					MPT.message_title           AS TITLE,
+					${messageUrl}	            AS [URL]
+					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
+					INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+					INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
+					ON MPT.push_key = ${payloadAttributes.key}
+					WHERE ${appCardNumber} IS NOT NULL
+					${!seed ? messageQueryLiveSeeds : ""}
+				) AS A`;
+				// Inject live seeds if we are broadcasting a live send
 
 			console.dir(messageQuery);
 
@@ -598,50 +627,6 @@ async function addQueryActivity(payload, seed) {
 
 	}
 };
-
-const logQuery = (queryId, type, scheduledDate) => new Promise((resolve, reject) => {
-
-	console.dir("type:");
-	console.dir(type);
-	console.dir("query:");
-	console.dir(queryId);
-	var automationType;
-	if ( type ) {
-		automationType = true;
-	} else {
-		automationType = false;
-	}
-
-	var queryPayload = [{
-        "keys": {
-            "queryId": queryId
-        },
-        "values": {
-        	"reoccurring": automationType,
-        	"scheduled_run_date_time": scheduledDate
-        }
-	}];
-	
-	console.dir(queryPayload);
-
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: scheduleUrl,
-			headers: {'Authorization': tokenResponse},
-			data: queryPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
 
 const getIncrements = () => new Promise((resolve, reject) => {
 	getOauth2Token().then((tokenResponse) => {
