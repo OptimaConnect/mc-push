@@ -516,9 +516,9 @@ async function addQueryActivity(payload, seed) {
 			let masterOfferQuery = 
 				`SELECT	'Matalan' AS SCHEME_ID,
 				mpt.offer_id AS OFFER_ID,
-				mpt.offer_instore_code_1 		AS VOUCHER_IN_STORE_CODE,
-				mpt.offer_short_content 		AS SHORT_DESCRIPTION,
-				mpt.offer_long_description 		AS LONG_DESCRIPTION,
+				mpt.offer_instore_code_1 						AS VOUCHER_IN_STORE_CODE,
+				mpt.offer_short_content 						AS SHORT_DESCRIPTION,
+				ISNULL(mpt.offer_long_description, ' ') 		AS LONG_DESCRIPTION,
 				FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS START_DATE_TIME,
 				FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS END_DATE_TIME,
 				CASE    WHEN o.STATUS IS NULL THEN 'A'
