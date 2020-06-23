@@ -3,17 +3,19 @@
 // Module Dependencies
 require('dotenv').config();
 const axios 			= require('axios');
-var express     		= require('express');
-var bodyParser  		= require('body-parser');
-var errorhandler 		= require('errorhandler');
-var http        		= require('http');
-var path        		= require('path');
-var request     		= require('request');
-var routes      		= require('./routes');
-var activity    		= require('./routes/activity');
-var urlencodedparser 	= bodyParser.urlencoded({extended:false});
-var app 				= express();
-var local       		= false;
+const express     		= require('express');
+const bodyParser  		= require('body-parser');
+const errorhandler 		= require('errorhandler');
+const http        		= require('http');
+const path        		= require('path');
+const request     		= require('request');
+const moment 			= require('moment-timezone');
+const routes      		= require('./routes');
+const activity    		= require('./routes/activity');
+const urlencodedparser 	= bodyParser.urlencoded({extended:false});
+const app 				= express();
+const local       		= false;
+const { ServiceBusClient } = require('@azure/service-bus');
 
 
 // access Heroku variables
@@ -35,26 +37,29 @@ if ( !local ) {
 	  automationEndpoint: 				process.env.automationEndpoint,
 	  promotionTableName: 				process.env.promotionTableName,
 	  communicationTableName: 			process.env.communicationTableName,
+	  communicationHistoryKey: 			process.env.communicationHistoryKey,
 	  assignmentTableName: 				process.env.assignmentTableName,
+	  assignmentKey: 					process.env.assignmentKey,
 	  messageTableName: 				process.env.messageTableName,
-	  offerTableName: 					process.env.offerTableName,
+	  messageKey: 						process.env.messageKey,
+	  masterOfferTableName: 			process.env.masterOfferTableName,
+	  masterOfferKey: 					process.env.masterOfferKey,
+	  memberOfferTableName: 			process.env.memberOfferTableName,
+	  memberOfferKey: 					process.env.memberOfferKey,
 	  mobilePushMainTable: 				process.env.mobilePushMainTable,
+	  mobilePushMainKey:				process.env.mobilePushMainKey,
 	  partyCardDetailsTable:  			process.env.partyCardDetailsTable,
 	  promotionDescriptionTable: 		process.env.promotionDescriptionTable,
 	  seedListTable: 					process.env.seedListTable,
 	  automationScheduleExtension:  	process.env.automationScheduleExtension,
-	  communicationHistoryID: 			process.env.communicationHistoryID,
-	  communicationHistoryKey: 			process.env.communicationHistoryKey,
-	  assignmentID: 					process.env.assignmentID,
-	  assignmentKey: 					process.env.assignmentKey,
-	  messageID: 						process.env.messageID,
-	  messageKey: 						process.env.messageKey,
-	  offerID: 							process.env.offerID,
-	  offerKey: 						process.env.offerKey,
-	  queryFolder: 						process.env.queryFolder
+	  queryFolder: 						process.env.queryFolder,
+	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey
 	};
 	console.dir(marketingCloud);
 }
+
+const azureServiceBusConnectionString =	process.env.azureServiceBusConnectionString;
+const azureQueueName = process.env.azureQueueName;
 
 // url constants
 const scheduleUrl 					= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.automationScheduleExtension 	+ "/rowset";
@@ -67,6 +72,8 @@ const incrementsUrl 				= marketingCloud.restUrl + "data/v1/customobjectdata/key
 const updateIncrementUrl 			= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.incrementDataExtension 		+ "/rowset";
 const commCellIncrementUrl 			= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.commCellIncrementDataExtension + "/rowset";
 const updateCommCellIncrementUrl  	= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.commCellIncrementDataExtension + "/rowset";
+const mobilePushMainTableUrl  		= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.mobilePushMainKey				+ "/rowset";
+const uniqueVoucherPotsUrl 			= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.uniqueVoucherPotsKey			+ "/rowset";
 
 
 const automationUrl 		= marketingCloud.automationEndpoint;
@@ -216,7 +223,14 @@ async function definePayloadAttributes(payload, seed) {
 	}
 
 };
-const sendQuery = (targetId, targetKey, query, target, name, description) => new Promise((resolve, reject) => {
+
+const updateTypes = {
+	Overwrite: 0,
+	AddUpdate: 1,
+	Append: 2
+}
+
+const createSQLQuery = (targetKey, query, updateType, target, name, description) => new Promise((resolve, reject) => {
 
 	getOauth2Token().then((tokenResponse) => {
 
@@ -236,8 +250,7 @@ const sendQuery = (targetId, targetKey, query, target, name, description) => new
 		    "queryText": query,
 		    "targetName": target,
 		    "targetKey": targetKey,
-		    "targetId": targetId,
-		    "targetUpdateTypeId": 2,
+		    "targetUpdateTypeId": updateType,
 		    "categoryId": marketingCloud.queryFolder
 		}
 
@@ -283,207 +296,328 @@ async function addQueryActivity(payload, seed) {
 		console.dir("The Payload Attributes type is");
 		console.dir(payloadAttributes.push_type);
 
-		var sourceDataModel;
-		var appCardNumber;
+		let sourceDataModel;
+		let appCardNumber;
+		let target_send_date_time;
+		let visible_from_date_time;
 
 		if ( seed ) {
 			payloadAttributes.update_contact = marketingCloud.seedListTable;
 			payloadAttributes.query_name = payloadAttributes.query_name + " - SEEDLIST";
 			sourceDataModel = marketingCloud.seedListTable;
 			appCardNumber = "PCD.MATALAN_CARD_NUMBER";
-
+			target_send_date_time =
+				`CASE	WHEN MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
+							THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
+						ELSE MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time'
+				END`;
+			visible_from_date_time = "SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'"
 		} else {
 			sourceDataModel = marketingCloud.partyCardDetailsTable;
 			appCardNumber = "PCD.APP_CARD_NUMBER";
+			target_send_date_time = "MPT.[message_target_send_datetime] AT TIME ZONE 'GMT Standard Time'";
+			visible_from_date_time = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
 		}
-		var communicationQuery;
-		var memberOfferQuery;
-		var messageQuery;
-		var assignmentQuery;
-
+		
+		let communicationQuery;
 		if ( payloadAttributes.push_type == 'message' ) {
 
 			// message data comes from message page TESTED
-			communicationQuery = "SELECT bucket.PARTY_ID, MPT.communication_key AS COMMUNICATION_CELL_ID, CONCAT(MPT.message_target_send_date, ' ', MPT.message_target_send_time) AS CONTACT_DATE FROM [" + payloadAttributes.update_contact + "] as bucket LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "'";
+			communicationQuery = 
+				`SELECT bucket.PARTY_ID,
+				MPT.communication_key	AS COMMUNICATION_CELL_ID,
+				CAST(${target_send_date_time} AS datetime) AS CONTACT_DATE
+				FROM [${payloadAttributes.update_contact}] AS bucket
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				ON MPT.push_key = ${payloadAttributes.key}`
+
 			console.dir(communicationQuery);
 
 		} else if ( payloadAttributes.push_type == 'offer' && payloadAttributes.offer_channel != '3' ) {
-
+			// TODO - Update this to pull communication cell id from promotion widget table - possibly unneeded - communication_key may already have come from the promo widget
 			// this is legit promotion, use promo key and join for comm data NOT TESTED
-			communicationQuery = "SELECT bucket.PARTY_ID AS PARTY_ID, MPT.communication_key AS COMMUNICATION_CELL_ID, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) as CONTACT_DATE FROM [" + payloadAttributes.update_contact + "] as bucket LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "'";
+			communicationQuery =
+				`SELECT bucket.PARTY_ID AS PARTY_ID,
+				MPT.communication_key 	AS COMMUNICATION_CELL_ID,
+				CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
+				FROM [${payloadAttributes.update_contact}] AS bucket
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				ON MPT.push_key = ${payloadAttributes.key}`
+
 			console.dir(communicationQuery);
 
 		} else if ( payloadAttributes.push_type == 'offer' && payloadAttributes.offer_channel == '3') {
 
-			// this is informational, comm cell should come from offer page TESTED
-			communicationQuery = "SELECT bucket.PARTY_ID AS PARTY_ID, MPT.communication_key AS COMMUNICATION_CELL_ID, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) as CONTACT_DATE FROM [" + payloadAttributes.update_contact + "] as bucket LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "'";
+			// this is informational, comm cell should come from offer page
+			communicationQuery =
+				`SELECT bucket.PARTY_ID AS PARTY_ID,
+				MPT.communication_key 	AS COMMUNICATION_CELL_ID,
+				CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
+				FROM [${payloadAttributes.update_contact}] as bucket
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				ON MPT.push_key = ${payloadAttributes.key}`
+
 			console.dir(communicationQuery);
-		}
-
-
-		// everyone gets contacted in some way so send one of the above queries to marketing cloud
-		const communicationQueryId = await sendQuery(marketingCloud.communicationHistoryID, marketingCloud.communicationHistoryKey, communicationQuery, marketingCloud.communicationTableName, "IF028 - Communication History - " + dateString + " - " + payloadAttributes.query_name, "Communication Cell Assignment in IF028 for " + payloadAttributes.query_name);
-		if ( seed ) {
-			await runQuery(communicationQueryId)
-		} else {		
-			await logQuery(communicationQueryId, payloadAttributes.query_reoccuring, payloadAttributes.query_date);
+		}		
+		
+		// Create and run comms history SQL - not needed for seeds
+		if (!seed) {
+			const communicationQueryName = `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`;
+			const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
+			await runSQLQuery(communicationQueryId, communicationQueryName)
 			returnIds["communication_query_id"] = communicationQueryId;
 		}
 
-		// now we handle whether this is legit offer or a informational offer
+		// now we handle whether this is a voucher offer or a informational offer
 		if ( payloadAttributes.push_type == "offer" ) {
 
-			if ( payloadAttributes.offer_channel != "3" || payloadAttributes.offer_channel != 3 ) {
+			if ( payloadAttributes.offer_channel != "3" || payloadAttributes.offer_channel != 3 ) {				
+				let online_assignment_query =
+				`SELECT bucket.PARTY_ID	AS PARTY_ID,
+				MPT.offer_mc_id_1       AS MC_UNIQUE_PROMOTION_ID,
+				GETDATE()               AS ASSIGNMENT_DATETIME
+				FROM [${payloadAttributes.update_contact}] AS bucket
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				ON MPT.push_key = ${payloadAttributes.key}`
 
+				let instore_assignment_query =
+				`SELECT bucket.PARTY_ID AS PARTY_ID,
+				MPT.offer_mc_id_6       AS MC_UNIQUE_PROMOTION_ID,
+				GETDATE()               AS ASSIGNMENT_DATETIME
+				FROM [${payloadAttributes.update_contact}] AS bucket
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				ON MPT.push_key = ${payloadAttributes.key}`
+
+				let assignmentQuery;
 				if ( payloadAttributes.promotion_type == 'online') {
-					assignmentQuery = "SELECT bucket.PARTY_ID AS PARTY_ID, MPT.offer_mc_id_1 AS MC_UNIQUE_PROMOTION_ID, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) as ASSIGNMENT_DATETIME FROM [" + payloadAttributes.update_contact + "] as bucket LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' ";
+					assignmentQuery = online_assignment_query
 					console.dir(assignmentQuery);
-				} else if (payloadAttributes.promotion_type == 'online_instore') {
-					assignmentQuery = "SELECT bucket.PARTY_ID AS PARTY_ID, MPT.offer_mc_id_1 AS MC_UNIQUE_PROMOTION_ID, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) as ASSIGNMENT_DATETIME FROM [" + payloadAttributes.update_contact + "] as bucket LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' UNION SELECT bucket.PARTY_ID AS PARTY_ID, MPT.offer_mc_id_6 AS MC_UNIQUE_PROMOTION_ID, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) as ASSIGNMENT_DATETIME FROM [" + payloadAttributes.update_contact + "] as bucket LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' ";
+				}
+				else if (payloadAttributes.promotion_type == 'online_instore') {
+					assignmentQuery =
+					`${online_assignment_query} 
+						UNION
+					${instore_assignment_query}`
+
 					console.dir(assignmentQuery);
-				} else if (payloadAttributes.promotion_type == 'instore') {
-					assignmentQuery = "SELECT bucket.PARTY_ID AS PARTY_ID, MPT.offer_mc_id_6 AS MC_UNIQUE_PROMOTION_ID, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) as ASSIGNMENT_DATETIME FROM [" + payloadAttributes.update_contact + "] as bucket LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' ";
+				}
+				else if (payloadAttributes.promotion_type == 'instore') {
+					assignmentQuery = instore_assignment_query
 					console.dir(assignmentQuery);
 				}
 
-				if ( payloadAttributes.promotion_type == 'online') {
-
-					if ( payloadAttributes.online_promotion_type == 'unique') {
-
-						// handle unique query
-						memberOfferQuery = "SELECT A.SCHEME_ID, A.LOYALTY_CARD_NUMBER, A.OFFER_ID, vp.CouponCode AS VOUCHER_ON_LINE_CODE, '' AS VOUCHER_IN_STORE_CODE, A.[START_DATE_TIME], A.[END_DATE_TIME], A.NO_REDEMPTIONS_ALLOWED, A.[VISIBLE_FROM_DATE_TIME], A.STATUS FROM ( SELECT 'Matalan' AS SCHEME_ID, " + appCardNumber + " AS LOYALTY_CARD_NUMBER, MPT.offer_id AS OFFER_ID, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [START_DATE_TIME], CONCAT(MPT.offer_end_date, ' ', MPT.offer_end_time) AS [END_DATE_TIME], MPT.offer_redemptions  AS NO_REDEMPTIONS_ALLOWED, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [START_DATE_TIME], MPT.offer_status AS STATUS, RN = ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) FROM [" + payloadAttributes.update_contact + "] as UpdateContactDE LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' INNER JOIN [" + sourceDataModel + "] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID ) A LEFT JOIN [" + payloadAttributes.unique_code_1 + "] AS VP ON A.RN = VP.RowNumber";
-						console.dir(memberOfferQuery);
-					
-					} else {
-
-						// handle global query
-						memberOfferQuery = "SELECT 'Matalan' AS SCHEME_ID, " + appCardNumber + " AS LOYALTY_CARD_NUMBER, MPT.offer_id AS OFFER_ID, MPT.offer_online_code_1 AS VOUCHER_ON_LINE_CODE, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [START_DATE_TIME], CONCAT(MPT.offer_end_date, ' ', MPT.offer_end_time) AS [END_DATE_TIME], '999' AS NO_REDEMPTIONS_ALLOWED, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [VISIBLE_FROM_DATE_TIME], MPT.offer_status AS STATUS FROM [" + payloadAttributes.update_contact + "] as UpdateContactDE LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' INNER JOIN [" + sourceDataModel + "] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID";
-						console.dir(memberOfferQuery);
-					}
-
-				} else if (payloadAttributes.promotion_type == 'online_instore') {
-
-					if ( payloadAttributes.online_promotion_type == 'unique') {
-
-						// handle unique query + instore code
-						memberOfferQuery =
-						`SELECT A.SCHEME_ID,
-						A.LOYALTY_CARD_NUMBER,
-						A.OFFER_ID,
-						vp.CouponCode AS VOUCHER_ON_LINE_CODE,
-						A.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
-						A.[START_DATE_TIME],
-						A.[END_DATE_TIME],
-						A.NO_REDEMPTIONS_ALLOWED,
-						A.[VISIBLE_FROM_DATE_TIME],
-						A.STATUS 
-						FROM (
-							SELECT 'Matalan' AS SCHEME_ID,
-							${appCardNumber} AS LOYALTY_CARD_NUMBER,
-							MPT.offer_id AS OFFER_ID,
-							MPT.offer_instore_code_1 AS VOUCHER_IN_STORE_CODE,
-							CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [START_DATE_TIME],
-							CONCAT(MPT.offer_end_date, ' ', MPT.offer_end_time) AS [END_DATE_TIME],
-							MPT.offer_redemptions  AS NO_REDEMPTIONS_ALLOWED,
-							CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [VISIBLE_FROM_DATE_TIME],
-							MPT.offer_status AS STATUS,
-							RN = ROW_NUMBER() OVER (ORDER BY (SELECT NULL))
-							FROM [${payloadAttributes.update_contact}] as UpdateContactDE
-							LEFT JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-							ON MPT.push_key = '${payloadAttributes.key}'
-							INNER JOIN [${sourceDataModel}] AS PCD
-							ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-						) A 
-						LEFT JOIN (
-							SELECT  CouponCode
-							,       RN = ROW_NUMBER() OVER (ORDER BY (SELECT NULL))
-							FROM    [${payloadAttributes.unique_code_1}]
-							WHERE   IsClaimed = 0
-						) VP
-						ON A.RN = VP.RN`
-
-						console.dir(memberOfferQuery);
-					
-					} else {
-
-						// handle global query + instore code
-						memberOfferQuery = "SELECT 'Matalan' AS SCHEME_ID, " + appCardNumber + " AS LOYALTY_CARD_NUMBER, MPT.offer_id AS OFFER_ID, MPT.offer_online_code_1 AS VOUCHER_ON_LINE_CODE, MPT.offer_instore_code_1 AS VOUCHER_IN_STORE_CODE, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [START_DATE_TIME], CONCAT(MPT.offer_end_date, ' ', MPT.offer_end_time) AS [END_DATE_TIME], '1' AS NO_REDEMPTIONS_ALLOWED, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [VISIBLE_FROM_DATE_TIME], MPT.offer_status AS STATUS FROM [" + payloadAttributes.update_contact + "] as UpdateContactDE LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' INNER JOIN [" + sourceDataModel + "] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID";
-						console.dir(memberOfferQuery);
-
-					}
-
-				} else if (payloadAttributes.promotion_type == 'instore') {
-
-					// handle instore code
-					memberOfferQuery = "SELECT 'Matalan' AS SCHEME_ID, " + appCardNumber + " AS LOYALTY_CARD_NUMBER, MPT.offer_id AS OFFER_ID, MPT.offer_instore_code_1 AS VOUCHER_IN_STORE_CODE, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [START_DATE_TIME], CONCAT(MPT.offer_end_date, ' ', MPT.offer_end_time) AS [END_DATE_TIME], MPT.offer_redemptions AS NO_REDEMPTIONS_ALLOWED, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [VISIBLE_FROM_DATE_TIME], MPT.offer_status AS STATUS FROM [" + payloadAttributes.update_contact + "] as UpdateContactDE LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' INNER JOIN [" + sourceDataModel + "] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID";
-					console.dir(memberOfferQuery);
-				}
-				// send the assignment query
-
-				const assignmentQueryId = await sendQuery(marketingCloud.assignmentID, marketingCloud.assignmentKey, assignmentQuery, marketingCloud.assignmentTableName, "IF024 Assignment - " + dateString + " - " + payloadAttributes.query_name, "Assignment in PROMOTION_ASSIGNMENT in IF024 for " + payloadAttributes.query_name);
-				if ( seed ) {
-					await runQuery(assignmentQueryId)
-				} else {
-					await logQuery(assignmentQueryId, payloadAttributes.query_reoccuring, payloadAttributes.query_date);
-					returnIds["assignment_query_id"] = assignmentQueryId;
-				}				
-
-
-			} else {
-
-				// same here we need member offer but not assignment as this is informational TESTED
-				memberOfferQuery = "SELECT 'Matalan' AS SCHEME_ID, " + appCardNumber + " AS LOYALTY_CARD_NUMBER, MPT.offer_id AS OFFER_ID, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [START_DATE_TIME], CONCAT(MPT.offer_end_date, ' ', MPT.offer_end_time) AS [END_DATE_TIME], '0' AS NO_REDEMPTIONS_ALLOWED, CONCAT(MPT.offer_start_date, ' ', MPT.offer_start_time) AS [VISIBLE_FROM_DATE_TIME], MPT.offer_status AS STATUS FROM [" + payloadAttributes.update_contact + "] as UpdateContactDE LEFT JOIN [" + marketingCloud.mobilePushMainTable + "] AS MPT ON MPT.push_key = '" + payloadAttributes.key + "' INNER JOIN [" + sourceDataModel + "] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID";
-				console.dir(memberOfferQuery);			
-
+				// create and run the voucher assignment query
+				const assignmentQueryName = `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`;
+				const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, assignmentQueryName, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
+				await runSQLQuery(assignmentQueryId, assignmentQueryName);
+				returnIds["assignment_query_id"] = assignmentQueryId;
 			}
+			
+			let memberOfferQuery;
+			let claimUniqueVoucherQuery;
+			if ((payloadAttributes.promotion_type == 'online' || payloadAttributes.promotion_type == 'online_instore')
+				&& payloadAttributes.online_promotion_type == 'unique') {
 
-			// always send the member offer query
-			const memberOfferQueryId = await sendQuery(marketingCloud.offerID, marketingCloud.offerKey, memberOfferQuery, marketingCloud.offerTableName, "IF008 Offer - " + dateString + " - " + payloadAttributes.query_name, "Member Offer Assignment in IF008 for " + payloadAttributes.query_name);
-			if ( seed ) {
-				await runQuery(memberOfferQueryId)
-			} else {
-				await logQuery(memberOfferQueryId, payloadAttributes.query_reoccuring, payloadAttributes.query_date);
-				returnIds["member_offer_query_id"] = memberOfferQueryId;				
-			}
+				// Query to handle any offers that use unique online codes
+				memberOfferQuery =
+					`SELECT A.SCHEME_ID,
+					A.LOYALTY_CARD_NUMBER,
+					A.PARTY_ID,
+					A.OFFER_ID,
+					ISNULL(A.EXISTING_ON_LINE_CODE, vp.CouponCode) AS VOUCHER_ON_LINE_CODE,
+					A.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
+					A.[VISIBLE_FROM_DATE_TIME],
+					A.[START_DATE_TIME],
+					A.[END_DATE_TIME],
+					A.NO_REDEMPTIONS_ALLOWED,
+					A.STATUS,
+					A.DATE_UPDATED
+					FROM (
+						SELECT 'Matalan' AS SCHEME_ID,
+						${appCardNumber} AS LOYALTY_CARD_NUMBER,
+						PCD.PARTY_ID,
+						MPT.offer_id AS OFFER_ID,
+						NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
+						mo.VOUCHER_ON_LINE_CODE						AS EXISTING_ON_LINE_CODE,
+						CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
+								ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
+								END AS [VISIBLE_FROM_DATE_TIME],
+						FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
+						FORMAT(MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+						MPT.offer_redemptions                           AS NO_REDEMPTIONS_ALLOWED,
+						CASE    WHEN mo.STATUS IS NULL THEN 'A'
+								WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
+								ELSE 'C' END			    AS STATUS,
+						SYSDATETIME()                       AS DATE_UPDATED,
+						ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
+						FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
+						INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+						ON MPT.push_key = ${payloadAttributes.key}
+						INNER JOIN [${sourceDataModel}] AS PCD
+						ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+						LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
+						ON  ${appCardNumber} = mo.LOYALTY_CARD_NUMBER
+						AND MPT.OFFER_ID = mo.OFFER_ID
+						WHERE ${appCardNumber} IS NOT NULL
+					) A
+					LEFT JOIN (
+						SELECT  CouponCode
+						,       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RN
+						FROM    [${payloadAttributes.unique_code_1}]
+						WHERE   IsClaimed = 0
+					) VP
+					ON A.RN = VP.RN`
 
-
-		
-		} else if ( payloadAttributes.push_type == "message" ) {
-
-			// message query
-			let target_send_date_time
-			if (seed){
-				target_send_date_time =
-				`CASE	WHEN MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
-							THEN SYSUTCDATETIME()
-						ELSE MPT.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC'
-				END`
+				claimUniqueVoucherQuery = 
+					`SELECT uv.CouponCode
+					,       1           AS IsClaimed
+					,       mo.PARTY_ID AS SubscriberKey
+					,       mo.PARTY_ID AS PARTY_ID
+					,       SYSDATETIMEOFFSET() AS ClaimedDate
+					FROM    [${marketingCloud.memberOfferTableName}] AS mo
+					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS mpt
+					ON      mo.OFFER_ID = mpt.OFFER_ID
+					INNER JOIN [${payloadAttributes.unique_code_1}] AS uv 
+					ON      mo.VOUCHER_ON_LINE_CODE = uv.CouponCode
+					WHERE   mpt.push_key = ${payloadAttributes.key}
+					AND 	uv.IsClaimed = 0`
 			}
 			else {
-				target_send_date_time = "MPT.message_target_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC'"
+
+				// Query to handle all other member offer types - global vouchers and informational
+				memberOfferQuery =
+					`SELECT 'Matalan'   AS SCHEME_ID,
+					${appCardNumber}    AS LOYALTY_CARD_NUMBER,
+					PCD.PARTY_ID,
+					MPT.offer_id        AS OFFER_ID,
+					NULLIF(MPT.offer_online_code_1, 'no-code')  AS VOUCHER_ON_LINE_CODE,
+					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
+					CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
+							ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
+							END AS [VISIBLE_FROM_DATE_TIME],
+					FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
+					FORMAT(MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+					ISNULL(MPT.offer_redemptions, 1)    AS NO_REDEMPTIONS_ALLOWED,
+					CASE    WHEN mo.STATUS IS NULL THEN 'A'
+							WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
+							ELSE 'C' END			    AS STATUS,
+					SYSDATETIME()   AS DATE_UPDATED
+					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
+					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+					ON MPT.push_key = ${payloadAttributes.key}
+					INNER JOIN [${sourceDataModel}] AS PCD
+					ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+					LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
+					ON  ${appCardNumber} = mo.LOYALTY_CARD_NUMBER
+					AND MPT.OFFER_ID = mo.OFFER_ID
+					WHERE ${appCardNumber} IS NOT NULL`;
 			}
 
-			messageQuery = 
-			`SELECT 'Matalan'            AS SCHEME_ID,
-			(cast(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + row_number() over (order by (select null)) AS MOBILE_MESSAGE_ID,
-			${appCardNumber}            AS LOYALTY_CARD_NUMBER,
-			MPT.message_content         AS MESSAGE_CONTENT,
-			FORMAT(${target_send_date_time}, 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
-			MPT.message_status          AS STATUS,
-			MPT.message_short_content   AS SHORT_MESSAGE_CONTENT
-			FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
-			INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-			LEFT JOIN [${marketingCloud.mobilePushMainTable}] as MPT
-			ON MPT.push_key = ${payloadAttributes.key}`
+			let masterOfferQuery = 
+				`SELECT	'Matalan' AS SCHEME_ID,
+				mpt.offer_id AS OFFER_ID,
+				mpt.offer_instore_code_1 						AS VOUCHER_IN_STORE_CODE,
+				mpt.offer_short_content 						AS SHORT_DESCRIPTION,
+				ISNULL(mpt.offer_long_description, ' ') 		AS LONG_DESCRIPTION,
+				FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS START_DATE_TIME,
+				FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS END_DATE_TIME,
+				CASE    WHEN o.STATUS IS NULL THEN 'A'
+						WHEN o.STATUS = 'A' AND (o.DATE_MOBILIZE_SYNC < o.DATE_UPDATED OR o.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
+						ELSE 'C' END			AS STATUS,
+				mpt.offer_type 					AS OFFER_TYPE,
+				mpt.offer_image_url 			AS IMAGE_URL_1,
+				mpt.offer_more_info 			AS MORE_INFO_TEXT,
+				mpt.offer_click_through_url 	AS ONLINE_OFFER_CLICKTHROUGH_URL,
+				mpt.offer_channel 				AS OFFER_CHANNEL,
+				'501' 							AS OFFER_STORES,
+				mpt.offer_validity 				AS SHOW_VALIDITY,
+				mpt.offer_info_button_text 		AS INFO_BUTTON_TEXT,
+				SYSDATETIME()                   AS DATE_UPDATED
+				FROM [${marketingCloud.mobilePushMainTable}] AS mpt
+				LEFT JOIN [${marketingCloud.masterOfferTableName}] AS o
+				ON      mpt.OFFER_ID = o.OFFER_ID
+				WHERE   push_type = 'offer'
+				AND     push_key = ${payloadAttributes.key}`
+
+			console.dir(masterOfferQuery);
+			console.dir(memberOfferQuery);
+
+			const masterOfferQueryName = `Master Offer - ${dateString} - ${payloadAttributes.query_name}`;
+			const memberOfferQueryName = `Member Offer - ${dateString} - ${payloadAttributes.query_name}`;
+			const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
+			const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
+			await runSQLQuery(masterOfferQueryId, masterOfferQueryName);
+			await runSQLQuery(memberOfferQueryId, memberOfferQueryName);
+			
+			let claimUniqueVoucherQueryId;
+			if (claimUniqueVoucherQuery) {
+				const voucherDeKey = await getKeyForVoucherDataExtensionByName(payloadAttributes.unique_code_1);
+
+				const claimUniqueVoucherQueryName = `Claim Unique Voucher - ${dateString} - ${payloadAttributes.query_name}`;
+				claimUniqueVoucherQueryId = await createSQLQuery(voucherDeKey, claimUniqueVoucherQuery, updateTypes.AddUpdate, payloadAttributes.unique_code_1, claimUniqueVoucherQueryName, claimUniqueVoucherQueryName);
+				await runSQLQuery(claimUniqueVoucherQueryId, claimUniqueVoucherQueryName);
+			}
+
+			returnIds["master_offer_query_id"] = masterOfferQueryId;
+			returnIds["member_offer_query_id"] = memberOfferQueryId;
+			returnIds["claim_unique_voucher_query_id"] = claimUniqueVoucherQueryId;
+			
+		} else if ( payloadAttributes.push_type == "message" ) {
+
+			const messageUrl = "ISNULL(NULLIF(MPT.message_url,''),'content://my_rewards/my_offers_list')";
+
+			let messageQueryLiveSeeds =
+				`	UNION
+				SELECT MPT.push_key,
+				'Matalan'                   AS SCHEME_ID,
+				S.MATALAN_CARD_NUMBER       AS LOYALTY_CARD_NUMBER,
+				MPT.message_content         AS MESSAGE_CONTENT,
+				FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
+				'A'							AS STATUS,
+				MPT.message_title           AS TITLE,
+				${messageUrl}	            AS [URL]
+				FROM [${marketingCloud.mobilePushMainTable}] AS MPT
+				CROSS JOIN [${marketingCloud.seedListTable}] AS S
+				WHERE MPT.push_key = ${payloadAttributes.key}
+				AND   S.MATALAN_CARD_NUMBER IS NOT NULL`
+
+			let messageQuery = 
+				`SELECT A.push_key
+				,		A.SCHEME_ID
+				,       (CAST(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS MOBILE_MESSAGE_ID
+				,       A.LOYALTY_CARD_NUMBER
+				,       A.MESSAGE_CONTENT
+				,       A.TARGET_SEND_DATE_TIME
+				,       A.STATUS
+				,       A.TITLE
+				,       A.[URL]
+				,       SYSDATETIME()   AS DATE_CREATED
+				,       SYSDATETIME()   AS DATE_UPDATED
+				FROM
+				(
+					SELECT MPT.push_key,
+					'Matalan'                   AS SCHEME_ID,
+					${appCardNumber}            AS LOYALTY_CARD_NUMBER,
+					MPT.message_content         AS MESSAGE_CONTENT,
+					FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
+					'A'							AS STATUS,
+					MPT.message_title           AS TITLE,
+					${messageUrl}	            AS [URL]
+					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
+					INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+					INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
+					ON MPT.push_key = ${payloadAttributes.key}
+					WHERE ${appCardNumber} IS NOT NULL
+					${!seed ? messageQueryLiveSeeds : ""}
+				) AS A`;
+				// Inject live seeds if we are broadcasting a live send
 
 			console.dir(messageQuery);
-			const messageQueryId = await sendQuery(marketingCloud.messageID, marketingCloud.messageKey, messageQuery, marketingCloud.messageTableName, "IF008 Message - " + dateString + " - " + payloadAttributes.query_name, "Message Assignment in IF008 for " + payloadAttributes.query_name);
-			if ( seed ) {
-				await runQuery(messageQueryId)
-			} else {			
-				await logQuery(messageQueryId, payloadAttributes.query_reoccuring, payloadAttributes.query_date);
-				returnIds["member_message_query_id"] = messageQueryId;
-			}
+
+			const messageQueryName = `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`;
+			const messageQueryId = await createSQLQuery(marketingCloud.messageKey, messageQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
+			await runSQLQuery(messageQueryId, messageQueryName);
+			returnIds["member_message_query_id"] = messageQueryId;
 		}
 		return returnIds;
 
@@ -493,50 +627,6 @@ async function addQueryActivity(payload, seed) {
 
 	}
 };
-
-const logQuery = (queryId, type, scheduledDate) => new Promise((resolve, reject) => {
-
-	console.dir("type:");
-	console.dir(type);
-	console.dir("query:");
-	console.dir(queryId);
-	var automationType;
-	if ( type ) {
-		automationType = true;
-	} else {
-		automationType = false;
-	}
-
-	var queryPayload = [{
-        "keys": {
-            "queryId": queryId
-        },
-        "values": {
-        	"reoccurring": automationType,
-        	"scheduled_run_date_time": scheduledDate
-        }
-	}];
-	
-	console.dir(queryPayload);
-
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: scheduleUrl,
-			headers: {'Authorization': tokenResponse},
-			data: queryPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
 
 const getIncrements = () => new Promise((resolve, reject) => {
 	getOauth2Token().then((tokenResponse) => {
@@ -774,7 +864,7 @@ const updateDataExtension = (updatedPushPayload, existingKey) => new Promise((re
 async function buildAndUpdate(payload, key) {
 	try {
 
-		const updatedPushPayload = await updatePushPayload(payload);
+		const updatedPushPayload = updatePushPayload(payload);
 		const updatedPushObject = await updateDataExtension(updatedPushPayload, key);
 
 		return updatedPushPayload;
@@ -790,10 +880,10 @@ async function buildAndSend(payload) {
 		const incrementData = await getIncrements();
 		const commCellIncrementData = await getCommCellIncrements();
 
-		const pushPayload = await buildPushPayload(payload, commCellIncrementData.communication_cell_code_id_increment);
+		const pushPayload = buildPushPayload(payload, commCellIncrementData.communication_cell_code_id_increment);
 		const pushObject = await saveToDataExtension(pushPayload, incrementData);
 
-		const commPayload = await buildCommPayload(pushPayload);
+		const commPayload = buildCommPayload(pushPayload);
 		const commObject = await saveToCommunicationDataExtension(commPayload, commCellIncrementData.communication_cell_code_id_increment);
 
 		await updateIncrements(incrementData);
@@ -805,41 +895,14 @@ async function buildAndSend(payload) {
 	}
 }
 
-function getDateString(dateOffSetted) {
-	let date_ob = new Date(dateOffSetted);
-	let date = ("0" + date_ob.getDate()).slice(-2);
-	let month = ("0" + (date_ob.getMonth() + 1)).slice(-2);
-	let year = date_ob.getFullYear();
-	let hours = date_ob.getHours();
-	let minutes = date_ob.getMinutes();
-    let seconds = date_ob.getSeconds();
-    if ( minutes < 10 ) {
-        minutes = "0" + minutes;
-    }
-    if ( seconds < 10 ) {
-        seconds = "0" + seconds;
-    }
-	
-	let dateString = year + "/" + month + "/" + date + " " + hours + ":" + minutes + ":" + seconds;	
-	return dateString;
-}
-
-function getDateAndOffSet() {
-    var dt = new Date();
-    //console.log(dt); // Gives Tue Mar 22 2016 09:30:00 GMT+0530 (IST)
-
-    dt.setTime(dt.getTime()+dt.getTimezoneOffset()*60*1000);
-    //console.log(dt); // Gives Tue Mar 22 2016 04:00:00 GMT+0530 (IST)
-
-    var offset = -300; //Timezone offset for EST in minutes.
-    var estDate = new Date(dt.getTime() + offset*60*1000);
-    console.log(estDate);
-    return estDate; 
+function getSfmcDatetimeNow() {
+	const sfmcNow = moment().tz("Etc/GMT+6");
+	return sfmcNow.format();
 }
 
 function buildPushPayload(payload, commCellKey) {
-	var mobilePushData = {};
-	for ( var i = 0; i < payload.length; i++ ) {
+	let mobilePushData = {};
+	for ( let i = 0; i < payload.length; i++ ) {
 		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
 
@@ -848,12 +911,13 @@ function buildPushPayload(payload, commCellKey) {
 		mobilePushData["communication_key"] = commCellKey;
 		mobilePushData["communication_control_key"] = parseInt(commCellKey) + 1;		
 	}
+	
+	const currentDateTimeStamp = getSfmcDatetimeNow();
+	console.dir("The current DT stamp is");
+	console.dir(currentDateTimeStamp);
 
-	if ( mobilePushData.push_type == 'message') {
-		mobilePushData.message_status = 'A';
-	} else {
-		mobilePushData.offer_status = 'A';
-	}
+	mobilePushData.date_updated = currentDateTimeStamp;
+	mobilePushData.date_created = currentDateTimeStamp;
 
 	console.dir("building push payload")
 	console.dir(mobilePushData);
@@ -862,25 +926,18 @@ function buildPushPayload(payload, commCellKey) {
 }
 
 function updatePushPayload(payload) {
-	var mobilePushData = {};
-	for ( var i = 0; i < payload.length; i++ ) {
+	let mobilePushData = {};
+	for ( let i = 0; i < payload.length; i++ ) {
 		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
 
 	}
 
-	var currentDateTimeStamp = getDateString(getDateAndOffSet());
+	const currentDateTimeStamp = getSfmcDatetimeNow();
 	console.dir("The current DT stamp is");
 	console.dir(currentDateTimeStamp);
 
-	mobilePushData.date_added = currentDateTimeStamp;
-	if ( mobilePushData.push_type == 'message') {
-		mobilePushData.message_status = 'A';
-	} else {
-		mobilePushData.offer_status = 'C';
-	}
-	
-
+	mobilePushData.date_updated = currentDateTimeStamp;
 	delete mobilePushData.message_key_hidden;
 
 	console.dir("building push payload")
@@ -951,41 +1008,51 @@ async function sendBackUpdatedPayload(payload) {
 
 }
 
-const executeQuery = (executeThisQueryId) => new Promise((resolve, reject) => {
-
-	console.dir("Executing this query Id");
-	console.dir(executeThisQueryId);
-
-	var queryPayload = queryUrl + executeThisQueryId + "/actions/start/";
-	
-	console.dir(queryPayload);
-
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: queryPayload,
-			headers: {'Authorization': tokenResponse},
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
-
-async function runQuery(executeThisQueryId) {
+async function runSQLQuery(executeThisQueryId, queryName) {
+	const sbClient = ServiceBusClient.createFromConnectionString(azureServiceBusConnectionString);
+	const queueClient = sbClient.createQueueClient(azureQueueName);
+	const sender = queueClient.createSender();
 	try {
-		const returnQueryStatus = await executeQuery(executeThisQueryId);
-		console.dir("The query status is");
-		console.dir(returnQueryStatus);
-		return returnQueryStatus;
+
+		const queryToRunMessage = {
+			body: {
+				queryId: executeThisQueryId,
+				queryName: queryName
+			},
+			contentType: "application/json",
+		}
+
+		await sender.send(queryToRunMessage);
+
+		console.dir(`Query queued for execution: ${JSON.stringify(queryToRunMessage.body)}`);
+		await queueClient.close();
+
 	} catch(err) {
-		console.dir(err);
+		console.dir(`Error occured: ${err}`);
+	} finally {
+		await sbClient.close();
+	}
+}
+
+async function getKeyForVoucherDataExtensionByName(voucherDEName) {
+	let tokenResponse = await getOauth2Token();
+
+	const fullRequestUrl = `${uniqueVoucherPotsUrl}?$filter=dataExtensionName eq ${voucherDEName}`;
+
+	try {
+		let response = await axios.get(fullRequestUrl, { 
+			headers: { 
+				Authorization: tokenResponse
+			}
+		});
+
+		let data = response.data.items[0];
+		return data.keys.id;
+	}
+	catch (error) {
+		console.dir("Error getting voucher DE Key");
+		console.dir(error);
+		reject(error);
 	}
 }
 
@@ -1004,7 +1071,7 @@ app.post('/run/query/:queryId', async function(req, res) {
 	console.dir(req.params.queryId);
 	var executeThisQueryId = req.params.queryId;
 	try {
-		const returnQueryResponse = await runQuery(executeThisQueryId);
+		const returnQueryResponse = await runSQLQuery(executeThisQueryId);
 		console.dir("The query response object is");
 		console.dir(returnQueryResponse);
 		res.send(JSON.stringify(returnQueryResponse));
@@ -1013,7 +1080,7 @@ app.post('/run/query/:queryId', async function(req, res) {
 	}
 });
 
-// insert data into data extension
+// insert data into mobile_push_main data extension
 app.post('/dataextension/add/', async function (req, res){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
@@ -1025,7 +1092,7 @@ app.post('/dataextension/add/', async function (req, res){
 	}
 });
 
-// insert data into data extension
+// update data in mobile_push_main data extension
 app.post('/dataextension/update/', async function (req, res){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
@@ -1037,7 +1104,7 @@ app.post('/dataextension/update/', async function (req, res){
 	}
 });
 
-// insert data into data extension
+// create a SQL query activity
 app.post('/automation/create/query', async function (req, res){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
@@ -1050,7 +1117,6 @@ app.post('/automation/create/query', async function (req, res){
 	
 });
 
-// insert data into data extension
 app.post('/automation/create/query/seed', async function (req, res){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
@@ -1062,6 +1128,29 @@ app.post('/automation/create/query/seed', async function (req, res){
 	}
 	
 });
+
+// Fetch existing row from mobile push main table
+app.get("/dataextension/lookup/mobilepushmain/:pushKey", (req, res, next) => {
+	getOauth2Token().then((tokenResponse) => {
+		const fullRequestUrl = `${mobilePushMainTableUrl}?$filter=push_key eq ${req.params.pushKey}`;
+
+		axios.get(fullRequestUrl, { 
+			headers: { 
+				Authorization: tokenResponse
+			}
+		})
+		.then(response => {
+			// If request is good... 
+			res.json(response.data);
+		})
+		.catch((error) => {
+		    console.dir("Error getting push main data");
+			console.dir(error);
+			next(error)
+		});
+	})
+});
+
 
 //Fetch increment values
 app.get("/dataextension/lookup/increments", (req, res, next) => {
@@ -1079,7 +1168,7 @@ app.get("/dataextension/lookup/increments", (req, res, next) => {
 		})
 		.catch((error) => {
 		    console.dir("Error getting increments");
-		    console.dir(error);
+			console.dir(error);
 		});
 	})
 });

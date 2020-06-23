@@ -19,8 +19,8 @@ define([
     var instoreSetupStepEnabled     = false;
     var steps                       = [
         { "label": "Message Type", "key": "step0" },
-        { "label": "PUSH Message Setup", "key": "step1", "active": false },
-        { "label": "PUSH Offer Setup", "key": "step2", "active": false },
+        { "label": "Push Message Setup", "key": "step1", "active": false },
+        { "label": "Offer Setup", "key": "step2", "active": false },
         { "label": "Summary", "key": "step3" }
     ];
     var currentStep = steps[0].key;
@@ -57,6 +57,7 @@ define([
         lookupControlGroups();
         lookupUpdateContacts();
         loadEvents();
+        showOrHideOfferFormsBasedOnType();
     }
 
     function initialize (data) {
@@ -136,8 +137,6 @@ define([
 
             // trigger steps
             triggerSteps(argumentsSummaryPayload.buildPayload, argPromotionType);
-
-
         }      
     }
 
@@ -254,24 +253,7 @@ define([
         });
 
         // render relevant steps based on input
-        $('#offer_channel').change(function() {
-
-            if ( $("#offer_channel").val() == '3' || $("#offer_channel").val() == 3) {
-                // informational, show cell code and de-couple from promotion widget
-                $("#offer_cell_box").show();
-
-                // hide promotion dropdown
-                $("#promotion_element").hide();
-
-            } else {
-
-                $("#offer_cell_box").hide();
-                // show offer promotion
-                $("#promotion_element").show();
-
-            }
-
-        });
+        $('#offer_channel').change(showOrHideOfferFormsBasedOnType);
 
         $('#offer_promotion').change(function() {
             // get data attributes from dd and prepop hidden fields
@@ -324,8 +306,8 @@ define([
         $("#automation_run_date").val(todayDate);
         $("#message_target_send_datetime").val(todayDate);
         $("#message_seed_send_datetime").val(todayDate);
-        $("#offer_start_date").val(todayDate);
-        $("#offer_end_date").val(todayDate);
+        $("#offer_start_datetime").val(todayDate);
+        $("#offer_end_datetime").val(todayDate);
 
     }
 
@@ -354,6 +336,40 @@ define([
 
         apiWaitTime = apiWaitTime + 200;
 
+    }
+
+    function showOrHideOfferFormsBasedOnType() {
+
+        if ( $("#offer_channel").val() == '3' || $("#offer_channel").val() == 3) {
+            // informational, show cell code and de-couple from promotion widget
+            $("#offer_cell_box").show();
+            // hide promotion dropdown
+            $("#promotion_element").hide();
+            $("#show_validity_form").hide();
+            
+            const offer_validity_val = $("#offer_validity").val();
+
+            if ($("#offer_validity").val() == "true") {
+                $("#offer_validity").val("false").change();
+            }
+        
+            $("#click_through_url_form").show();
+            $("#info_button_text_form").show();
+
+        } else {
+
+            $("#offer_cell_box").hide();
+            // show offer promotion
+            $("#promotion_element").show();
+            
+            if ($("#offer_validity").val() == "false" && $("#show_validity_form").is(":hidden")) {
+                $("#offer_validity").val("true").change();
+            }
+            $("#show_validity_form").show();
+
+            $("#click_through_url_form").hide();
+            $("#info_button_text_form").hide();
+        }
     }
 
     function prePopulateFields(argumentsSummaryPayload) {
@@ -497,7 +513,7 @@ define([
         } else if ( stepToValidate == 1 ) {
 
 
-            var step1Selectors = ["#message_target_send_datetime", "#message_seed_send_datetime", "#message_title", "#cell_code", "#cell_name", "#campaign_name", "#campaign_id", "#campaign_code", "#message_url"];
+            var step1Selectors = ["#message_target_send_datetime", "#message_seed_send_datetime", "#message_title", "#cell_code", "#cell_name", "#campaign_name", "#campaign_code"];
             var step1ErrorCount = 0;
 
             for ( var l = 0; l < step1Selectors.length; l++ ) {
@@ -508,15 +524,6 @@ define([
 
                     step1ErrorCount++;
                 }
-            }
-
-            console.log("The message send date string is:");
-            console.log($("#message_target_send_datetime").val());
-
-            if ( !validateTheDateFormat($("#message_target_send_datetime").val()) ) {
-                
-                step1ErrorCount++;
-
             }
 
             if ( step1ErrorCount == 0 ) {
@@ -531,10 +538,8 @@ define([
 
         } else if ( stepToValidate == 2 ) {
 
-            var step2Selectors = ["#offer_short_content", "#offer_start_date", "#offer_end_date", "#offer_type", "#offer_image_url"];
+            var step2Selectors = ["#offer_short_content", "#offer_start_datetime", "#offer_end_datetime", "#offer_type", "#offer_image_url"];
             var step2ErrorCount = 0;
-
-            var step2CommSelectors = ["#offer_cell_code", "#offer_cell_name", "#offer_campaign_name", "#offer_campaign_id", "#offer_campaign_code"]
 
             for ( var m = 0; m < step2Selectors.length; m++ ) {
 
@@ -555,11 +560,11 @@ define([
 
             if ( selectedChannel == 3 || selectedChannel == '3') {
 
-                for ( var b = 0; b < step2CommSelectors.length; b++ ) {
-                    console.log("The selector is " + step2Selectors[m]);
+                let step2CommSelectors = ["#offer_cell_code", "#offer_cell_name", "#offer_campaign_name", "#offer_campaign_code"]
+                for ( let b = 0; b < step2CommSelectors.length; b++ ) {
+                    console.log("The selector is " + step2CommSelectors[m]);
 
                     if ( !$(step2CommSelectors[b]).val() ) {
-
                         step2ErrorCount++;
                     }
                 }
@@ -576,14 +581,9 @@ define([
             }
 
             console.log("The offer start date string is:");
-            console.log($("#offer_start_date").val());
+            console.log($("#offer_start_datetime").val());
             console.log("The offer end date string is:");
-            console.log($("#offer_end_date").val());
-
-            if ( !validateTheDateFormat($("#offer_start_date").val()) || !validateTheDateFormat($("#offer_end_date").val()) ) {
-                
-                step2ErrorCount++;
-            }
+            console.log($("#offer_end_datetime").val());
 
             if ( step2ErrorCount == 0 ) {
 
@@ -682,8 +682,9 @@ define([
                     if ( debug ) {
                         console.log(result.items[i]);
                     }
-                    // do something with substr[i]
-                    $("#control_group").append("<option value=" + encodeURI(result.items[i].values.dataextensionname) + ">" + result.items[i].values.dataextensionname + "</option>");
+
+                    let de = result.items[i].values;
+                    $("#control_group").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
                 }
                 updateApiStatus("controlgroup-api", true);
             }
@@ -712,8 +713,9 @@ define([
                         if ( debug ) {
                             console.log(result.items[i].keys);
                         }
-                        // do something with `substr[i]
-                        $("#offer_promotion").append("<option data-attribute-redemptions=" + result.items[i].values.instore_code_1_redemptions + " data-attribute-control=" + result.items[i].values.communication_cell_id_control + " data-attribute-cell=" + result.items[i].values.communication_cell_id + " data-attribute-mc6=" + result.items[i].values.mc_id_6 + " data-attribute-mc1=" + result.items[i].values.mc_id_1 + " data-attribute-instore-code=" + result.items[i].values.instore_code_1 + " data-attribute-online-code=" + result.items[i].values.global_code_1 + " data-attribute-online-promotion-type=" + result.items[i].values.onlinepromotiontype + " data-attribute-promotion-type=" + result.items[i].values.promotiontype + " data-attribute-voucher-pot=" + result.items[i].values.unique_code_1 + " value=" + result.items[i].keys.promotion_key + ">" + result.items[i].values.campaign_name + "</option>");
+
+                        let deRow = result.items[i].values;
+                        $("#offer_promotion").append(`<option data-attribute-redemptions=${deRow.instore_code_1_redemptions} data-attribute-control=${deRow.communication_cell_id_control} data-attribute-cell=${deRow.communication_cell_id} data-attribute-cell-name=${deRow.cell_name} data-attribute-mc6=${deRow.mc_id_6} data-attribute-mc1=${deRow.mc_id_1} data-attribute-instore-code=${deRow.instore_code_1} data-attribute-online-code=${deRow.global_code_1} data-attribute-online-promotion-type=${deRow.onlinepromotiontype} data-attribute-promotion-type=${deRow.promotiontype} data-attribute-voucher-pot=${deRow.unique_code_1} value=${result.items[i].keys.promotion_key}>${deRow.campaign_name}</option>`);
                     }                   
                 }
 
@@ -743,8 +745,9 @@ define([
                     if ( debug ) {
                         console.log(result.items[i]);
                     }
-                    // do something with substr[i]
-                    $("#update_contacts").append("<option value=" + encodeURI(result.items[i].values.dataextensionname) + ">" + result.items[i].values.dataextensionname + "</option>");
+                    
+                    let de = result.items[i].values;
+                    $("#update_contacts").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
                 }
                 updateApiStatus("updatecontacts-api", true);
             }
@@ -913,8 +916,7 @@ define([
                 connection.trigger('nextStep');
             }
 
-        } 
-
+        }
     }
 
     function onClickedBack () {
@@ -1166,7 +1168,7 @@ define([
                     console.log(data);
                     $("#query_key_hidden").val(data);
                     $("#main_setup_query_id").html(data);
-                    $("#control_action_create").html("Automation Created");
+                    $("#control_action_create").html("Scheduled for broadcast");
                     $("#control_action_create").prop('disabled', true);
                 }
                 , error: function(jqXHR, textStatus, err){

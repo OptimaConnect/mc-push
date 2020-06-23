@@ -117,14 +117,14 @@
                                 <input type="radio" class="promotion_type" id="radio-1" value="message" name="push_type" checked="checked" />
                                 <label class="slds-radio__label" for="radio-1">
                                     <span class="slds-radio_faux"></span>
-                                    <span class="slds-form-element__label">PUSH Message</span>
+                                    <span class="slds-form-element__label">Push Message</span>
                                 </label>
                             </span>
                             <span class="slds-radio">
                                 <input type="radio" class="promotion_type" id="radio-2" value="offer" name="push_type" />
                                 <label class="slds-radio__label" for="radio-2">
                                     <span class="slds-radio_faux"></span>
-                                    <span class="slds-form-element__label">PUSH Offer</span>
+                                    <span class="slds-form-element__label">Offer</span>
                                 </label>
                             </span>
                         </div>
@@ -162,7 +162,7 @@
                 </div>
             </div>
             <div class="slds-col slds-size_1-of-3">
-                <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
+                <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" hidden>
                     <fieldset class="slds-form-element slds-form-element_stacked">
                         <legend class="slds-form-element__legend slds-form-element__label">Automation Setup</legend>
                     </fieldset>
@@ -261,42 +261,33 @@
         <div class="slds-grid slds-gutters">
             <div class="slds-col slds-size_1-of-2">
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
-                    <h2>PUSH Message Content</h2>
+                    <h2>Push Message Content</h2>
                     <div class="slds-form-element">
                       <label class="slds-form-element__label" for="text-input-id-1">
-                        <abbr class="slds-required" title="required">* </abbr>PUSH Message Title</label>
+                        <abbr class="slds-required" title="required">* </abbr>Title</label>
                       <div class="slds-form-element__control">
-                        <input type="text" id="message_title" placeholder="" required="" class="slds-input" />
+                        <input type="text" id="message_title" required="" class="slds-input" value="Matalan" />
                       </div>
                     </div>
                     <div class="slds-form-element">
                         <label class="slds-form-element__label" for="textarea-id-01">
-                        <abbr class="slds-required" title="required">* </abbr>PUSH Message Content</label>
+                        <abbr class="slds-required" title="required">* </abbr>Content</label>
                         <div class="slds-form-element__control">
                             <textarea id="message_content" required="" class="slds-textarea" placeholder="Message Content..."></textarea>
                         </div>
                         <div id="chars1">300</div>
                     </div>
                     <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="textarea-id-02">
-                        <abbr class="slds-required" title="required">* </abbr>PUSH Message Short Content</label>
-                        <div class="slds-form-element__control">
-                            <textarea id="message_short_content" required="" class="slds-textarea" placeholder="Short Message Content..."></textarea>
-                        </div>
-                        <div id="chars2">100</div>
-                    </div>
-                    <div class="slds-form-element">
-                      <label class="slds-form-element__label" for="text-input-id-2">
-                        <abbr class="slds-required" title="required">* </abbr>PUSH Message URL</label>
+                      <label class="slds-form-element__label" for="text-input-id-2">URL - Leave blank for default</label>
                       <div class="slds-form-element__control">
-                        <input type="text" id="message_url" placeholder="https://" required="" class="slds-input" />
+                        <input type="text" id="message_url" class="slds-input" />
                       </div>
                     </div>
                 </div>
             </div>
             <div class="slds-col slds-size_1-of-2">
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
-                    <h2>PUSH Message Setup</h2>
+                    <h2>Setup</h2>
                     <div class="slds-grid slds-gutters">
                         <div class="slds-col slds-form-element">
                             <label class="slds-form-element__label" for="text-input-id-1">
@@ -319,39 +310,32 @@
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
                     <h2>Communication History Data</h2>
                     <div class="slds-form-element sfmc-input">
+                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Code</label>
+                        <div class="slds-form-element__control">
+                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="campaign_code" placeholder="Campaign Code" class="slds-input" />
+                        </div>
+                        <div class="slds-form-element__help" id="form-error__campaign_code">This field is required</div>
+                    </div>
+                    <div class="slds-form-element sfmc-input">
+                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Name</label>
+                        <div class="slds-form-element__control">
+                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="campaign_name" placeholder="Campaign Name" class="slds-input" />
+                        </div>
+                        <div class="slds-form-element__help" id="form-error__campaign_name">This field is required</div>
+                    </div>
+                    <div class="slds-form-element sfmc-input">
                         <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Code</label>
                         <div class="slds-form-element__control">
-                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="cell_code" placeholder="Cell Code (e.g some-cell-code)" class="slds-input" />
+                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="cell_code" placeholder="Cell Code" class="slds-input" />
                         </div>
                         <div class="slds-form-element__help" id="form-error__cell_code">This field is required</div>
                     </div>
                     <div class="slds-form-element sfmc-input">
                         <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Name</label>
                         <div class="slds-form-element__control">
-                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="cell_name" placeholder="Cell Name (e.g some-cell-name)" class="slds-input" />
+                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="cell_name" placeholder="Cell Name" class="slds-input" />
                         </div>
                         <div class="slds-form-element__help" id="form-error__cell_name">This field is required</div>
-                    </div>
-                    <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Name</label>
-                        <div class="slds-form-element__control">
-                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="campaign_name" placeholder="Campaign Name (e.g some-campaign-name)" class="slds-input" />
-                        </div>
-                        <div class="slds-form-element__help" id="form-error__campaign_name">This field is required</div>
-                    </div>
-                    <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign ID</label>
-                        <div class="slds-form-element__control">
-                            <input data-attribute-type="int" data-attribute-length="30" id="campaign_id" placeholder="Campaign ID (e.g 12345)" class="slds-input" />
-                        </div>
-                        <div class="slds-form-element__help" id="form-error__campaign_id">This field is required</div>
-                    </div>
-                    <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Code</label>
-                        <div class="slds-form-element__control">
-                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="campaign_code" placeholder="Campaign Code (e.g some-campaign-code)" class="slds-input" />
-                        </div>
-                        <div class="slds-form-element__help" id="form-error__campaign_code">This field is required</div>
                     </div>
                 </div>
             </div>
@@ -382,25 +366,12 @@
         <div class="slds-grid slds-gutters">
             <div class="slds-col slds-size_1-of-2">
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
-                    <h2>PUSH Offer Data</h2>
-                    <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="textarea-id-011">
-                        <abbr class="slds-required" title="required">* </abbr>Offer Long Description</label>
-                        <div class="slds-form-element__control">
-                            <textarea id="offer_long_description" required="" class="slds-textarea" placeholder="Message Content..."></textarea>
-                        </div>
-                    </div>
+                    <h2>Offer Content</h2>
                     <div class="slds-form-element">
                         <label class="slds-form-element__label" for="textarea-id-022">
                         <abbr class="slds-required" title="required">* </abbr>Offer Short Description</label>
                         <div class="slds-form-element__control">
-                            <textarea id="offer_short_content" required="" class="slds-textarea" placeholder="Short Message Content..."></textarea>
-                        </div>
-                    </div>                
-                    <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="text-input-id-22"><abbr class="slds-required" title="required">* </abbr>Click Through URL</label>
-                        <div class="slds-form-element__control">
-                            <input type="text" id="offer_click_through_url" placeholder="https://" required="" class="slds-input" />
+                            <input type="text" id="offer_short_content" required="" class="slds-textarea" placeholder="Short Message Content..."></textarea>
                         </div>
                     </div>
                     <div class="slds-form-element">
@@ -412,118 +383,74 @@
                     </div>
                     <div class="slds-form-element">
                         <label class="slds-form-element__label" for="textarea-id-011">
-                        <abbr class="slds-required" title="required">* </abbr>More Info</label>
+                        <abbr class="slds-required" title="required">* </abbr>More Info/Terms & Conditions</label>
                         <div class="slds-form-element__control">
                             <textarea id="offer_more_info" required="" class="slds-textarea" placeholder="More Info..."></textarea>
                         </div>
                     </div>
-                    <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="textarea-id-011">
-                        <abbr class="slds-required" title="required">* </abbr>Info Button Text</label>
+                    <div class="slds-form-element" id="click_through_url_form">
+                        <label class="slds-form-element__label" for="text-input-id-22"><abbr class="slds-required" title="required">* </abbr>Click Through URL</label>
                         <div class="slds-form-element__control">
-                            <textarea id="offer_info_button_text" required="" class="slds-textarea" placeholder="Info Button Text..."></textarea>
+                            <input type="text" id="offer_click_through_url" placeholder="https://" required="" class="slds-input" />
+                        </div>
+                    </div>
+                    <div class="slds-form-element" id="info_button_text_form">
+                        <label class="slds-form-element__label" for="textarea-id-011">
+                        <abbr class="slds-required" title="required" >* </abbr>Info Button Text</label>
+                        <div class="slds-form-element__control">
+                            <input type="text" id="offer_info_button_text" required="" class="slds-textarea" placeholder="Info Button Text..."></textarea>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="slds-col slds-size_1-of-2">
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
-                    <h2>PUSH Offer Setup</h2>
+                    <h2>Offer Setup</h2>
                     <div class="slds-grid">
                         <div class="slds-col">
-                            <div class="slds-grid slds-gutters">
-                                <div class="slds-col slds-size_1-of-2">
-                                    <div class="slds-form-element">
-                                      <label class="slds-form-element__label" for="text-input-id-1">
-                                        <abbr class="slds-required" title="required">* </abbr>Start Date</label>
-                                      <div class="slds-form-element__control">
-                                        <input type="text" id="offer_start_date" placeholder="YYYY-MM-DD" required="" class="slds-input" />
-                                      </div>
-                                    </div>
-                                </div>
-                                <div class="slds-col slds-size_1-of-2">
-                                    <div class="slds-form-element">
-                                      <label class="slds-form-element__label" for="select-01">Start Time</label>
-                                      <div class="slds-form-element__control">
-                                        <div class="slds-select_container">
-                                          <select class="slds-select" id="offer_start_time">
-                                            <option value="06:00:00">6:00 AM</option>
-                                            <option value="07:00:00">7:00 AM</option>
-                                            <option value="08:00:00">8:00 AM</option>
-                                            <option value="09:00:00">9:00 AM</option>
-                                            <option value="10:00:00">10:00 AM</option>
-                                            <option value="11:00:00">11:00 AM</option>
-                                            <option value="12:00:00">12:00 PM</option>
-                                            <option value="13:00:00">01:00 PM</option>
-                                            <option value="14:00:00">02:00 PM</option>
-                                            <option value="15:00:00">03:00 PM</option>
-                                            <option value="16:00:00">04:00 PM</option>
-                                            <option value="17:00:00">05:00 PM</option>
-                                            <option value="18:00:00">06:00 PM</option>
-                                            <option value="19:00:00">07:00 PM</option>
-                                            <option value="20:00:00">08:00 PM</option>
-                                            <option value="21:00:00">09:00 PM</option>
-                                            <option value="22:00:00">00:00 PM</option>
-                                            <option value="23:00:00">11:00 PM</option>
-                                          </select>
-                                        </div>
-                                      </div>
-                                    </div>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label" for="text-input-id-22"><abbr class="slds-required"
+                                        title="required">* </abbr>Offer ID</label>
+                                <div class="slds-form-element__control">
+                                    <input type="text" id="offer_id" placeholder="" required="" class="slds-input" />
                                 </div>
                             </div>
-                            <div class="slds-grid slds-gutters">
-                                <div class="slds-col slds-size_1-of-2">
-                                    <div class="slds-form-element">
-                                      <label class="slds-form-element__label" for="text-input-id-1">
-                                        <abbr class="slds-required" title="required">* </abbr>End Date</label>
-                                      <div class="slds-form-element__control">
-                                        <input type="text" id="offer_end_date" placeholder="YYYY-MM-DD" required="" class="slds-input" />
-                                      </div>
-                                    </div>
-                                </div>
-                                <div class="slds-col slds-size_1-of-2">
-                                    <div class="slds-form-element">
-                                      <label class="slds-form-element__label" for="select-01">Start Time</label>
-                                      <div class="slds-form-element__control">
-                                        <div class="slds-select_container">
-                                          <select class="slds-select" id="offer_end_time">
-                                            <option value="06:00:00">6:00 AM</option>
-                                            <option value="07:00:00">7:00 AM</option>
-                                            <option value="08:00:00">8:00 AM</option>
-                                            <option value="09:00:00">9:00 AM</option>
-                                            <option value="10:00:00">10:00 AM</option>
-                                            <option value="11:00:00">11:00 AM</option>
-                                            <option value="12:00:00">12:00 PM</option>
-                                            <option value="13:00:00">01:00 PM</option>
-                                            <option value="14:00:00">02:00 PM</option>
-                                            <option value="15:00:00">03:00 PM</option>
-                                            <option value="16:00:00">04:00 PM</option>
-                                            <option value="17:00:00">05:00 PM</option>
-                                            <option value="18:00:00">06:00 PM</option>
-                                            <option value="19:00:00">07:00 PM</option>
-                                            <option value="20:00:00">08:00 PM</option>
-                                            <option value="21:00:00">09:00 PM</option>
-                                            <option value="22:00:00">00:00 PM</option>
-                                            <option value="23:00:00">11:00 PM</option>
-                                          </select>
-                                        </div>
-                                      </div>
-                                    </div>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label" for="text-input-id-1">
+                                    <abbr class="slds-required" title="required">* </abbr>Start Datetime</label>
+                                <div class="slds-form-element__control">
+                                    <input type="datetime-local" id="offer_start_datetime" required="" class="slds-input" />
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="slds-grid">
-                        <div class="slds-col">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label" for="text-input-id-1">
+                                    <abbr class="slds-required" title="required">* </abbr>End Datetime</label>
+                                <div class="slds-form-element__control">
+                                    <input type="datetime-local" id="offer_end_datetime" required="" class="slds-input" />
+                                </div>
+                            </div>
                             <div class="slds-form-element sfmc-input">
                                 <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Channel</label>
                                 <div class="slds-form-element__control">
                                     <div class="slds-select_container">
                                         <select class="slds-select" id="offer_channel">
-                                            <option value="0" selected>0 - Online</option>
-                                            <option value="1">1 - Instore</option>
-                                            <option value="2">2 - Online and Instore</option>
-                                            <option value="3">3 - Informational</option>
+                                            <option value="3" selected>Informational</option>
+                                            <option value="0">Online Only</option>
+                                            <option value="1">Instore Only</option>
+                                            <option value="2">Online and Instore</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-form-element sfmc-input">
+                                <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Offer
+                                    Type</label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-select_container">
+                                        <select class="slds-select" id="offer_type">
+                                            <option selected value="1">Standard</option>
+                                            <option value="2">JOIN</option>
+                                            <option value="3">RREG</option>
                                         </select>
                                     </div>
                                 </div>
@@ -549,75 +476,50 @@
                                 </div>
                             </div>
                             <input type="hidden" id="offer_stores" value="501" />
-                            <div class="slds-form-element">
-                              <label class="slds-form-element__label" for="text-input-id-1">
-                                <abbr class="slds-required" title="required">* </abbr>Show Validity</label>
+                            <div class="slds-form-element" id="show_validity_form">
+                                <label class="slds-form-element__label" for="text-input-id-1">
+                                    <abbr class="slds-required" title="required">* </abbr>Show Validity</label>
                                 <div class="slds-select_container">
                                     <select class="slds-select" id="offer_validity">
-                                        <option value="true" selected>Yes</option>
+                                        <option value="true">Yes</option>
                                         <option value="false">No</option>
                                     </select>
                                 </div>
                             </div>
-                            <div class="slds-form-element">
-                                <label class="slds-form-element__label" for="text-input-id-22"><abbr class="slds-required" title="required">* </abbr>Offer ID</label>
-                                <div class="slds-form-element__control">
-                                    <input type="text" id="offer_id" placeholder="" required="" class="slds-input" />
-                                </div>
-                            </div>
-                            <div class="slds-form-element sfmc-input">
-                                <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Offer Type</label>
-                                <div class="slds-form-element__control">
-                                    <div class="slds-select_container">
-                                        <select class="slds-select" id="offer_type">
-                                            <option selected value="1">Standard</option>
-                                            <option value="2">JOIN</option>
-                                            <option value="3">RREG</option>
-                                        </select>
+                            <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="offer_cell_box">
+                                <h2>Communication History Data - Required for Informational offers</h2>
+                                <div class="slds-form-element sfmc-input">
+                                    <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Code</label>
+                                    <div class="slds-form-element__control">
+                                        <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_campaign_code" placeholder="Campaign Code" class="slds-input" />
                                     </div>
+                                    <div class="slds-form-element__help" id="form-error__campaign_code">This field is required</div>
+                                </div>
+                                <div class="slds-form-element sfmc-input">
+                                    <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Name</label>
+                                    <div class="slds-form-element__control">
+                                        <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_campaign_name" placeholder="Campaign Name" class="slds-input" />
+                                    </div>
+                                    <div class="slds-form-element__help" id="form-error__campaign_name">This field is required</div>
+                                </div>
+                                <div class="slds-form-element sfmc-input">
+                                    <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Code</label>
+                                    <div class="slds-form-element__control">
+                                        <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_cell_code" placeholder="Cell Code" class="slds-input" />
+                                    </div>
+                                    <div class="slds-form-element__help" id="form-error__cell_code">This field is required</div>
+                                </div>
+                                <div class="slds-form-element sfmc-input">
+                                    <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Name</label>
+                                    <div class="slds-form-element__control">
+                                        <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_cell_name" placeholder="Cell Name" class="slds-input" />
+                                    </div>
+                                    <div class="slds-form-element__help" id="form-error__cell_name">This field is required</div>
                                 </div>
                             </div>
-                    <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="offer_cell_box">
-                    <h2>Communication History Data - This is required for an informational send.</h2>
-                    <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Code</label>
-                        <div class="slds-form-element__control">
-                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_cell_code" placeholder="Cell Code (e.g some-cell-code)" class="slds-input" />
                         </div>
-                        <div class="slds-form-element__help" id="form-error__cell_code">This field is required</div>
-                    </div>
-                    <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Name</label>
-                        <div class="slds-form-element__control">
-                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_cell_name" placeholder="Cell Name (e.g some-cell-name)" class="slds-input" />
-                        </div>
-                        <div class="slds-form-element__help" id="form-error__cell_name">This field is required</div>
-                    </div>
-                    <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Name</label>
-                        <div class="slds-form-element__control">
-                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_campaign_name" placeholder="Campaign Name (e.g some-campaign-name)" class="slds-input" />
-                        </div>
-                        <div class="slds-form-element__help" id="form-error__campaign_name">This field is required</div>
-                    </div>
-                    <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign ID</label>
-                        <div class="slds-form-element__control">
-                            <input data-attribute-type="int" data-attribute-length="30" id="offer_campaign_id" placeholder="Campaign ID (e.g 12345)" class="slds-input" />
-                        </div>
-                        <div class="slds-form-element__help" id="form-error__campaign_id">This field is required</div>
-                    </div>
-                    <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Code</label>
-                        <div class="slds-form-element__control">
-                            <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_campaign_code" placeholder="Campaign Code (e.g some-campaign-code)" class="slds-input" />
-                        </div>
-                        <div class="slds-form-element__help" id="form-error__campaign_code">This field is required</div>
                     </div>
                 </div>
-                        </div>
-                    </div>
-                </div>                
             </div>
         </div>
     </div>
@@ -703,7 +605,7 @@
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_save">Save</button></li>
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_update">Update</button></li>
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_seed" disabled>Send to Seedlist</button></li>
-                            <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_create" disabled>Create Automation</button></li>
+                            <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_create" disabled>Schedule for broadcast</button></li>
                         </ul>
                     </div>
                 </article>
@@ -752,7 +654,7 @@
                             <div class="slds-media__body">
                                 <h2 class="slds-card__header-title">
                                     <a href="javascript:void(0);" class="slds-card__header-link slds-truncate" title="Accounts">
-                                        <span>PUSH Offer Setup</span>
+                                        <span>Offer Setup</span>
                                     </a>
                                 </h2>
                             </div>
