@@ -8,8 +8,8 @@
     "type": "REST",
     "lang": {
         "en-US": {
-          "name": "PROD PUSH Message",
-          "description": "Create a PUSH Message and Offer"
+          "name": "Mobilize App Offer/Push - Prod",
+          "description": "Create an offer or push for the Mobilize app."
         }
     },
     "arguments": {
