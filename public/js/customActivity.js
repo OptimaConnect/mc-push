@@ -1226,7 +1226,7 @@ define([
                         payloadNode.push({
                             step: 1,
                             key: step1FormInputs[i].id, 
-                            value:  step1FormInputs[i].value,
+                            value:  step1FormInputs[i].value.replace(/\n|\r/g, ""),
                             type: "input"
                         });  
                     }
@@ -1259,7 +1259,7 @@ define([
                         payloadNode.push({
                             step: 2,
                             key: step2FormInputs[i].id, 
-                            value:  step2FormInputs[i].value,
+                            value:  step2FormInputs[i].value.replace(/\n|\r/g, ""),
                             type: "input"
                         });                       
                     }
@@ -1292,7 +1292,7 @@ define([
                         payloadNode.push({
                             step: 3,
                             key: step3FormInputs[i].id, 
-                            value:  step3FormInputs[i].value,
+                            value:  step3FormInputs[i].value.replace(/\n|\r/g, ""),
                             type: "input"
                         });                       
                     }
