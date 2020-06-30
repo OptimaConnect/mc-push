@@ -1,16 +1,12 @@
 {
-  "name": "jb-activity-template",
+  "name": "jb-mobilize-offer-push",
   "version": "1.0.0",
-  "description": "Journey Builder Activity Template",
+  "description": "Mobilize App Offer/Push Activity for Journey Builder",
   "engines": {
     "node": "13.10.1"
   },
   "scripts": {
     "start": "node app.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Rafterman82/mc-jb-custom-activity.git"
   },
   "keywords": [
     "journey",
@@ -18,12 +14,11 @@
     "salesforce marketing cloud",
     "heroku"
   ],
-  "author": "Paul Rafter",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Rafterman82/mc-jb-custom-activity/issues"
+  "repository": {
+    "url": "https://github.com/OptimaConnect/mc-push"
   },
-  "homepage": "https://github.com/Rafterman82/mc-jb-custom-activity#readme",
+  "author": "David Francis",
+  "license": "MIT",
   "dependencies": {
     "@azure/service-bus": "^1.1.7",
     "axios": "^0.19.2",
