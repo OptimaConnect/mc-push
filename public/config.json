@@ -7,10 +7,10 @@
     },
     "type": "REST",
     "lang": {
-        "en-US": {
-          "name": "SIT PUSH Message",
-          "description": "Create a PUSH Message and Offer"
-        }
+      "en-US": {
+        "name": "SIT - Mobilize App Offer/Push",
+        "description": "Create an offer or push for the Mobilize app."
+      }
     },
     "arguments": {
         "execute": {
