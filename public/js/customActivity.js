@@ -275,7 +275,7 @@ define([
         $('.slds-form-element__help').hide();
 
         // select first input
-        $("#radio-1").click();
+        $("#push_type_message").click();
 
         // handler for Optima button
         $("#control_action_save").click(function(){
@@ -303,7 +303,6 @@ define([
         $("#current_time").html(currentTime);
 
         // set date inputs to todays date
-        $("#automation_run_date").val(todayDate);
         $("#message_target_send_datetime").val(todayDate);
         $("#message_seed_send_datetime").val(todayDate);
         $("#offer_start_datetime").val(todayDate);
@@ -397,11 +396,11 @@ define([
                 } else if ( argumentsSummaryPayload[q].type == "radio") {
                     if ( argumentsSummaryPayload[q].key == "push_type") {
                         if ( argumentsSummaryPayload[q].value == "message") {
-                            $("#radio-1").prop('checked', true);
-                            $("#radio-1").click();
+                            $("#push_type_message").prop('checked', true);
+                            $("#push_type_message").click();
                         } else if ( argumentsSummaryPayload[q].value == "offer") {
-                            $("#radio-2").prop('checked', true);
-                            $("#radio-2").click();
+                            $("#push_type_offer").prop('checked', true);
+                            $("#push_type_offer").click();
                         }
                     }
                 }
@@ -454,7 +453,7 @@ define([
             if ( debug ) {
                 console.log('nothing to pre-pop setting step 0 and first radio checked');
             }
-            $("#radio-1").prop("checked", true).trigger("click");
+            $("#push_type_message").prop("checked", true).trigger("click");
         }
         if ( debug ) {
             console.log(prePop);
@@ -475,7 +474,7 @@ define([
 
         } else if ( stepToValidate == 0 ) {
 
-            var step0Selectors = ["#update_contacts", "#automation_run_date", "#widget_name"];
+            var step0Selectors = ["#update_contacts", "#widget_name"];
             var step0ErrorCount = 0;
 
             for ( var n = 0; n < step0Selectors.length; n++ ) {
@@ -487,18 +486,9 @@ define([
                     step0ErrorCount++;
                 }
             }
-            if ( $("#update_contacts").val() == "no-code") {
+            if ( $("#update_contacts").val() == "none" && $("#push_type_offer").is(":checked")) {
                 step0ErrorCount++;
             }
-
-            console.log("The automation date string is:");
-            console.log($("#automation_run_date").val());
-
-            if ( !validateTheDateFormat($("#automation_run_date").val()) ) {
-                
-                step0ErrorCount++;
-            }
-
 
             if ( step0ErrorCount == 0 ) {
 
@@ -715,8 +705,10 @@ define([
                         }
 
                         let deRow = result.items[i].values;
-                        $("#offer_promotion").append(`<option data-attribute-redemptions=${deRow.instore_code_1_redemptions} data-attribute-control=${deRow.communication_cell_id_control} data-attribute-cell=${deRow.communication_cell_id} data-attribute-cell-name=${deRow.cell_name} data-attribute-mc6=${deRow.mc_id_6} data-attribute-mc1=${deRow.mc_id_1} data-attribute-instore-code=${deRow.instore_code_1} data-attribute-online-code=${deRow.global_code_1} data-attribute-online-promotion-type=${deRow.onlinepromotiontype} data-attribute-promotion-type=${deRow.promotiontype} data-attribute-voucher-pot=${deRow.unique_code_1} value=${result.items[i].keys.promotion_key}>${deRow.campaign_name}</option>`);
-                    }                   
+                        if (deRow.promotiontype != "nocode"){
+                            $("#offer_promotion").append(`<option data-attribute-redemptions=${deRow.instore_code_1_redemptions} data-attribute-control=${deRow.communication_cell_id_control} data-attribute-cell=${deRow.communication_cell_id} data-attribute-cell-name=${deRow.cell_name} data-attribute-mc6=${deRow.mc_id_6} data-attribute-mc1=${deRow.mc_id_1} data-attribute-instore-code=${deRow.instore_code_1} data-attribute-online-code=${deRow.global_code_1} data-attribute-online-promotion-type=${deRow.onlinepromotiontype} data-attribute-promotion-type=${deRow.promotiontype} data-attribute-voucher-pot=${deRow.unique_code_1} value=${result.items[i].keys.promotion_key}>${deRow.campaign_name}</option>`);
+                        }
+                    }
                 }
 
                 updateApiStatus("promotions-api", true);

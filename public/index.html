@@ -114,15 +114,15 @@
                         <legend class="slds-form-element__legend slds-form-element__label">PUSH Message Type</legend>
                         <div class="slds-form-element__control">
                             <span class="slds-radio">
-                                <input type="radio" class="promotion_type" id="radio-1" value="message" name="push_type" checked="checked" />
-                                <label class="slds-radio__label" for="radio-1">
+                                <input type="radio" class="promotion_type" id="push_type_message" value="message" name="push_type" checked="checked" />
+                                <label class="slds-radio__label" for="push_type_message">
                                     <span class="slds-radio_faux"></span>
                                     <span class="slds-form-element__label">Push Message</span>
                                 </label>
                             </span>
                             <span class="slds-radio">
-                                <input type="radio" class="promotion_type" id="radio-2" value="offer" name="push_type" />
-                                <label class="slds-radio__label" for="radio-2">
+                                <input type="radio" class="promotion_type" id="push_type_offer" value="offer" name="push_type" />
+                                <label class="slds-radio__label" for="push_type_offer">
                                     <span class="slds-radio_faux"></span>
                                     <span class="slds-form-element__label">Offer</span>
                                 </label>
@@ -153,76 +153,19 @@
                             <div class="slds-form-element__control">
                                 <div class="slds-select_container">
                                     <select class="slds-select" id="update_contacts">
-                                        <option value="no-code">No Update Contact</option>
+                                        <option value="none">No Update Contact</option>
                                     </select>
                                 </div>
                             </div>
+                            <label class="slds-form-element__label">
+                                For pushes only targeting non-loyalty customers, pick "No Update Contact" and select the non-loyalty box on the push setup screen.<br><br>
+                                For pushes targeting both, select an update contact data extension, and also select the non-loyalty box.
+                            </label>
                         </div>
                     </fieldset>
                 </div>
             </div>
             <div class="slds-col slds-size_1-of-3">
-                <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" hidden>
-                    <fieldset class="slds-form-element slds-form-element_stacked">
-                        <legend class="slds-form-element__legend slds-form-element__label">Automation Setup</legend>
-                    </fieldset>
-                    <p>The current time in GMT is <span id="current_time"></span></p>
-                    <div class="slds-grid slds-gutters">
-                        <div class="slds-col slds-size_1-of-2">
-                            <div class="slds-form-element">
-                              <label class="slds-form-element__label" for="text-input-id-1">
-                                <abbr class="slds-required" title="required">* </abbr>Automation Schedule Date</label>
-                              <div class="slds-form-element__control">
-                                <input type="text" id="automation_run_date" placeholder="YYYY-MM-DD" required="" class="slds-input" />
-                              </div>
-                            </div>
-                        </div>
-                        <div class="slds-col slds-size_1-of-2">
-                            <div class="slds-form-element">
-                              <label class="slds-form-element__label" for="select-01"><abbr class="slds-required" title="required">* </abbr>Automation Run Time (GMT)</label>
-                              <div class="slds-form-element__control">
-                                <div class="slds-select_container">
-                                  <select class="slds-select" id="automation_run_time">
-                                    <option value="06:00:00">6:00 AM</option>
-                                    <option value="07:00:00">7:00 AM</option>
-                                    <option value="08:00:00">8:00 AM</option>
-                                    <option value="09:00:00">9:00 AM</option>
-                                    <option value="10:00:00">10:00 AM</option>
-                                    <option value="11:00:00">11:00 AM</option>
-                                    <option value="12:00:00">12:00 AM</option>
-                                    <option value="13:00:00">01:00 PM</option>
-                                    <option value="14:00:00">02:00 PM</option>
-                                    <option value="15:00:00">03:00 PM</option>
-                                    <option value="16:00:00">04:00 PM</option>
-                                    <option value="17:00:00">05:00 PM</option>
-                                    <option value="18:00:00">06:00 PM</option>
-                                    <option value="19:00:00">07:00 PM</option>
-                                    <option value="20:00:00">08:00 PM</option>
-                                    <option value="21:00:00">09:00 PM</option>
-                                    <option value="22:00:00">00:00 PM</option>
-                                    <option value="23:00:00">11:00 PM</option>
-                                  </select>
-                                </div>
-                              </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="slds-grid slds-gutters">
-                        <div class="slds-col slds-size_1-of-1">
-                            <div class="slds-form-element">
-                                <div class="slds-form-element__control">
-                                    <div class="slds-checkbox">
-                                        <input type="checkbox" name="options" id="automation_reoccuring" />
-                                        <label class="slds-checkbox__label" for="automation_reoccuring">
-                                            <span class="slds-checkbox_faux"></span>
-                                            <span class="slds-form-element__label">Reoccuring Campaign?</span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <div id="update_contact_box" class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
                     <fieldset class="slds-form-element slds-form-element_stacked">
                         <legend class="slds-form-element__legend slds-form-element__label">Journey Builder Widget Name</legend>
@@ -303,6 +246,17 @@
                                 <abbr class="slds-required" title="required">* </abbr>Seed Send Datetime</label>
                             <div class="slds-form-element__control">
                                 <input type="datetime-local" id="message_seed_send_datetime" required class="slds-input" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-form-element slds-m-vertical_x-small slds-m-left_xx-small">
+                        <div class="slds-form-element__control">
+                            <div class="slds-checkbox">
+                                <input type="checkbox" id="push_non_loyalty" name="Send to non-loyalty customers" />
+                                <label class="slds-checkbox__label" for="push_non_loyalty">
+                                    <span class="slds-checkbox_faux"></span>
+                                    <span class="slds-form-element__label">Send to non-loyalty customers</span>
+                                </label>
                             </div>
                         </div>
                     </div>
