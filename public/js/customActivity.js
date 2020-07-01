@@ -1,7 +1,6 @@
 define([
     'postmonger',
-    'jquery',
-    'textcomplete'
+    'jquery'
 ], function(
     Postmonger
 ) {
