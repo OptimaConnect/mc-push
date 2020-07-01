@@ -1293,7 +1293,7 @@ define([
 
                     if ( summaryPayload[z].key == "push_type" ) {
                         var summaryPromotionType = summaryPayload[z].value;
-                        if ( summaryPromotionType == "message") {
+                        if ( summaryPromotionType.includes("message")) {
                             $("#summary-offer-setup").append('<p>No offer setup.</p>');
                         } else if ( summaryPromotionType == "offer" ) {
                             $("#summary-message-setup").append('<p>No message setup.</p>');
@@ -1313,7 +1313,7 @@ define([
 
                 } else if ( summaryPayload[z].step == 2 ) {
 
-                    if ( summaryPromotionType == "message" ) {
+                    if ( summaryPromotionType.includes("message")) {
 
                         $("#summary-message-setup").append('<dt class="slds-item_label slds-text-color_weak" title="'+summaryPayload[z].key+'"><b>'+cleanUpKeyText(summaryPayload[z].key)+'</b></dt>');
                         $("#summary-message-setup").append('<dd class="slds-item_detail" title="Description for '+summaryPayload[z].value+'">'+summaryPayload[z].value+'</dd>');
