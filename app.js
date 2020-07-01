@@ -565,23 +565,102 @@ async function addQueryActivity(payload, seed) {
 		} else if ( payloadAttributes.push_type == "message" ) {
 
 			const messageUrl = "ISNULL(NULLIF(MPT.message_url,''),'content://my_rewards/my_offers_list')";
+			const nonLoyaltyMessageUrl = `CASE 	WHEN ISNULL(MPT.message_url, '') LIKE  'content://my_rewards%' 	THEN 'content://home'
+												WHEN ISNULL(MPT.message_url, '') = ''							THEN 'content://home'
+												ELSE MPT.message_url
+											END`;
+			
+			const targetSendDateTime = "MPT.[message_target_send_datetime] AT TIME ZONE 'GMT Standard Time'";
+			const seedSendDatetime = 
+				`CASE	WHEN MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
+							THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
+						ELSE MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time'
+				END`;
 
-			let messageQueryLiveSeeds =
-				`	UNION
+			let pushSeedQuery = `
 				SELECT MPT.push_key,
+				'Matalan'                   AS SCHEME_ID,
+				PCD.MATALAN_CARD_NUMBER     AS LOYALTY_CARD_NUMBER,
+				MPT.message_content         AS MESSAGE_CONTENT,
+				FORMAT(${seedSendDatetime} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
+				'A'							AS STATUS,
+				MPT.message_title           AS TITLE,
+				${messageUrl}	            AS [URL]
+				FROM [${marketingCloud.seedListTable}] AS UpdateContactDE
+				INNER JOIN [${marketingCloud.seedListTable}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
+				ON MPT.push_key = ${payloadAttributes.key}
+				WHERE PCD.MATALAN_CARD_NUMBER IS NOT NULL`;
+			
+			let pushBroadcastQuery = `
+				SELECT MPT.push_key,
+				'Matalan'                   AS SCHEME_ID,
+				PCD.APP_CARD_NUMBER            AS LOYALTY_CARD_NUMBER,
+				MPT.message_content         AS MESSAGE_CONTENT,
+				FORMAT(${targetSendDateTime} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
+				'A'							AS STATUS,
+				MPT.message_title           AS TITLE,
+				${messageUrl}	            AS [URL]
+				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
+				INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+				INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
+				ON MPT.push_key = ${payloadAttributes.key}
+				WHERE PCD.APP_CARD_NUMBER IS NOT NULL`;
+			
+			let pushLiveSeedsQuery =
+				`SELECT MPT.push_key,
 				'Matalan'                   AS SCHEME_ID,
 				S.MATALAN_CARD_NUMBER       AS LOYALTY_CARD_NUMBER,
 				MPT.message_content         AS MESSAGE_CONTENT,
-				FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
+				FORMAT(${targetSendDateTime} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
 				'A'							AS STATUS,
 				MPT.message_title           AS TITLE,
 				${messageUrl}	            AS [URL]
 				FROM [${marketingCloud.mobilePushMainTable}] AS MPT
 				CROSS JOIN [${marketingCloud.seedListTable}] AS S
 				WHERE MPT.push_key = ${payloadAttributes.key}
-				AND   S.MATALAN_CARD_NUMBER IS NOT NULL`
+				AND   S.MATALAN_CARD_NUMBER IS NOT NULL`;
+			
+			let pushNonLoyaltyQuery =
+				`SELECT MPT.push_key,
+				'Matalan'                   AS SCHEME_ID,
+				'000000000000000'           AS LOYALTY_CARD_NUMBER,
+				MPT.message_content         AS MESSAGE_CONTENT,
+				FORMAT(${targetSendDateTime} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
+				'A'							AS STATUS,
+				MPT.message_title           AS TITLE,
+				${nonLoyaltyMessageUrl}     AS [URL]
+				FROM [${marketingCloud.mobilePushMainTable}] as MPT
+				WHERE MPT.push_key = ${payloadAttributes.key}`;
 
-			let messageQuery = 
+			let pushSubquery;
+			if (seed) {
+				pushSubquery = pushSeedQuery;
+			}
+			else {
+				if (payloadAttributes.update_contact == "none" && payloadAttributes.push_non_loyalty) {
+					pushSubquery = 
+						`${pushNonLoyaltyQuery}
+							UNION
+						${pushLiveSeedsQuery}`;
+				}
+				else if (payloadAttributes.push_non_loyalty) {
+					pushSubquery = 
+						`${pushBroadcastQuery}
+							UNION
+						${pushNonLoyaltyQuery}
+							UNION
+						${pushLiveSeedsQuery}`;
+				}
+				else {
+					pushSubquery = 
+						`${pushBroadcastQuery}
+							UNION
+						${pushLiveSeedsQuery}`;
+				}
+			}
+
+			let messageFinalQuery = 
 				`SELECT A.push_key
 				,		A.SCHEME_ID
 				,       (CAST(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS MOBILE_MESSAGE_ID
@@ -595,27 +674,13 @@ async function addQueryActivity(payload, seed) {
 				,       SYSDATETIME()   AS DATE_UPDATED
 				FROM
 				(
-					SELECT MPT.push_key,
-					'Matalan'                   AS SCHEME_ID,
-					${appCardNumber}            AS LOYALTY_CARD_NUMBER,
-					MPT.message_content         AS MESSAGE_CONTENT,
-					FORMAT(${target_send_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
-					'A'							AS STATUS,
-					MPT.message_title           AS TITLE,
-					${messageUrl}	            AS [URL]
-					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
-					INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-					INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
-					ON MPT.push_key = ${payloadAttributes.key}
-					WHERE ${appCardNumber} IS NOT NULL
-					${!seed ? messageQueryLiveSeeds : ""}
+					${pushSubquery}
 				) AS A`;
-				// Inject live seeds if we are broadcasting a live send
 
-			console.dir(messageQuery);
+			console.dir(messageFinalQuery);
 
 			const messageQueryName = `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`;
-			const messageQueryId = await createSQLQuery(marketingCloud.messageKey, messageQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
+			const messageQueryId = await createSQLQuery(marketingCloud.messageKey, messageFinalQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
 			await runSQLQuery(messageQueryId, messageQueryName);
 			returnIds["member_message_query_id"] = messageQueryId;
 		}
