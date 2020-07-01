@@ -1,8 +1,6 @@
 define([
     'postmonger',
     'jquery',
-    'emojione', 
-    'emojionearea', 
     'textcomplete'
 ], function(
     Postmonger
@@ -161,37 +159,6 @@ define([
     }
 
     function loadEvents() {
-
-        $("#textarea-id-01").emojioneArea({
-            pickerPosition: "bottom",
-            filtersPosition: "bottom",
-            tones: false,
-            autocomplete: false,
-            inline: false,
-            events: {
-                keyup: function (editor, event) {
-                   console.log('event:keyup');
-                   countChar1(this);
-                }
-            }
-        });
-
-        $("#textarea-id-02").emojioneArea({
-            pickerPosition: "bottom",
-            filtersPosition: "bottom",
-            tones: false,
-            autocomplete: false,
-            inline: false,
-            events: {
-                keyup: function (editor, event) {
-                   console.log('event:keyup');
-                   countChar2(this);
-                }
-            }
-        });
-
-        $("#message_content").emojioneArea();
-
 
         // render relevant steps based on input
         $('.promotion_type').click(function() {
