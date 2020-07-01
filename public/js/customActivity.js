@@ -1,9 +1,6 @@
 define([
     'postmonger',
-    'jquery',
-    'emojione', 
-    'emojionearea', 
-    'textcomplete'
+    'jquery'
 ], function(
     Postmonger
 ) {
@@ -161,37 +158,6 @@ define([
     }
 
     function loadEvents() {
-
-        $("#textarea-id-01").emojioneArea({
-            pickerPosition: "bottom",
-            filtersPosition: "bottom",
-            tones: false,
-            autocomplete: false,
-            inline: false,
-            events: {
-                keyup: function (editor, event) {
-                   console.log('event:keyup');
-                   countChar1(this);
-                }
-            }
-        });
-
-        $("#textarea-id-02").emojioneArea({
-            pickerPosition: "bottom",
-            filtersPosition: "bottom",
-            tones: false,
-            autocomplete: false,
-            inline: false,
-            events: {
-                keyup: function (editor, event) {
-                   console.log('event:keyup');
-                   countChar2(this);
-                }
-            }
-        });
-
-        $("#message_content").emojioneArea();
-
 
         // render relevant steps based on input
         $('.promotion_type').click(function() {
@@ -379,37 +345,34 @@ define([
             console.log(argumentsSummaryPayload);
         }
 
-        setTimeout(function(){ 
+        var q;
 
-            var q;
+        for (q = 0; q < argumentsSummaryPayload.length; q++) {
+            if (debug) {
+                console.log("Prepop: " + argumentsSummaryPayload[q].key + ", with value: " + argumentsSummaryPayload[q].value + ", and type: " + argumentsSummaryPayload[q].type);
+            }
+            if (argumentsSummaryPayload[q].type == "checkbox") {
 
-            for ( q = 0; q < argumentsSummaryPayload.length; q++ ) {
-                if ( debug ) {
-                    console.log("Prepop: " + argumentsSummaryPayload[q].key + ", with value: " + argumentsSummaryPayload[q].value + ", and type: " + argumentsSummaryPayload[q].type);
-                }
-                if ( argumentsSummaryPayload[q].type == "checkbox") {
-
-                    if ( argumentsSummaryPayload[q].value ) {
-                        $("#" + argumentsSummaryPayload[q].key).val(true);
-                        $("#" + argumentsSummaryPayload[q].key).prop('checked', "checked");
-                    }
-                    
-                } else if ( argumentsSummaryPayload[q].type == "radio") {
-                    if ( argumentsSummaryPayload[q].key == "push_type") {
-                        if ( argumentsSummaryPayload[q].value == "message") {
-                            $("#radio-1").prop('checked', true);
-                            $("#radio-1").click();
-                        } else if ( argumentsSummaryPayload[q].value == "offer") {
-                            $("#radio-2").prop('checked', true);
-                            $("#radio-2").click();
-                        }
-                    }
+                if (argumentsSummaryPayload[q].value) {
+                    $("#" + argumentsSummaryPayload[q].key).val(true);
+                    $("#" + argumentsSummaryPayload[q].key).prop('checked', "checked");
                 }
 
-                $("#step" + (argumentsSummaryPayload[q].step - 1) + " #" + argumentsSummaryPayload[q].key).val(argumentsSummaryPayload[q].value);
+            } else if (argumentsSummaryPayload[q].type == "radio") {
+                if (argumentsSummaryPayload[q].key == "push_type") {
+                    if (argumentsSummaryPayload[q].value == "message") {
+                        $("#radio-1").prop('checked', true);
+                        $("#radio-1").click();
+                    } else if (argumentsSummaryPayload[q].value == "offer") {
+                        $("#radio-2").prop('checked', true);
+                        $("#radio-2").click();
+                    }
+                }
+            }
 
-            } 
-        }, 2000);
+            $("#step" + (argumentsSummaryPayload[q].step - 1) + " #" + argumentsSummaryPayload[q].key).val(argumentsSummaryPayload[q].value);
+
+        }
     }
 
     function triggerSteps(argumentsSummaryPayload, argPromotionType) {
