@@ -168,12 +168,17 @@ define([
                 console.log(pushType);
             }
 
-            if ( pushType === 'message' ) {
+            if ( pushType.includes('message') ) {
 
                 // hide control group field
                 $("#control_group_box").show();
+                $("#update_contact_box").show();
 
                 $("#promotion_alert").hide();
+
+                if (pushType === 'message_non_loyalty') {
+                    $("#update_contact_box").hide();
+                }
 
                 if ( debug ) {
                     console.log("trigger step 1");   
@@ -197,6 +202,7 @@ define([
                 // hide control group field
                 //$("#control_group_box").hide();
                 $("#promotion_alert").show();
+                $("#update_contact_box").show();
 
                 if ( debug ) {
                     console.log("trigger step 2");   
@@ -241,7 +247,7 @@ define([
         $('.slds-form-element__help').hide();
 
         // select first input
-        $("#push_type_message").click();
+        $("#push_type_offer").click();
 
         // handler for Optima button
         $("#control_action_save").click(function(){
@@ -362,10 +368,15 @@ define([
                     if (argumentsSummaryPayload[q].value == "message") {
                         $("#push_type_message").prop('checked', true);
                         $("#push_type_message").click();
-                    } else if (argumentsSummaryPayload[q].value == "offer") {
+                    }
+                    else if (argumentsSummaryPayload[q].value == "offer") {
                         $("#push_type_offer").prop('checked', true);
                         $("#push_type_offer").click();
                     }
+                    else if (argumentsSummaryPayload[q].value == "message_non_loyalty") {
+                        $("#push_type_message_non_loyalty").prop('checked', true);
+                        $("#push_type_message_non_loyalty").click();
+                    } 
                 }
             }
 
@@ -386,7 +397,7 @@ define([
 
         var prePop;
 
-        if ( prepopPromotionType == 'message' ) {
+        if ( prepopPromotionType == 'message' || prepopPromotionType == 'message_non_loyalty' ) {
             steps[1].active = true;
             steps[3].active = true;
             connection.trigger('updateSteps', steps);
@@ -416,7 +427,7 @@ define([
             if ( debug ) {
                 console.log('nothing to pre-pop setting step 0 and first radio checked');
             }
-            $("#push_type_message").prop("checked", true).trigger("click");
+            $("#push_type_offer").prop("checked", true).trigger("click");
         }
         if ( debug ) {
             console.log(prePop);
@@ -449,7 +460,7 @@ define([
                     step0ErrorCount++;
                 }
             }
-            if ( $("#update_contacts").val() == "none" && $("#push_type_offer").is(":checked")) {
+            if ( $("#update_contacts").val() == "none" && !$("#push_type_message_non_loyalty").is(":checked")) {
                 step0ErrorCount++;
             }
 
@@ -752,15 +763,15 @@ define([
             console.log("next clicked");           
         }
 
-        if ( pushType == 'message' ) {
+        if ( pushType.includes('message')) {
 
             if ( currentStep.key === 'step0') {
 
                 if ( validateStep(0) ) {
 
                     if ( debug ) {
-                        console.log("step 0 validated");           
-                    }                    
+                        console.log("step 0 validated");
+                    }
 
                     toggleStepError(0, "hide");
                     connection.trigger('nextStep');
@@ -769,7 +780,7 @@ define([
 
                     if ( debug ) {
                         console.log("step 0 not validated");           
-                    }  
+                    }
 
                     connection.trigger('ready');
                     toggleStepError(0, "show");

@@ -109,20 +109,27 @@
             <div class="slds-col slds-size_1-of-3">
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
                     <fieldset class="slds-form-element slds-form-element_stacked">
-                        <legend class="slds-form-element__legend slds-form-element__label">PUSH Message Type</legend>
+                        <legend class="slds-form-element__legend slds-form-element__label">Message Type</legend>
                         <div class="slds-form-element__control">
                             <span class="slds-radio">
-                                <input type="radio" class="promotion_type" id="push_type_message" value="message" name="push_type" checked="checked" />
+                                <input type="radio" class="promotion_type" id="push_type_offer" value="offer" name="push_type" checked="checked" />
+                                <label class="slds-radio__label" for="push_type_offer">
+                                    <span class="slds-radio_faux"></span>
+                                    <span class="slds-form-element__label">Offer</span>
+                                </label>
+                            </span>
+                            <span class="slds-radio">
+                                <input type="radio" class="promotion_type" id="push_type_message" value="message" name="push_type" />
                                 <label class="slds-radio__label" for="push_type_message">
                                     <span class="slds-radio_faux"></span>
                                     <span class="slds-form-element__label">Push Message</span>
                                 </label>
                             </span>
                             <span class="slds-radio">
-                                <input type="radio" class="promotion_type" id="push_type_offer" value="offer" name="push_type" />
-                                <label class="slds-radio__label" for="push_type_offer">
+                                <input type="radio" class="promotion_type" id="push_type_message_non_loyalty" value="message_non_loyalty" name="push_type" />
+                                <label class="slds-radio__label" for="push_type_message_non_loyalty">
                                     <span class="slds-radio_faux"></span>
-                                    <span class="slds-form-element__label">Offer</span>
+                                    <span class="slds-form-element__label">Push Message - Non-loyalty customers</span>
                                 </label>
                             </span>
                         </div>
@@ -155,10 +162,6 @@
                                     </select>
                                 </div>
                             </div>
-                            <label class="slds-form-element__label">
-                                For pushes only targeting non-loyalty customers, pick "No Update Contact" and select the non-loyalty box on the push setup screen.<br><br>
-                                For pushes targeting both, select an update contact data extension, and also select the non-loyalty box.
-                            </label>
                         </div>
                     </fieldset>
                 </div>
@@ -244,17 +247,6 @@
                                 <abbr class="slds-required" title="required">* </abbr>Seed Send Datetime</label>
                             <div class="slds-form-element__control">
                                 <input type="datetime-local" id="message_seed_send_datetime" required class="slds-input" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="slds-form-element slds-m-vertical_x-small slds-m-left_xx-small">
-                        <div class="slds-form-element__control">
-                            <div class="slds-checkbox">
-                                <input type="checkbox" id="push_non_loyalty" name="Send to non-loyalty customers" />
-                                <label class="slds-checkbox__label" for="push_non_loyalty">
-                                    <span class="slds-checkbox_faux"></span>
-                                    <span class="slds-form-element__label">Send to non-loyalty customers</span>
-                                </label>
                             </div>
                         </div>
                     </div>
