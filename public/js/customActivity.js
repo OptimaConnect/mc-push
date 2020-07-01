@@ -177,6 +177,7 @@ define([
                 $("#promotion_alert").hide();
 
                 if (pushType === 'message_non_loyalty') {
+                    $("#control_group_box").hide();
                     $("#update_contact_box").hide();
                 }
 
@@ -202,6 +203,7 @@ define([
                 // hide control group field
                 //$("#control_group_box").hide();
                 $("#promotion_alert").show();
+                $("#control_group_box").show();
                 $("#update_contact_box").show();
 
                 if ( debug ) {
@@ -1148,14 +1150,6 @@ define([
             console.log(e);
         }
 
-    }
-
-
-    function addPromotionKeyToArgs(saveResponse) {
-        if ( debug ){
-            console.log("add promokey to args executed");
-            console.log(saveResponse);
-        }
     }
 
     function buildActivityPayload() {
