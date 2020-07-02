@@ -8,10 +8,8 @@ define([
 
     var debug                       = true;
     var apiWaitTime                 = 500;
-    var stepToValidate;
     var connection                  = new Postmonger.Session();
     var payload                     = {};
-    var payloadNode                 = {};
     var onlineSetupStepEnabled      = false;
     var instoreSetupStepEnabled     = false;
     var steps                       = [
@@ -21,9 +19,6 @@ define([
         { "label": "Summary", "key": "step3" }
     ];
     var currentStep = steps[0].key;
-    var stepValidation = false;
-    var payloadToSave;
-    var summaryPayload;
     var today = new Date();
     var currentTime = today.toGMTString();
     var todayDate = new Date().toISOString().slice(0,10);
@@ -43,7 +38,6 @@ define([
     connection.on('gotoStep', onGotoStep);
 
     async function onRender() {
-        var debug = true;
         
         connection.trigger('requestTokens');
         connection.trigger('requestEndpoints');
@@ -138,30 +132,10 @@ define([
             updateSummaryPage(argumentsSummaryPayload.buildPayload);
 
             // trigger steps
-            triggerSteps(argumentsSummaryPayload.buildPayload, argPromotionType);
+            triggerSteps(argPromotionType);
         }
 
         showOrHideOfferFormsBasedOnType();
-    }
-
-    function countChar1(val) {
-        var len = val.getText().length;
-        if (len >= 300) {
-              val.value = val.content.substring(0, 300);
-              $('#chars1').text(0);
-        } else {
-             $('#chars1').text(300 - len);
-        }
-    }
-
-    function countChar2(val) {
-        var len = val.getText().length;
-        if (len >= 100) {
-              val.value = val.content.substring(0, 10);
-              $('#chars2').text(0);
-        } else {
-             $('#chars2').text(100 - len);
-        }
     }
 
     function loadEvents() {
@@ -326,8 +300,6 @@ define([
             // hide promotion dropdown
             $("#promotion_element").hide();
             $("#show_validity_form").hide();
-            
-            const offer_validity_val = $("#offer_validity").val();
 
             if ($("#offer_validity").val() == "true") {
                 $("#offer_validity").val("false").change();
@@ -394,7 +366,7 @@ define([
         }
     }
 
-    function triggerSteps(argumentsSummaryPayload, argPromotionType) {
+    function triggerSteps(argPromotionType) {
 
         // argument data present, pre pop and redirect to summary page
         var prepopPromotionType = argPromotionType;
@@ -576,65 +548,6 @@ define([
         
     }
 
-    function isCharInteger(string) {
-
-        console.log("The string passed for INT checking is" + string);
-        if (Number.isInteger(parseInt(string))) {
-            return true;
-        } else {
-             return false
-        }
-    }
-
-    function validateTheDateFormat(dateStringFromForm) {
-        console.log("The string passed for Date checking is" + dateStringFromForm);
-        var dateStringAsArray = dateStringFromForm.split("");
-
-        console.log("Date array");
-        console.log(dateStringAsArray)
-        console.log("Date array length");
-        console.log(dateStringAsArray.length);
-
-        // is char 4 a - and char 7 a - and is char 9 true or false
-        if ( dateStringAsArray.length == 10 && dateStringAsArray[4] == "-" && dateStringAsArray[7] == "-" ) {
-            if (isCharInteger(dateStringAsArray[0]) && 
-                isCharInteger(dateStringAsArray[1]) && 
-                isCharInteger(dateStringAsArray[2]) && 
-                isCharInteger(dateStringAsArray[3]) && 
-                isCharInteger(dateStringAsArray[5]) && 
-                isCharInteger(dateStringAsArray[6]) && 
-                isCharInteger(dateStringAsArray[8]) && 
-                isCharInteger(dateStringAsArray[9]) 
-                ) {
-                return true;
-            }
-        } else {
-            return false;
-        }
-    }
-
-
-    function isEmpty (value) {
-        return ((value == null) || 
-                (value.hasOwnProperty('length') && 
-                value.length === 0) || 
-                (value.constructor === Object && 
-                Object.keys(value).length === 0) 
-            );
-    }
-
-    function isWholeNumber(num) {
-        return num === Math.round(num);
-    }
-
-    function isTwoValuesUsed(voucherPotValue, globalOnlineCodeValue) {
-        return voucherPotValue != '' && globalOnlineCodeValue != '';
-    }
-
-    function isValidInstoreCode(selectedCode) {
-        return selectedCode !== 'Please select a code' && selectedCode != '';
-    }
-
     async function lookupControlGroups() {
         try {
             // access offer types and build select input
@@ -743,16 +656,6 @@ define([
     function onGetEndpoints (endpoints) {
         // Response: endpoints == { restHost: <url> } i.e. "rest.s1.qa1.exacttarget.com"
         // console.log(endpoints);
-    }
-
-    function onGetSchema (payload) {
-        // Response: payload == { schema: [ ... ] };
-        // console.log('requestedSchema payload = ' + JSON.stringify(payload, null, 2));
-    }
-
-    function onGetCulture (culture) {
-        // Response: culture == 'en-US'; culture == 'de-DE'; culture == 'fr'; etc.
-        // console.log('requestedCulture culture = ' + JSON.stringify(culture, null, 2));
     }
 
     function onClickedNext () {
