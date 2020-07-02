@@ -48,14 +48,14 @@ define([
         connection.trigger('requestTokens');
         connection.trigger('requestEndpoints');
         
-        let lookupTasks = [];
-        
-        lookupTasks.push(lookupPromos());
-        lookupTasks.push(lookupControlGroups());
-        lookupTasks.push(lookupUpdateContacts());
+        let lookupTasks = [
+            lookupPromos(),
+            lookupControlGroups(),
+            lookupUpdateContacts()
+        ];
         
         await Promise.all(lookupTasks);
-                
+
         loadEvents();
         
         // JB will respond the first time 'ready' is called with 'initActivity'
