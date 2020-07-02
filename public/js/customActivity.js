@@ -55,9 +55,8 @@ define([
         lookupTasks.push(lookupUpdateContacts());
         
         await Promise.all(lookupTasks);
-        
+                
         loadEvents();
-        showOrHideOfferFormsBasedOnType();
         
         // JB will respond the first time 'ready' is called with 'initActivity'
         connection.trigger('ready');
@@ -140,7 +139,9 @@ define([
 
             // trigger steps
             triggerSteps(argumentsSummaryPayload.buildPayload, argPromotionType);
-        }      
+        }
+
+        showOrHideOfferFormsBasedOnType();
     }
 
     function countChar1(val) {
