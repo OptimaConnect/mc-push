@@ -42,19 +42,25 @@ define([
     connection.on('clickedBack', onClickedBack);
     connection.on('gotoStep', onGotoStep);
 
-    function onRender() {
+    async function onRender() {
         var debug = true;
-        // JB will respond the first time 'ready' is called with 'initActivity'
-        connection.trigger('ready');
-
+        
         connection.trigger('requestTokens');
         connection.trigger('requestEndpoints');
-
-        lookupPromos();
-        lookupControlGroups();
-        lookupUpdateContacts();
+        
+        let lookupTasks = [];
+        
+        lookupTasks.push(lookupPromos());
+        lookupTasks.push(lookupControlGroups());
+        lookupTasks.push(lookupUpdateContacts());
+        
+        await Promise.all(lookupTasks);
+        
         loadEvents();
         showOrHideOfferFormsBasedOnType();
+        
+        // JB will respond the first time 'ready' is called with 'initActivity'
+        connection.trigger('ready');
     }
 
     function initialize (data) {
@@ -628,98 +634,91 @@ define([
         return selectedCode !== 'Please select a code' && selectedCode != '';
     }
 
-    function lookupControlGroups() {
+    async function lookupControlGroups() {
+        try {
+            // access offer types and build select input
+            let result = await $.ajax({
+                url: "/dataextension/lookup/controlgroups"
+            });
 
-        // access offer types and build select input
-        $.ajax({
-            url: "/dataextension/lookup/controlgroups",
-            error: function() {
-                updateApiStatus("controlgroup-api", false);
-            },  
-            success: function(result){
-
-                if ( debug ) {
-                    console.log('lookup control groups executed');
-                    console.log(result.items);               
-                }
-
-                var i;
-                for (i = 0; i < result.items.length; ++i) {
-                    if ( debug ) {
-                        console.log(result.items[i]);
-                    }
-
-                    let de = result.items[i].values;
-                    $("#control_group").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
-                }
-                updateApiStatus("controlgroup-api", true);
+            if (debug) {
+                console.log('lookup control groups executed');
+                console.log(result.items);
             }
-        });
+
+            var i;
+            for (i = 0; i < result.items.length; ++i) {
+                if (debug) {
+                    console.log(result.items[i]);
+                }
+
+                let de = result.items[i].values;
+                $("#control_group").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
+            }
+            updateApiStatus("controlgroup-api", true);
+        } catch {
+            updateApiStatus("controlgroup-api", false);
+        }
     }
 
-    function lookupPromos() {
+    async function lookupPromos() {
+        try{
+            // access offer types and build select input
+            let result = await $.ajax({
+                url: "/dataextension/lookup/promotions"
+            });
 
-        // access offer types and build select input
-        $.ajax({
-
-            url: "/dataextension/lookup/promotions",
-            error: function() {
-                updateApiStatus("promotions-api", false);
-            }, 
-            success: function(result){
-
-                if ( debug ) {
-                    console.log('lookup promotions executed');
-                    console.log(result.items);               
-                }
-
-                var i;
-                if ( result.items ) {
-                    for (i = 0; i < result.items.length; ++i) {
-                        if ( debug ) {
-                            console.log(result.items[i].keys);
-                        }
-
-                        let deRow = result.items[i].values;
-                        if (deRow.promotiontype != "nocode"){
-                            $("#offer_promotion").append(`<option data-attribute-redemptions=${deRow.instore_code_1_redemptions} data-attribute-control=${deRow.communication_cell_id_control} data-attribute-cell=${deRow.communication_cell_id} data-attribute-cell-name=${deRow.cell_name} data-attribute-mc6=${deRow.mc_id_6} data-attribute-mc1=${deRow.mc_id_1} data-attribute-instore-code=${deRow.instore_code_1} data-attribute-online-code=${deRow.global_code_1} data-attribute-online-promotion-type=${deRow.onlinepromotiontype} data-attribute-promotion-type=${deRow.promotiontype} data-attribute-voucher-pot=${deRow.unique_code_1} value=${result.items[i].keys.promotion_key}>${deRow.campaign_name}</option>`);
-                        }
-                    }
-                }
-
-                updateApiStatus("promotions-api", true);
+            if ( debug ) {
+                console.log('lookup promotions executed');
+                console.log(result.items);               
             }
 
-        });
-    }
-
-    function lookupUpdateContacts() {
-
-        // access offer types and build select input
-        $.ajax({
-            url: "/dataextension/lookup/updatecontacts",
-            error: function() {
-                updateApiStatus("updatecontacts-api", false);
-            },  
-            success: function(result){
-
-                if ( debug ) {
-                    console.log('lookup update contacts executed');
-                    console.log(result.items);               
-                }
-
-                var i;
+            var i;
+            if ( result.items ) {
                 for (i = 0; i < result.items.length; ++i) {
                     if ( debug ) {
-                        console.log(result.items[i]);
+                        console.log(result.items[i].keys);
                     }
-                    
-                    let de = result.items[i].values;
-                    $("#update_contacts").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
+
+                    let deRow = result.items[i].values;
+                    if (deRow.promotiontype != "nocode"){
+                        $("#offer_promotion").append(`<option data-attribute-redemptions=${deRow.instore_code_1_redemptions} data-attribute-control=${deRow.communication_cell_id_control} data-attribute-cell=${deRow.communication_cell_id} data-attribute-cell-name=${deRow.cell_name} data-attribute-mc6=${deRow.mc_id_6} data-attribute-mc1=${deRow.mc_id_1} data-attribute-instore-code=${deRow.instore_code_1} data-attribute-online-code=${deRow.global_code_1} data-attribute-online-promotion-type=${deRow.onlinepromotiontype} data-attribute-promotion-type=${deRow.promotiontype} data-attribute-voucher-pot=${deRow.unique_code_1} value=${result.items[i].keys.promotion_key}>${deRow.campaign_name}</option>`);
+                    }
                 }
-                updateApiStatus("updatecontacts-api", true);
             }
-        });
+
+            updateApiStatus("promotions-api", true);
+        } catch {
+            updateApiStatus("promotions-api", false);
+        }
+        
+    }
+
+    async function lookupUpdateContacts() {
+        try {
+            // access offer types and build select input
+            let result = await $.ajax({
+                url: "/dataextension/lookup/updatecontacts"
+            });
+
+            if (debug) {
+                console.log('lookup update contacts executed');
+                console.log(result.items);
+            }
+
+            var i;
+            for (i = 0; i < result.items.length; ++i) {
+                if (debug) {
+                    console.log(result.items[i]);
+                }
+
+                let de = result.items[i].values;
+                $("#update_contacts").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
+            }
+            updateApiStatus("updatecontacts-api", true);
+        } catch (error) {
+            updateApiStatus("updatecontacts-api", false);
+        }        
     }
 
     function toggleStepError(errorStep, errorStatus) {
