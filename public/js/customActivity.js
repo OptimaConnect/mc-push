@@ -18,13 +18,24 @@ define([
         { "label": "Offer Setup", "key": "step2", "active": false },
         { "label": "Summary", "key": "step3" }
     ];
-    var currentStep = steps[0].key;
+    var currentStep = steps[0];
     var today = new Date();
     var currentTime = today.toGMTString();
     var todayDate = new Date().toISOString().slice(0,10);
 
     if ( debug ) {
         console.log("Current Step is: " + currentStep);
+    }
+
+    if (window.location.hostname == "localhost") {
+        document.getElementById("dev-helper-buttons").removeAttribute("hidden");
+        document.getElementById("dev-button-validate").onclick = onClickedNext;
+        document.getElementById("dev-button-initial").onclick = function () { showStep({key:"step0"}); }
+        document.getElementById("dev-button-push").onclick = function () { showStep({key:"step1"}); }
+        document.getElementById("dev-button-offer").onclick = function () { showStep({key:"step2"}); }
+        document.getElementById("dev-button-summary").onclick = function () { updateSummaryPage(buildActivityPayload()); showStep({key:"step3"}); }
+    } else {
+        document.getElementById("dev-helper-buttons").setAttribute("hidden");
     }
 
     $(window).ready(onRender);
