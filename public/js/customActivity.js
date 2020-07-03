@@ -35,7 +35,7 @@ define([
         document.getElementById("dev-button-offer").onclick = function () { showStep({key:"step2"}); }
         document.getElementById("dev-button-summary").onclick = function () { updateSummaryPage(buildActivityPayload()); showStep({key:"step3"}); }
     } else {
-        document.getElementById("dev-helper-buttons").setAttribute("hidden");
+        document.getElementById("dev-helper-buttons").setAttribute("hidden", "");
     }
 
     $(window).ready(onRender);
