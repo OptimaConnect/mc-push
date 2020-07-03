@@ -1096,7 +1096,7 @@ async function getKeyForVoucherDataExtensionByName(voucherDEName) {
 	}
 }
 
-async function getOfferType(message_key) {
+async function getExistingAppData(message_key) {
 	let token = await getOauth2Token();
 	const fullRequestUrl = `${mobilePushMainTableUrl}?$filter=push_key eq ${message_key}`;
 
@@ -1108,7 +1108,9 @@ async function getOfferType(message_key) {
 		});
 
 		let data = response.data.items[0];
-		return data.values.push_type;
+
+		return {...data.keys, ...data.values}
+
 	} catch (error) {
 		console.dir(error);
 		return null;
@@ -1176,11 +1178,16 @@ app.post('/cancel/:message_key', async function (req, res, next) {
 
 	try {
 		// get offer type from mobile_push_main DE
-		const offer_type = await getOfferType(req.params.message_key);
+		const existingRow = await getExistingAppData(req.params.message_key);
 
-		if (offer_type == null) {
+		if (existingRow == null) {
 			res.sendStatus(404);
-		} else if (offer_type == "offer"){
+			return;
+		}
+
+		const offer_type = existingRow.push_type;
+
+		if (offer_type == "offer"){
 			await cancelOffer(message_key);
 		} else if (offer_type.includes("message")) {
 			await cancelPush(message_key);
