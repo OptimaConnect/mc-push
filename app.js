@@ -1096,6 +1096,30 @@ async function getKeyForVoucherDataExtensionByName(voucherDEName) {
 	}
 }
 
+async function getOfferType(message_key) {
+	let token = await getOauth2Token();
+	const fullRequestUrl = `${mobilePushMainTableUrl}?$filter=push_key eq ${message_key}`;
+
+	try {
+		let response = await axios.get(fullRequestUrl, {
+			headers: {
+				Authorization: token
+			}
+		});
+
+		let data = response.data.items[0];
+		return data.values.push_type;
+	} catch (error) {
+		console.dir(error);
+		return null;
+	}
+}
+
+async function cancelOffer(message_key) {
+
+}
+
+
 /**
 
 POST /automation/v1/queries/{{queryID}}/actions/start/
@@ -1145,6 +1169,28 @@ app.post('/dataextension/update/', async function (req, res, next){
 		console.dir(err);
 		next(err);
 	}
+});
+
+// cancel a push or offer
+app.post('/cancel/:message_key', async function (req, res, next) {
+
+	try {
+		// get offer type from mobile_push_main DE
+		const offer_type = await getOfferType(req.params.message_key);
+
+		if (offer_type == null) {
+			res.sendStatus(404);
+		} else if (offer_type == "offer"){
+			await cancelOffer(message_key);
+		} else if (offer_type.includes("message")) {
+			await cancelPush(message_key);
+		} else {
+			res.status(405).send("Unrecognised app message type.");
+		}
+	} catch (error) {
+		console.dir(error);
+		next(error);
+	}	
 });
 
 // create a SQL query activity
