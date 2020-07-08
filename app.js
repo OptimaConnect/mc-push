@@ -433,8 +433,8 @@ async function addQueryActivity(payload, seed) {
 				A.DATE_UPDATED
 				FROM (
 					SELECT 'Matalan' AS SCHEME_ID,
-					${appCardNumber} AS LOYALTY_CARD_NUMBER,
-					PCD.PARTY_ID,
+					parties.LOYALTY_CARD_NUMBER,
+					parties.PARTY_ID,
 					MPT.offer_id AS OFFER_ID,
 					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
 					mo.VOUCHER_ON_LINE_CODE						AS EXISTING_ON_LINE_CODE,
@@ -449,15 +449,22 @@ async function addQueryActivity(payload, seed) {
 							ELSE 'C' END			    AS STATUS,
 					SYSDATETIME()                       AS DATE_UPDATED,
 					ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
-					FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
+					FROM 
+					(
+						SELECT  PCD.PARTY_ID
+						,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
+						,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
+						FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+						INNER JOIN [${sourceDataModel}] AS PCD
+						ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+						WHERE   ${appCardNumber} IS NOT NULL
+					) AS parties
 					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 					ON MPT.push_key = ${payloadAttributes.key}
-					INNER JOIN [${sourceDataModel}] AS PCD
-					ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
 					LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
-					ON  ${appCardNumber} = mo.LOYALTY_CARD_NUMBER
+					ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
 					AND MPT.OFFER_ID = mo.OFFER_ID
-					WHERE ${appCardNumber} IS NOT NULL
+					WHERE parties.CARD_RN = 1
 				) A
 				LEFT JOIN (
 					SELECT  CouponCode
@@ -485,9 +492,9 @@ async function addQueryActivity(payload, seed) {
 
 			// Query to handle all other member offer types - global vouchers and informational
 			memberOfferQuery =
-				`SELECT 'Matalan'   AS SCHEME_ID,
-				${appCardNumber}    AS LOYALTY_CARD_NUMBER,
-				PCD.PARTY_ID,
+				`SELECT 'Matalan'                AS SCHEME_ID,
+				parties.LOYALTY_CARD_NUMBER     AS LOYALTY_CARD_NUMBER,
+				parties.PARTY_ID,
 				MPT.offer_id        AS OFFER_ID,
 				NULLIF(MPT.offer_online_code_1, 'no-code')  AS VOUCHER_ON_LINE_CODE,
 				NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
@@ -501,15 +508,22 @@ async function addQueryActivity(payload, seed) {
 						WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
 						ELSE 'C' END			    AS STATUS,
 				SYSDATETIME()   AS DATE_UPDATED
-				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
+				FROM
+				(
+					SELECT  PCD.PARTY_ID
+					,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
+					,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
+					FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+					INNER JOIN [${sourceDataModel}] AS PCD
+					ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+					WHERE   ${appCardNumber} IS NOT NULL
+				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = ${payloadAttributes.key}
-				INNER JOIN [${sourceDataModel}] AS PCD
-				ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
 				LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
-				ON  ${appCardNumber} = mo.LOYALTY_CARD_NUMBER
+				ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
 				AND MPT.OFFER_ID = mo.OFFER_ID
-				WHERE ${appCardNumber} IS NOT NULL`;
+				WHERE parties.CARD_RN = 1`;
 		}
 
 		let masterOfferQuery =
