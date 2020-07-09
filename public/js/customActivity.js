@@ -27,7 +27,12 @@ define([
         console.log("Current Step is: " + currentStep);
     }
 
+    let development = false;
     if (window.location.hostname == "localhost") {
+        development = true;
+    }    
+
+    if (development) {
         document.getElementById("dev-helper-buttons").removeAttribute("hidden");
         document.getElementById("dev-button-validate").onclick = onClickedNext;
         document.getElementById("dev-button-initial").onclick = function () { showStep({key:"step0"}); }
@@ -65,6 +70,10 @@ define([
         
         // JB will respond the first time 'ready' is called with 'initActivity'
         connection.trigger('ready');
+
+        if (development) {
+            showOrHideOfferFormsBasedOnType();
+        }
     }
 
     function initialize (data) {
