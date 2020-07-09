@@ -550,6 +550,7 @@
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_update">Update</button></li>
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_seed" disabled>Send to Seedlist</button></li>
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_create" disabled>Schedule for broadcast</button></li>
+                            <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_cancel" >Stop/Cancel Campaign</button></li>
                         </ul>
                     </div>
                 </article>
@@ -615,10 +616,16 @@
     <div id="dev-helper-buttons" hidden>
         <p>Dev tools - only visible on localhost</p>
         <button id="dev-button-validate">Validate current step</button>
-        <button id="dev-button-initial">Go to initial setup</button>
-        <button id="dev-button-push">Go to push setup</button>
-        <button id="dev-button-offer">Go to offer setup</button>
-        <button id="dev-button-summary">Go to summary</button>
+        <div>
+            <button id="dev-button-initial">Go to initial setup</button>
+            <button id="dev-button-push">Go to push setup</button>
+            <button id="dev-button-offer">Go to offer setup</button>
+            <button id="dev-button-summary">Go to summary</button>
+        </div>
+        <div>
+            <button id="dev-button-cache-save">Save to cache</button>
+            <button id="dev-button-cache-load">Load from cache</button>
+        </div>
     </div>
 </body>
 </html>

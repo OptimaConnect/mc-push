@@ -33,12 +33,26 @@ define([
     }    
 
     if (development) {
+        payload = {
+            arguments: {
+                execute: {
+                    inArguments: []
+                }
+            },
+            metaData: {
+                isConfigured: false
+            },
+            name: ""
+        }
+
         document.getElementById("dev-helper-buttons").removeAttribute("hidden");
         document.getElementById("dev-button-validate").onclick = onClickedNext;
         document.getElementById("dev-button-initial").onclick = function () { showStep({key:"step0"}); }
         document.getElementById("dev-button-push").onclick = function () { showStep({key:"step1"}); }
         document.getElementById("dev-button-offer").onclick = function () { showStep({key:"step2"}); }
         document.getElementById("dev-button-summary").onclick = function () { updateSummaryPage(buildActivityPayload()); showStep({key:"step3"}); }
+        document.getElementById("dev-button-cache-save").onclick = function () { window.localStorage.setItem("activity-cache", JSON.stringify(CreateCachePayload())); }
+        document.getElementById("dev-button-cache-load").onclick = function () { const data = window.localStorage.getItem("activity-cache"); initialize(JSON.parse(data)); }
     } else {
         document.getElementById("dev-helper-buttons").setAttribute("hidden", "");
     }
@@ -252,27 +266,29 @@ define([
         // select first input
         $("#push_type_offer").click();
 
-        // handler for Optima button
         $("#control_action_save").click(function(){
             $("#sent").val(true);
             saveToDataExtension(buildActivityPayload());
         });
 
-        // handler for Optima button
         $("#control_action_update").click(function(){
             updateExistingRow(buildActivityPayload());
         });
 
-        // handler for Optima button
         $("#control_action_seed").click(function(){
             $("#seed_sent").val(true);
             createAutomationSeed(buildActivityPayload());
         });
 
-        // handler for Optima button
         $("#control_action_create").click(function(){
             $("#automation_sent").val(true);
             createAutomation(buildActivityPayload());
+        });
+
+        $("#control_action_cancel").click(async function() {
+            if (confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than hour before go-live, please directly contact mobilize.")) {
+                await cancelAppCampaign();
+            }
         });
 
         $("#current_time").html(currentTime);
@@ -1040,7 +1056,6 @@ define([
 
     }
 
-
     function createAutomation(payloadToSave) {
 
         if ( debug ) {
@@ -1073,6 +1088,22 @@ define([
             console.log(e);
         }
 
+    }
+
+    async function cancelAppCampaign() {
+        const messageKey = $("#message_key_hidden").val();
+
+        try {
+            const result = await $.ajax({
+                url: `/cancel/${messageKey}`,
+                type: "POST"
+            });
+
+            console.log(result);
+        } catch (error) {
+            console.log("Error cancelling campaign.");
+            console.log(error);
+        }
     }
 
     function buildActivityPayload() {
@@ -1260,9 +1291,7 @@ define([
     }
 
     function save() {
-
-        var buildPayload = buildActivityPayload();
-
+        
         // replace with res from save to DE function
 
         if (debug) {
@@ -1270,44 +1299,43 @@ define([
             console.log(JSON.stringify(buildPayload));
         }
 
-        var argPromotionKey;
+        const cachePayload = CreateCachePayload(payload, debug);
 
-        for ( var w = 0; w < buildPayload.length; w++ ) {
+        // trigger payload save
+        connection.trigger('updateActivity', cachePayload);
+    }
+    
+    function CreateCachePayload() {
+
+        const buildPayload = buildActivityPayload();
+
+        let argPromotionKey;
+        for (var w = 0; w < buildPayload.length; w++) {
             console.log("inside build payload loop");
             console.log(buildPayload[w]);
-            if ( buildPayload[w].key == "message_key_hidden") {
+            if (buildPayload[w].key == "message_key_hidden") {
                 argPromotionKey = buildPayload[w].value;
             }
         }
-
         console.log("arg key");
-        console.log(argPromotionKey); 
-
+        console.log(argPromotionKey);
         // 'payload' is initialized on 'initActivity' above.
         // Journey Builder sends an initial payload with defaults
         // set by this activity's config.json file.  Any property
         // may be overridden as desired.
         payload.name = $("#widget_name").val();
-
-        payload['arguments'].execute.inArguments = [{buildPayload}];
-
+        payload['arguments'].execute.inArguments = [{ buildPayload }];
         // set isConfigured to true
-        if ( argPromotionKey ) {
+        if (argPromotionKey) {
             // this is only true is the app returned a key
             // sent to de and configured
             payload['metaData'].isConfigured = true;
-        } else {
+        }
+        else {
             // not sent to de but configured
             payload['metaData'].isConfigured = false;
         }
 
-        if ( debug ) {
-            console.log("Payload including in args")
-            console.log(payload.arguments.execute.inArguments);
-        }
-
-        // trigger payload save
-        connection.trigger('updateActivity', payload);
+        return payload;
     }
-
 });
