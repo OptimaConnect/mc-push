@@ -323,12 +323,22 @@ async function addQueryActivity(payload, seed) {
 
 		// message data comes from message page
 		communicationQuery =
-			`SELECT bucket.PARTY_ID,
+			`SELECT parties.PARTY_ID,
 			MPT.communication_key	AS COMMUNICATION_CELL_ID,
 			CAST(${target_send_date_time} AS datetime) AS CONTACT_DATE
-			FROM [${payloadAttributes.update_contact}] AS bucket
+			FROM
+			(
+				SELECT  PCD.PARTY_ID
+				,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
+				,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
+				FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+				INNER JOIN [${sourceDataModel}] AS PCD
+				ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+				WHERE   ${appCardNumber} IS NOT NULL
+			) AS parties
 			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-			ON MPT.push_key = ${payloadAttributes.key}`
+			ON MPT.push_key = ${payloadAttributes.key}
+			WHERE parties.CARD_RN = 1`
 
 		console.dir(communicationQuery);
 
@@ -336,12 +346,22 @@ async function addQueryActivity(payload, seed) {
 		// TODO - Update this to pull communication cell id from promotion widget table - possibly unneeded - communication_key may already have come from the promo widget
 		// this is legit promotion, use promo key and join for comm data NOT TESTED
 		communicationQuery =
-			`SELECT bucket.PARTY_ID AS PARTY_ID,
+			`SELECT parties.PARTY_ID AS PARTY_ID,
 			MPT.communication_key 	AS COMMUNICATION_CELL_ID,
 			CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
-			FROM [${payloadAttributes.update_contact}] AS bucket
+			FROM
+			(
+				SELECT  PCD.PARTY_ID
+				,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
+				,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
+				FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+				INNER JOIN [${sourceDataModel}] AS PCD
+				ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+				WHERE   ${appCardNumber} IS NOT NULL
+			) AS parties
 			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-			ON MPT.push_key = ${payloadAttributes.key}`
+			ON MPT.push_key = ${payloadAttributes.key}
+			WHERE parties.CARD_RN = 1`
 
 		console.dir(communicationQuery);
 
@@ -349,12 +369,22 @@ async function addQueryActivity(payload, seed) {
 
 		// this is informational, comm cell should come from offer page
 		communicationQuery =
-			`SELECT bucket.PARTY_ID AS PARTY_ID,
+			`SELECT parties.PARTY_ID AS PARTY_ID,
 			MPT.communication_key 	AS COMMUNICATION_CELL_ID,
 			CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
-			FROM [${payloadAttributes.update_contact}] as bucket
+			FROM
+			(
+				SELECT  PCD.PARTY_ID
+				,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
+				,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
+				FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+				INNER JOIN [${sourceDataModel}] AS PCD
+				ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+				WHERE   ${appCardNumber} IS NOT NULL
+			) AS parties
 			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-			ON MPT.push_key = ${payloadAttributes.key}`
+			ON MPT.push_key = ${payloadAttributes.key}
+			WHERE parties.CARD_RN = 1`
 
 		console.dir(communicationQuery);
 	}
@@ -372,20 +402,40 @@ async function addQueryActivity(payload, seed) {
 
 		if (payloadAttributes.offer_channel != "3" || payloadAttributes.offer_channel != 3) {
 			let online_assignment_query =
-				`SELECT bucket.PARTY_ID	AS PARTY_ID,
+				`SELECT parties.PARTY_ID	AS PARTY_ID,
 				MPT.offer_mc_id_1       AS MC_UNIQUE_PROMOTION_ID,
 				GETDATE()               AS ASSIGNMENT_DATETIME
-				FROM [${payloadAttributes.update_contact}] AS bucket
+				FROM
+				(
+					SELECT  PCD.PARTY_ID
+					,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
+					,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
+					FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+					INNER JOIN [${sourceDataModel}] AS PCD
+					ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+					WHERE   ${appCardNumber} IS NOT NULL
+				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-				ON MPT.push_key = ${payloadAttributes.key}`
+				ON MPT.push_key = ${payloadAttributes.key}
+				WHERE parties.CARD_RN = 1`
 
 			let instore_assignment_query =
-				`SELECT bucket.PARTY_ID AS PARTY_ID,
+				`SELECT parties.PARTY_ID AS PARTY_ID,
 				MPT.offer_mc_id_6       AS MC_UNIQUE_PROMOTION_ID,
 				GETDATE()               AS ASSIGNMENT_DATETIME
-				FROM [${payloadAttributes.update_contact}] AS bucket
+				FROM
+				(
+					SELECT  PCD.PARTY_ID
+					,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
+					,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
+					FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+					INNER JOIN [${sourceDataModel}] AS PCD
+					ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+					WHERE   ${appCardNumber} IS NOT NULL
+				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-				ON MPT.push_key = ${payloadAttributes.key}`
+				ON MPT.push_key = ${payloadAttributes.key}
+				WHERE parties.CARD_RN = 1`
 
 			let assignmentQuery;
 			if (payloadAttributes.promotion_type == 'online') {
@@ -640,17 +690,25 @@ async function addQueryActivity(payload, seed) {
 			pushBroadcastQuery = `
 				SELECT MPT.push_key,
 				'Matalan'                   AS SCHEME_ID,
-				PCD.APP_CARD_NUMBER            AS LOYALTY_CARD_NUMBER,
+				parties.LOYALTY_CARD_NUMBER,
 				MPT.message_content         AS MESSAGE_CONTENT,
 				FORMAT(${targetSendDateTime} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME,
 				'A'							AS STATUS,
 				MPT.message_title           AS TITLE,
 				${messageUrl}	            AS [URL]
-				FROM [${payloadAttributes.update_contact}] AS UpdateContactDE
-				INNER JOIN [${sourceDataModel}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+				FROM
+				(
+					SELECT  PCD.PARTY_ID
+					,       PCD.APP_CARD_NUMBER AS LOYALTY_CARD_NUMBER
+					,       ROW_NUMBER() OVER (PARTITION BY PCD.APP_CARD_NUMBER ORDER BY PCD.PARTY_ID) AS CARD_RN
+					FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+					INNER JOIN [${sourceDataModel}] AS PCD
+					ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+					WHERE   PCD.APP_CARD_NUMBER IS NOT NULL
+				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
 				ON MPT.push_key = ${payloadAttributes.key}
-				WHERE PCD.APP_CARD_NUMBER IS NOT NULL`;
+				WHERE parties.CARD_RN = 1`;
 		}
 
 		let pushLiveSeedsQuery = `SELECT MPT.push_key,
