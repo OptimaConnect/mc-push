@@ -1116,7 +1116,10 @@ define([
         try {
             const result = await $.ajax({
                 url: `/cancel/${messageKey}`,
-                type: "POST"
+                type: "POST",
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                }
             });
 
             console.log(result);
