@@ -10,15 +10,18 @@ exports.validateToken = async function (req, res, next) {
 
     console.log(`Authentication Header: ${fuelAuth}`);
 
+    if (!fuelAuth){
+        res.locals.authenticated = false;
+        res.sendStatus(403);
+    }
+
     try {
         const response = await axios({
             url: contextUrl,
             headers: { "Authorization": fuelAuth }
         });
 
-        console.log(response);
         res.locals.authenticated = true;
-
         next();
     } catch (error) {
         console.log(error);
