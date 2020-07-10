@@ -5,7 +5,7 @@ const axios = require('axios');
 const restUrl = process.env.restUrl;
 
 exports.validateToken = async function (req, res, next) {
-    const fuelAuth = req.headers.Authorization;
+    const fuelAuth = req.headers.authorization;
     const contextUrl = restUrl + "platform/v1/tokenContext";
 
     console.log(`Authentication Header: ${fuelAuth}`);

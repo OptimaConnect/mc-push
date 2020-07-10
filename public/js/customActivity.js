@@ -56,7 +56,7 @@ define([
 
     async function onRender() {
         if (development) {
-            onReceivedTokens({fuel2token: ""});
+            onReceivedTokens({fuel2token: "testtoken"});
         } else {
             connection.trigger('requestTokens');
         }
