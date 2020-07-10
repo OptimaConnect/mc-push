@@ -8,12 +8,15 @@ exports.validateToken = async function (req, res, next) {
     const fuelAuth = req.headers.Authorization;
     const contextUrl = restUrl + "platform/v1/tokenContext";
 
+    console.log(`Authentication Header: ${fuelAuth}`);
+
     try {
         const response = await axios({
             url: contextUrl,
             header: { fuelAuth }
         });
 
+        console.log(response);
         res.locals.authenticated = true;
 
         next();
