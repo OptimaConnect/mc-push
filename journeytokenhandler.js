@@ -13,7 +13,7 @@ exports.validateToken = async function (req, res, next) {
     try {
         const response = await axios({
             url: contextUrl,
-            header: { fuelAuth }
+            headers: { "Authorization": fuelAuth }
         });
 
         console.log(response);
