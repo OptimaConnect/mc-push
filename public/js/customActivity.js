@@ -23,6 +23,8 @@ define([
     var currentTime = today.toGMTString();
     var todayDate = new Date().toISOString().slice(0,10);
 
+    let fuelToken;
+
     if ( debug ) {
         console.log("Current Step is: " + currentStep);
     }
@@ -60,18 +62,25 @@ define([
     $(window).ready(onRender);
 
     connection.on('initActivity', initialize);
-    connection.on('requestedTokens', onGetTokens);
-    connection.on('requestedEndpoints', onGetEndpoints);
+    connection.on('requestedTokens', onReceivedTokens);
 
     connection.on('clickedNext', onClickedNext);
     connection.on('clickedBack', onClickedBack);
     connection.on('gotoStep', onGotoStep);
 
     async function onRender() {
-        
-        connection.trigger('requestTokens');
+        if (development) {
+            onReceivedTokens({fuel2token: "testtoken"});
+        } else {
+            connection.trigger('requestTokens');
+        }
+
         connection.trigger('requestEndpoints');
-        
+    }
+
+    async function onReceivedTokens(tokens) {
+        fuelToken = tokens.fuel2token;
+
         let lookupTasks = [
             lookupPromos(),
             lookupControlGroups(),
@@ -588,7 +597,10 @@ define([
         try {
             // access offer types and build select input
             let result = await $.ajax({
-                url: "/dataextension/lookup/controlgroups"
+                url: "/dataextension/lookup/controlgroups",
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                }
             });
 
             if (debug) {
@@ -615,7 +627,10 @@ define([
         try{
             // access offer types and build select input
             let result = await $.ajax({
-                url: "/dataextension/lookup/promotions"
+                url: "/dataextension/lookup/promotions",
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                }
             });
 
             if ( debug ) {
@@ -648,7 +663,10 @@ define([
         try {
             // access offer types and build select input
             let result = await $.ajax({
-                url: "/dataextension/lookup/updatecontacts"
+                url: "/dataextension/lookup/updatecontacts",
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                }
             });
 
             if (debug) {
@@ -682,16 +700,6 @@ define([
         } else {
             $("#step" + errorStep + "alert").hide();
         }
-    }
-
-    function onGetTokens (tokens) {
-        // Response: tokens == { token: <legacy token>, fuel2token: <fuel api token> }
-        // console.log(tokens);
-    }
-
-    function onGetEndpoints (endpoints) {
-        // Response: endpoints == { restHost: <url> } i.e. "rest.s1.qa1.exacttarget.com"
-        // console.log(endpoints);
     }
 
     function onClickedNext () {
@@ -959,6 +967,9 @@ define([
         try {
             $.ajax({ 
                 url: '/dataextension/add',
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                },
                 type: 'POST',
                 data: JSON.stringify(payloadToSave),
                 contentType: 'application/json',                     
@@ -1000,6 +1011,9 @@ define([
         try {
             $.ajax({ 
                 url: '/dataextension/update',
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                },
                 type: 'POST',
                 data: JSON.stringify(payloadToSave),
                 contentType: 'application/json',                     
@@ -1034,6 +1048,9 @@ define([
         try {
             $.ajax({ 
                 url: '/automation/create/query/seed',
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                },
                 type: 'POST',
                 data: JSON.stringify(payloadToSave),
                 contentType: 'application/json',                     
@@ -1066,6 +1083,9 @@ define([
         try {
             $.ajax({ 
                 url: '/automation/create/query',
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                },
                 type: 'POST',
                 data: JSON.stringify(payloadToSave),
                 contentType: 'application/json',                     
