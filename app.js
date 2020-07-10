@@ -16,6 +16,7 @@ const urlencodedparser 	= bodyParser.urlencoded({extended:false});
 const app 				= express();
 const local       		= false;
 const { ServiceBusClient } = require('@azure/service-bus');
+const journeyTokenHandler = require("./journeytokenhandler.js");
 
 
 // access Heroku variables
@@ -89,7 +90,10 @@ app.use(bodyParser.json());
 // Express in Development Mode
 if ('development' == app.get('env')) {
 	app.use(errorhandler());
+} else {
+	app.use(journeyTokenHandler.validateToken);
 }
+
 
 const getOauth2Token = () => new Promise((resolve, reject) => {
 	axios({
