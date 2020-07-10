@@ -90,8 +90,8 @@ app.use(bodyParser.json());
 // Express in Development Mode
 if ('development' == app.get('env')) {
 	app.use(errorhandler());
-	app.use(journeyTokenHandler.validateToken);
 } else {
+	app.use(journeyTokenHandler.validateToken);
 }
 
 
