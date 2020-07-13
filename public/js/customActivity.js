@@ -138,34 +138,28 @@ define([
                 console.log(argumentsSummaryPayload.buildPayload);
             }
 
-            var r;
-            var argPromotionType;
-            var argKey;
+            const argPromotionType = argumentsSummaryPayload.buildPayload.find(element => element.key == "push_type").value;
+            const argKey = argumentsSummaryPayload.buildPayload.find(element => element.key == "message_key_hidden").value;
 
-            for ( r = 0; r < argumentsSummaryPayload.buildPayload.length; r++ ) {
-                if ( argumentsSummaryPayload.buildPayload[r].key == "push_type" ) {
-                    argPromotionType = argumentsSummaryPayload.buildPayload[r].value; 
-                } else if ( argumentsSummaryPayload.buildPayload[r].key == "message_key_hidden" && argumentsSummaryPayload.buildPayload[r].value ) {
-                    argKey = argumentsSummaryPayload.buildPayload[r].value;
-                    $("#message_key_hidden").val(argKey);
-                    $("#main_setup_key").html(argKey);
-                    $("#control_action_save").html("Data has been sent");
-                    $("#control_action_save").prop('disabled', true);
-                    $("#control_action_seed").prop('disabled', false);
-                    $("#control_action_create").prop('disabled', false);                 
-                } else if ( argumentsSummaryPayload.buildPayload[r].key == "seed_sent") {
-                    console.log("seed sent value is");
-                    console.log(argumentsSummaryPayload.buildPayload[r].value);
-                    //$("#control_action_seed").html("Automation Created");
-                    //$("#control_action_seed").prop('disabled', true); 
+            if (argKey) {
+                $("#message_key_hidden").val(argKey);
+                $("#main_setup_key").html(argKey);
+                $("#control_action_save").html("Data has been sent");
+                $("#control_action_save").prop('disabled', true);
+                $("#control_action_seed").prop('disabled', false);
+                $("#control_action_create").prop('disabled', false);
+            }
 
-                } else if ( argumentsSummaryPayload.buildPayload[r].key == "automation_sent") {
-                    console.log("automation sent value is");
-                    console.log(argumentsSummaryPayload.buildPayload[r].value);
-                    //$("#control_action_create").html("Automation Created");
-                    //$("#control_action_create").prop('disabled', true); 
+            const seedSent = argumentsSummaryPayload.buildPayload.find(element => element.key == "seed_sent");
 
-                }
+            if (seedSent) {
+                console.log(`Seed sent value is ${seedSent.value}`);
+            }
+
+            const automationSent = argumentsSummaryPayload.buildPayload.find(element => element.key == "automation_sent");
+
+            if (automationSent) {
+                console.log(`Automation sent value is ${automationSent.value}`);
             }
 
             // argument data present, pre pop and redirect to summary page
