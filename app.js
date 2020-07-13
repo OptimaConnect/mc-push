@@ -1233,6 +1233,34 @@ async function cancelOffer(message_key, offer_id) {
 	// Set cancelled column on mobile push main table?
 }
 
+async function cancelPush(message_key, push_content) {
+	console.log(`Cancelling push message: ${push_content}`);
+
+	let cancelPushQuery =
+		`SELECT  SCHEME_ID
+		,       MOBILE_MESSAGE_ID
+		,       LOYALTY_CARD_NUMBER
+		,       MESSAGE_CONTENT
+		,       TARGET_SEND_DATE_TIME
+		,       'D'         AS [STATUS]
+		,       PUSH_KEY
+		,       DATE_CREATED
+		,       SYSDATETIME() AS DATE_UPDATED
+		,       [URL]
+		,       [TITLE]
+		FROM    [${marketingCloud.messageTableName}]
+		WHERE   PUSH_KEY = '${message_key}'
+		AND     CAST(TARGET_SEND_DATE_TIME AS datetime) AT TIME ZONE 'UTC' >= SYSDATETIMEOFFSET()`;
+
+	console.log(`Cancel Push Query: ${cancelPushQuery}`);
+
+	const dateTimestamp = new Date().toISOString();
+	const cancelPushQueryName = `Cancel Push "${push_content.substring(0, 20)}" - ${dateTimestamp}`;
+
+	const cancelPushQueryId = await createSQLQuery(marketingCloud.messageKey, cancelPushQuery, updateTypes.AddUpdate, marketingCloud.messageTableName, cancelPushQueryName, cancelPushQueryName);
+	await runSQLQuery(cancelPushQueryId, cancelPushQueryName);
+}
+
 
 /**
 
@@ -1304,7 +1332,7 @@ app.post('/cancel/:message_key', async function (req, res, next) {
 		if (offer_type == "offer"){
 			await cancelOffer(message_key, existingRow.offer_id);
 		} else if (offer_type.includes("message")) {
-			await cancelPush(message_key);
+			await cancelPush(message_key, existingRow.message_content);
 		} else {
 			res.status(405).send("Unrecognised app message type.");
 			return;
