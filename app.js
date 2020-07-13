@@ -1229,8 +1229,6 @@ async function cancelOffer(message_key, offer_id) {
 
 	const cancelOfferQueryId = await createSQLQuery(marketingCloud.masterOfferKey, cancelOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, cancelOfferQueryName, cancelOfferQueryName);
 	await runSQLQuery(cancelOfferQueryId, cancelOfferQueryName);
-
-	// Set cancelled column on mobile push main table?
 }
 
 async function cancelPush(message_key, push_content) {
@@ -1255,7 +1253,7 @@ async function cancelPush(message_key, push_content) {
 	console.log(`Cancel Push Query: ${cancelPushQuery}`);
 
 	const dateTimestamp = new Date().toISOString();
-	const cancelPushQueryName = `Cancel Push "${push_content.substring(0, 20)}" - ${dateTimestamp}`;
+	const cancelPushQueryName = `Cancel Push "${push_content.substring(0, 20)}..." - ${dateTimestamp}`;
 
 	const cancelPushQueryId = await createSQLQuery(marketingCloud.messageKey, cancelPushQuery, updateTypes.AddUpdate, marketingCloud.messageTableName, cancelPushQueryName, cancelPushQueryName);
 	await runSQLQuery(cancelPushQueryId, cancelPushQueryName);
@@ -1342,11 +1340,10 @@ app.post('/cancel/:message_key', async function (req, res, next) {
 	} catch (error) {
 		console.dir(error);
 		next(error);
-	}	
+	}
 });
 
-// create a SQL query activity
-app.post('/automation/create/query', async function (req, res, next){ 
+app.post('/send/broadcast', async function (req, res, next){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
@@ -1359,7 +1356,7 @@ app.post('/automation/create/query', async function (req, res, next){
 	
 });
 
-app.post('/automation/create/query/seed', async function (req, res, next){ 
+app.post('/send/seed', async function (req, res, next){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {

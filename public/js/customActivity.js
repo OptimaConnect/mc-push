@@ -139,7 +139,7 @@ define([
             }
 
             const argPromotionType = argumentsSummaryPayload.buildPayload.find(element => element.key == "push_type").value;
-            const argKey = argumentsSummaryPayload.buildPayload.find(element => element.key == "message_key_hidden").value;
+            const argKey = argumentsSummaryPayload.buildPayload.find(element => element.key == "message_key_hidden")?.value;
 
             if (argKey) {
                 $("#message_key_hidden").val(argKey);
@@ -147,19 +147,26 @@ define([
                 $("#control_action_save").html("Data has been sent");
                 $("#control_action_save").prop('disabled', true);
                 $("#control_action_seed").prop('disabled', false);
-                $("#control_action_create").prop('disabled', false);
+                $("#control_action_broadcast").prop('disabled', false);
             }
 
-            const seedSent = argumentsSummaryPayload.buildPayload.find(element => element.key == "seed_sent");
+            const seedSent = argumentsSummaryPayload.buildPayload.find(element => element.key == "seed_sent")?.value;
+            const isBroadcastString = argumentsSummaryPayload.buildPayload.find(element => element.key == "is_broadcast")?.value;
+            const isCancelledString = argumentsSummaryPayload.buildPayload.find(element => element.key == "is_cancelled")?.value;
 
-            if (seedSent) {
-                console.log(`Seed sent value is ${seedSent.value}`);
-            }
+            const isBroadcast = (isBroadcastString == "true");
+            const isCancelled = (isCancelledString == "true");
 
-            const automationSent = argumentsSummaryPayload.buildPayload.find(element => element.key == "automation_sent");
-
-            if (automationSent) {
-                console.log(`Automation sent value is ${automationSent.value}`);
+            if (isBroadcast && !isCancelled) {
+                $("#control_action_cancel").prop('disabled', false);
+            } else if (isCancelled) {
+                // Disable all buttons if the campaign is already cancelled
+                $("#control_action_save").prop('disabled', true);
+                $("#control_action_update").prop('disabled', true);
+                $("#control_action_seed").prop('disabled', true);
+                $("#control_action_broadcast").prop('disabled', true);
+                $("#control_action_cancel").prop('disabled', true);
+                $("#control_action_cancel").html("Campaign has been cancelled");
             }
 
             // argument data present, pre pop and redirect to summary page
@@ -278,19 +285,27 @@ define([
             updateExistingRow(buildActivityPayload());
         });
 
-        $("#control_action_seed").click(function(){
+        $("#control_action_seed").click(async function(){
+            $("#control_action_seed").prop("disabled", true);
+            await sendCampaignToSeeds(buildActivityPayload());
             $("#seed_sent").val(true);
-            createAutomationSeed(buildActivityPayload());
+            $("#control_action_seed").html("Resend to seeds");
+            $("#control_action_seed").prop("disabled", false);
         });
 
-        $("#control_action_create").click(function(){
-            $("#automation_sent").val(true);
-            createAutomation(buildActivityPayload());
+        $("#control_action_broadcast").click(async function(){
+            $("#is_broadcast").val(true);
+            $("#control_action_broadcast").prop('disabled', true);
+            await broadcastCampaign(buildActivityPayload());
+            $("#control_action_broadcast").html("Scheduled");
+            $("#control_action_cancel").prop('disabled', false);
         });
 
         $("#control_action_cancel").click(async function() {
             if (confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than hour before go-live, please directly contact mobilize.")) {
                 await cancelAppCampaign();
+                $("#control_action_cancel").prop("disabled", true);
+                $("#is_cancelled").val(true);
             }
         });
 
@@ -976,7 +991,7 @@ define([
                     $("#control_action_save").prop('disabled', true);
                     $("#control_action_update").prop('disabled', false);
                     $("#control_action_seed").prop('disabled', false);
-                    $("#control_action_create").prop('disabled', false);
+                    $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
                     if ( debug ) {
@@ -1017,7 +1032,7 @@ define([
                     $("#control_action_save").html("Data has been updated");
                     $("#control_action_update").prop('disabled', false);
                     $("#control_action_seed").prop('disabled', false);
-                    $("#control_action_create").prop('disabled', false);
+                    $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
                     if ( debug ) {
@@ -1032,7 +1047,7 @@ define([
 
     }
 
-    function createAutomationSeed(payloadToSave) {
+    async function sendCampaignToSeeds(payloadToSave) {
 
         if ( debug ) {
             console.log("Data Object to be saved is: ");
@@ -1040,34 +1055,25 @@ define([
         }
 
         try {
-            $.ajax({ 
-                url: '/automation/create/query/seed',
+            const data = await $.ajax({ 
+                url: '/send/seed',
                 headers: {
                     Authorization: `Bearer ${fuelToken}`
                 },
                 type: 'POST',
                 data: JSON.stringify(payloadToSave),
-                contentType: 'application/json',                     
-                success: function(data) {
-                    console.log('success');
-                    console.log(data);
-                    $("#control_action_seed").html("Automation Created");
-                    //$("#control_action_seed").prop('disabled', true);
-                }
-                , error: function(jqXHR, textStatus, err){
-                    if ( debug ) {
-                        console.log(err);
-                    }
-                }
-            }); 
+                contentType: 'application/json'
+            });
+
+            console.log('success');
+            console.log(data);
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
         }
-
     }
 
-    function createAutomation(payloadToSave) {
+    async function broadcastCampaign(payloadToSave) {
 
         if ( debug ) {
             console.log("Data Object to be saved is: ");
@@ -1075,33 +1081,23 @@ define([
         }
 
         try {
-            $.ajax({ 
-                url: '/automation/create/query',
+            const data = await $.ajax({ 
+                url: '/send/broadcast',
                 headers: {
                     Authorization: `Bearer ${fuelToken}`
                 },
                 type: 'POST',
                 data: JSON.stringify(payloadToSave),
-                contentType: 'application/json',                     
-                success: function(data) {
-                    console.log('success');
-                    console.log(data);
-                    $("#query_key_hidden").val(data);
-                    $("#main_setup_query_id").html(data);
-                    $("#control_action_create").html("Scheduled for broadcast");
-                    $("#control_action_create").prop('disabled', true);
-                }
-                , error: function(jqXHR, textStatus, err){
-                    if ( debug ) {
-                        console.log(err);
-                    }
-                }
-            }); 
+                contentType: 'application/json'
+            });
+
+            console.log('success');
+            console.log(data);
+            $("#query_key_hidden").val(data);
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
         }
-
     }
 
     async function cancelAppCampaign() {
@@ -1316,7 +1312,7 @@ define([
             console.log(JSON.stringify(buildPayload));
         }
 
-        const cachePayload = CreateCachePayload(payload, debug);
+        const cachePayload = CreateCachePayload();
 
         // trigger payload save
         connection.trigger('updateActivity', cachePayload);
@@ -1325,15 +1321,8 @@ define([
     function CreateCachePayload() {
 
         const buildPayload = buildActivityPayload();
+        const argPromotionKey = buildPayload.find(element => element.key == "message_key_hidden")?.value;
 
-        let argPromotionKey;
-        for (var w = 0; w < buildPayload.length; w++) {
-            console.log("inside build payload loop");
-            console.log(buildPayload[w]);
-            if (buildPayload[w].key == "message_key_hidden") {
-                argPromotionKey = buildPayload[w].value;
-            }
-        }
         console.log("arg key");
         console.log(argPromotionKey);
         // 'payload' is initialized on 'initActivity' above.
