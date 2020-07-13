@@ -1304,14 +1304,6 @@ define([
     }
 
     function save() {
-        
-        // replace with res from save to DE function
-
-        if (debug) {
-            console.log("Build Payload is:");
-            console.log(JSON.stringify(buildPayload));
-        }
-
         const cachePayload = CreateCachePayload();
 
         // trigger payload save
