@@ -758,260 +758,146 @@ async function addQueryActivity(payload, seed) {
 	}
 };
 
-const getIncrements = () => new Promise((resolve, reject) => {
-	getOauth2Token().then((tokenResponse) => {
+async function getNewPushKey() {
 
-		axios.get(incrementsUrl, { 
-			headers: { 
-				Authorization: tokenResponse
-			}
-		})
-		.then(response => {
-			// If request is good...
-			console.dir(response.data.items[0].values);
-			return resolve(response.data.items[0].values);
-		})
-		.catch((error) => {
-		    console.dir("Error getting increments");
-		    return reject(error);
-		});
-	})
-});
+	const token = await getOauth2Token();
 
-const getCommCellIncrements = () => new Promise((resolve, reject) => {
-	getOauth2Token().then((tokenResponse) => {
+	const getResponse = await axios.get(incrementsUrl, { 
+		headers: { 
+			Authorization: token
+		}
+	});
 
-		axios.get(commCellIncrementUrl, { 
-			headers: { 
-				Authorization: tokenResponse
-			}
-		})
-		.then(response => {
-			// If request is good...
-			console.dir(response.data.items[0].values);
-			return resolve(response.data.items[0].values);
-		})
-		.catch((error) => {
-		    console.dir("Error getting increments");
-		    return reject(error);
-		});
-	})
-});
+	const newPushKey = parseInt(getResponse.data.items[0].values.increment);
 
-const updateIncrements = (currentIncrement) => new Promise((resolve, reject) => {
+	if (isNaN(newPushKey)) {
+		throw new Error(`Invalid push_key increment value: ${getResponse.data.items[0].values.increment}`);
+	}
 
-	console.dir("Current Increment");
-	console.dir(currentIncrement.increment);
-
-	var newIncrement = parseInt(currentIncrement.increment) + 1;
-
-	var updatedIncrementObject = {};
-	updatedIncrementObject.increment = parseInt(newIncrement);
-
-	console.dir(updatedIncrementObject);
-
-	var insertPayload = [{
+	const updateNextIdPayload = [{
         "keys": {
             "id": 1
         },
-        "values": updatedIncrementObject
+        "values": {
+			"increment": newPushKey + 1
+		}
 	}];
-		
-	console.dir(insertPayload);
 
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: updateIncrementUrl,
-			headers: {'Authorization': tokenResponse},
-			data: insertPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
+	await axios({
+		method: 'post',
+		url: updateIncrementUrl,
+		headers: { Authorization: token },
+		data: updateNextIdPayload
+	});
 
-const updateCommunicationCellIncrement = (key) => new Promise((resolve, reject) => {
+	return newPushKey;
+};
 
-	console.dir("current key is");
-	console.dir(key);
+async function getNewCommCellId() {
 
-	var insertPayload = [{
+	const token = await getOauth2Token();
+	const getResponse = await axios.get(commCellIncrementUrl, { 
+		headers: { 
+			Authorization: token
+		}
+	});
+
+	const newCommCellId = parseInt(getResponse.data.items[0].values.communication_cell_code_id_increment);
+	if (isNaN(newCommCellId)) {
+		throw new Error(`Invalid communication_cell_id increment value: ${getResponse.data.items[0].values.communication_cell_code_id_increment}`);
+	}
+
+	const updateNextIdPayload = [{
         "keys": {
-            "increment_key": 1
+            "id": 1
         },
         "values": {
-        	"communication_cell_code_id_increment": parseInt(key) + 3
-        }
+			"communication_cell_code_id_increment": newCommCellId + 3
+		}
 	}];
-		
-	console.dir(insertPayload);
+	await axios({
+		method: 'post',
+		url: updateIncrementUrl,
+		headers: { Authorization: token },
+		data: updateNextIdPayload
+	});
 
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: updateCommCellIncrementUrl,
-			headers: {'Authorization': tokenResponse},
-			data: insertPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
+	return newCommCellId;
+};
 
-const saveToCommunicationDataExtension = (payload, key) => new Promise((resolve, reject) => {
+async function saveToCommunicationDataExtension(payload, commCellId) {
 
 	console.dir("Payload:");
 	console.dir(payload);
-	console.dir("key:");
-	console.dir(key);
+	console.dir("CommCellId:");
+	console.dir(commCellId);
 
-	var insertPayload = [{
+	const insertPayload = {
         "keys": {
-            "communication_cell_id": (parseInt(key) + 1)
+            "communication_cell_id": commCellId
         },
-        "values": payload.control,
-
-	},
-	{
-        "keys": {
-            "communication_cell_id": (parseInt(key) + 2)
-        },
-        "values": payload.not_control,
-        
-	}];
+        "values": payload
+	};
 	
 	console.dir(insertPayload);
 
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: communicationCellUrl,
-			headers: {'Authorization': tokenResponse},
-			data: insertPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
+	const token = await getOauth2Token();
 
+	const response = await axios({
+		method: 'post',
+		url: communicationCellUrl,
+		headers: { Authorization: token },
+		data: insertPayload
+	});
 
+	console.dir(response.data);
+	return response.data;			
+};
 
-const saveToDataExtension = (pushPayload, incrementData) => new Promise((resolve, reject) => {
-
+async function saveToMainDataExtension(pushPayload, pushKey) {
 	console.dir("Payload:");
 	console.dir(pushPayload);
 	console.dir("Current Key:");
-	console.dir(incrementData);
+	console.dir(pushKey);
 
-
-	var insertPayload = [{
+	const insertPayload = [{
         "keys": {
-            "push_key": parseInt(incrementData.increment)
+            "push_key": parseInt(pushKey)
         },
         "values": pushPayload
 	}];
 	
 	console.dir(insertPayload);
 
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: insertUrl,
-			headers: {'Authorization': tokenResponse},
-			data: insertPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
+	const tokenResponse = await getOauth2Token();
 
-const updateDataExtension = (updatedPushPayload, existingKey) => new Promise((resolve, reject) => {
-
-	console.dir("Payload:");
-	console.dir(updatedPushPayload);
-	console.dir("Current Key:");
-	console.dir(existingKey);
-
-
-	var insertPayload = [{
-        "keys": {
-            "push_key": parseInt(existingKey)
-        },
-        "values": updatedPushPayload
-	}];
-	
-	console.dir(insertPayload);
-
-	getOauth2Token().then((tokenResponse) => {
-	   	axios({
-			method: 'post',
-			url: insertUrl,
-			headers: {'Authorization': tokenResponse},
-			data: insertPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-	})	
-	
-});
-
+	const response = await axios({
+		method: 'post',
+		url: insertUrl,
+		headers: {'Authorization': tokenResponse},
+		data: insertPayload
+	});
+	console.dir(response.data);
+	return response.data;	
+};
 
 async function buildAndUpdate(payload, key) {
 	const updatedPushPayload = updatePushPayload(payload);
-	const updatedPushObject = await updateDataExtension(updatedPushPayload, key);
+	const updatedPushObject = await saveToMainDataExtension(updatedPushPayload, key);
 
 	return updatedPushPayload;
 }
 
 async function buildAndSend(payload) {
-	const incrementData = await getIncrements();
-	const commCellIncrementData = await getCommCellIncrements();
-
-	const pushPayload = buildPushPayload(payload, commCellIncrementData.communication_cell_code_id_increment);
-	const pushObject = await saveToDataExtension(pushPayload, incrementData);
-
+	const newPushKey = await getNewPushKey();	
+	const pushPayload = buildPushPayload(payload, newCommCellId);
+	const pushObject = await saveToMainDataExtension(pushPayload, newPushKey);
+	
+	const newCommCellId = await getNewCommCellId();
 	const commPayload = buildCommPayload(pushPayload);
-	const commObject = await saveToCommunicationDataExtension(commPayload, commCellIncrementData.communication_cell_code_id_increment);
+	const commObject = await saveToCommunicationDataExtension(commPayload, newCommCellId);
 
-	await updateIncrements(incrementData);
-	await updateCommunicationCellIncrement(commCellIncrementData.communication_cell_code_id_increment);
-
-	return pushPayload;
+	return newPushKey;
 }
 
 function getSfmcDatetimeNow() {
@@ -1022,13 +908,12 @@ function getSfmcDatetimeNow() {
 function buildPushPayload(payload, commCellKey) {
 	let mobilePushData = {};
 	for ( let i = 0; i < payload.length; i++ ) {
-		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
-
 	}
+
 	if ( mobilePushData["push_type"].includes('message') || mobilePushData["push_type"] == 'offer' && mobilePushData["offer_channel"] == '3' ) {
 		mobilePushData["communication_key"] = commCellKey;
-		mobilePushData["communication_control_key"] = parseInt(commCellKey) + 1;		
+		mobilePushData["communication_control_key"] = parseInt(commCellKey) + 1;
 	}
 	
 	const currentDateTimeStamp = getSfmcDatetimeNow();
@@ -1047,9 +932,7 @@ function buildPushPayload(payload, commCellKey) {
 function updatePushPayload(payload) {
 	let mobilePushData = {};
 	for ( let i = 0; i < payload.length; i++ ) {
-		//console.dir("Step is: " + payload[i].step + ", Key is: " + payload[i].key + ", Value is: " + payload[i].value + ", Type is: " + payload[i].type);
 		mobilePushData[payload[i].key] = payload[i].value;
-
 	}
 
 	const currentDateTimeStamp = getSfmcDatetimeNow();
@@ -1065,63 +948,52 @@ function updatePushPayload(payload) {
 	return mobilePushData;
 }
 
-function buildCommPayload(payload, type) {
+function buildCommPayload(payload) {
 
-	var communicationCellData = {
-			"not_control": {
-		    	"cell_code"					: payload["cell_code"],
-		    	"cell_name"					: payload["cell_name"],
-		        "campaign_name"				: payload["campaign_name"],
-		        "campaign_id"				: payload["campaign_id"],
-		        "campaign_code"				: payload["campaign_code"],
-		        "cell_type"					: "1",
-		        "channel"					: payload["channel"],
-		        "is_putput_flag"			: "1",
-		        "sent"						: true			
-			},
-			"control": {
-		    	"cell_code"					: payload["cell_code"],
-		    	"cell_name"					: payload["cell_name"],
-		        "campaign_name"				: payload["campaign_name"],
-		        "campaign_id"				: payload["campaign_id"],
-		        "campaign_code"				: payload["campaign_code"],
-		        "cell_type"					: "2",
-		        "channel"					: payload["channel"],
-		        "is_putput_flag"			: "0",
-		        "sent"						: true				
-			}
-	};
+	const pushType = payload["push_type"];
+	if (!pushType) {
+		throw new Error("No push_type specified in the payload.");
+	}
+
+	let communicationCellData;
+
+	if (pushType == "offer") {
+		communicationCellData = {
+			"cell_code"					: payload["offer_cell_code"],
+    		"cell_name"					: payload["offer_cell_name"],
+        	"campaign_name"				: payload["offer_campaign_name"],
+        	"campaign_code"				: payload["offer_campaign_code"],
+        	"cell_type"					: 1,
+        	"channel"					: 5,
+        	"is_putput_flag"			: 1,
+        	"sent"						: true
+		}
+	} else {
+		communicationCellData = {
+			"cell_code"					: payload["cell_code"],
+    		"cell_name"					: payload["cell_name"],
+        	"campaign_name"				: payload["campaign_name"],
+        	"campaign_code"				: payload["campaign_code"],
+        	"cell_type"					: 1,
+        	"channel"					: 6,
+        	"is_putput_flag"			: 1,
+        	"sent"						: true
+		}
+	}
+
 	console.dir(communicationCellData);
 	return communicationCellData;
 }
 
-async function sendBackPayload(payload) {
-	try {
-		const getIncrementsForSendback = await getIncrements();
-		const getCommCellForSendback =  await getCommCellIncrements();
-		var sendBackPromotionKey = parseInt(getIncrementsForSendback.increment);
-		const fullAssociationPayload = await buildAndSend(payload);
-		return sendBackPromotionKey;
-	} catch(err) {
-		console.dir(err);
-	}
-
-}
-
 async function sendBackUpdatedPayload(payload) {
+	const messageKeyToUpdate = payload.find(element => element.key == "message_key_hidden")?.value;
 
-	var messageKeyToUpdate;
-	var h;
-	for ( h = 0; h < payload.length; h++ ) {
-		if ( payload[h].key == 'message_key_hidden' ) {
-
-			messageKeyToUpdate = payload[h].value;
-		}
+	if (!messageKeyToUpdate) {
+		throw new Error("No message_key provided in the payload.");
 	}
 
 	await buildAndUpdate(payload, messageKeyToUpdate);
 	return messageKeyToUpdate;
-
 }
 
 async function runSQLQuery(executeThisQueryId, queryName) {
@@ -1129,7 +1001,6 @@ async function runSQLQuery(executeThisQueryId, queryName) {
 	const queueClient = sbClient.createQueueClient(azureQueueName);
 	const sender = queueClient.createSender();
 	try {
-
 		const queryToRunMessage = {
 			body: {
 				queryId: executeThisQueryId,
@@ -1143,8 +1014,6 @@ async function runSQLQuery(executeThisQueryId, queryName) {
 		console.dir(`Query queued for execution: ${JSON.stringify(queryToRunMessage.body)}`);
 		await queueClient.close();
 
-	} catch(err) {
-		console.dir(`Error occured: ${err}`);
 	} finally {
 		await sbClient.close();
 	}
@@ -1166,9 +1035,7 @@ async function getKeyForVoucherDataExtensionByName(voucherDEName) {
 		return data.keys.id;
 	}
 	catch (error) {
-		console.dir("Error getting voucher DE Key");
-		console.dir(error);
-		reject(error);
+		throw new Error(`Error getting voucher DE key: ${error}`);
 	}
 }
 
@@ -1260,38 +1127,15 @@ async function cancelPush(message_key, push_content) {
 }
 
 
-/**
-
-POST /automation/v1/queries/{{queryID}}/actions/start/
-Host: {{yourendpoint}}.rest.marketingcloudapis.com
-Authorization: Bearer {{Oauth Key}}
-Content-Type: application/json
-
-*/
-app.post('/run/query/:queryId', async function(req, res, next) {
-
-	//res.send("Enviro is " + req.params.enviro + " | Interface is " + req.params.interface + " | Folder is " + req.params.folder);
-	console.dir("Query ID sent from Automation Studio");
-	console.dir(req.params.queryId);
-	var executeThisQueryId = req.params.queryId;
-	try {
-		const returnQueryResponse = await runSQLQuery(executeThisQueryId);
-		console.dir("The query response object is");
-		console.dir(returnQueryResponse);
-		res.send(JSON.stringify(returnQueryResponse));
-	} catch (err) {
-		console.dir(err);
-		next(err);
-	}
-});
+//#region endpoints
 
 // insert data into mobile_push_main data extension
 app.post('/dataextension/add/', async function (req, res, next){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
-		const returnedPayload = await sendBackPayload(req.body)
-		res.send(JSON.stringify(returnedPayload));
+		const newPushKey = await buildAndSend(req.body)
+		res.status(201).send(JSON.stringify(newPushKey));
 	} catch(err) {
 		console.dir(err);
 		next(err);
@@ -1505,6 +1349,7 @@ app.get("/dataextension/lookup/promotions", (req, res, next) => {
 
 });
 
+//#endregion endpoints
 
 app.post('/journeybuilder/save/', activity.save );
 app.post('/journeybuilder/validate/', activity.validate );
