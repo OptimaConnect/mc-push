@@ -809,35 +809,36 @@ async function getNewCommCellId() {
 
 	const updateNextIdPayload = [{
         "keys": {
-            "id": 1
+            "increment_key": 1
         },
         "values": {
 			"communication_cell_code_id_increment": newCommCellId + 3
 		}
 	}];
+
 	await axios({
 		method: 'post',
-		url: updateIncrementUrl,
+		url: updateCommCellIncrementUrl,
 		headers: { Authorization: token },
 		data: updateNextIdPayload
-	});
+	});	
 
 	return newCommCellId;
 };
 
-async function saveToCommunicationDataExtension(payload, commCellId) {
+async function saveToCommunicationDataExtension(commCellPayload, commCellId) {
 
 	console.dir("Payload:");
-	console.dir(payload);
+	console.dir(commCellPayload);
 	console.dir("CommCellId:");
 	console.dir(commCellId);
 
-	const insertPayload = {
-        "keys": {
+	const insertPayload = [{
+		"keys": {
             "communication_cell_id": commCellId
         },
-        "values": payload
-	};
+        "values": commCellPayload
+	}];
 	
 	console.dir(insertPayload);
 
@@ -851,7 +852,7 @@ async function saveToCommunicationDataExtension(payload, commCellId) {
 	});
 
 	console.dir(response.data);
-	return response.data;			
+	return response.data;
 };
 
 async function saveToMainDataExtension(pushPayload, pushKey) {
@@ -890,10 +891,11 @@ async function buildAndUpdate(payload, key) {
 
 async function buildAndSend(payload) {
 	const newPushKey = await getNewPushKey();	
+	const newCommCellId = await getNewCommCellId();
+
 	const pushPayload = buildPushPayload(payload, newCommCellId);
 	const pushObject = await saveToMainDataExtension(pushPayload, newPushKey);
 	
-	const newCommCellId = await getNewCommCellId();
 	const commPayload = buildCommPayload(pushPayload);
 	const commObject = await saveToCommunicationDataExtension(commPayload, newCommCellId);
 
@@ -962,7 +964,7 @@ function buildCommPayload(payload) {
 			"cell_code"					: payload["offer_cell_code"],
     		"cell_name"					: payload["offer_cell_name"],
         	"campaign_name"				: payload["offer_campaign_name"],
-        	"campaign_code"				: payload["offer_campaign_code"],
+			"campaign_code"				: payload["offer_campaign_code"],
         	"cell_type"					: 1,
         	"channel"					: 5,
         	"is_putput_flag"			: 1,
@@ -986,12 +988,13 @@ function buildCommPayload(payload) {
 }
 
 async function sendBackUpdatedPayload(payload) {
-	const messageKeyToUpdate = payload.find(element => element.key == "message_key_hidden")?.value;
+	let messageKeyToUpdate = payload.find(element => element.key == "message_key_hidden");
 
 	if (!messageKeyToUpdate) {
 		throw new Error("No message_key provided in the payload.");
 	}
 
+	messageKeyToUpdate = messageKeyToUpdate.value;
 	await buildAndUpdate(payload, messageKeyToUpdate);
 	return messageKeyToUpdate;
 }
