@@ -33,8 +33,9 @@
         <div id="promo_key_input">
             <input type="hidden" id="message_key_hidden" />
             <input type="hidden" id="seed_sent" />
-            <input type="hidden" id="automation_sent" />
+            <input type="hidden" id="is_broadcast" />
             <input type="hidden" id="sent" />
+            <input type="hidden" id="is_cancelled" value="false" />
         </div>
         <div id="promotion_alert" class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning" role="alert">
             <span class="slds-assistive-text">warning</span>
@@ -549,7 +550,8 @@
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_save">Save</button></li>
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_update">Update</button></li>
                             <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_seed" disabled>Send to Seedlist</button></li>
-                            <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_create" disabled>Schedule for broadcast</button></li>
+                            <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_broadcast" disabled>Schedule for broadcast</button></li>
+                            <li class="slds-m-vertical_xx-small"><button class="slds-button slds-button_stretch slds-button_success" id="control_action_cancel" disabled>Stop/Cancel Campaign</button></li>
                         </ul>
                     </div>
                 </article>
@@ -615,10 +617,16 @@
     <div id="dev-helper-buttons" hidden>
         <p>Dev tools - only visible on localhost</p>
         <button id="dev-button-validate">Validate current step</button>
-        <button id="dev-button-initial">Go to initial setup</button>
-        <button id="dev-button-push">Go to push setup</button>
-        <button id="dev-button-offer">Go to offer setup</button>
-        <button id="dev-button-summary">Go to summary</button>
+        <div>
+            <button id="dev-button-initial">Go to initial setup</button>
+            <button id="dev-button-push">Go to push setup</button>
+            <button id="dev-button-offer">Go to offer setup</button>
+            <button id="dev-button-summary">Go to summary</button>
+        </div>
+        <div>
+            <button id="dev-button-cache-save">Save to cache</button>
+            <button id="dev-button-cache-load">Load from cache</button>
+        </div>
     </div>
 </body>
 </html>

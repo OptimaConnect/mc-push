@@ -1172,6 +1172,94 @@ async function getKeyForVoucherDataExtensionByName(voucherDEName) {
 	}
 }
 
+async function getExistingAppData(message_key) {
+	let token = await getOauth2Token();
+	const fullRequestUrl = `${mobilePushMainTableUrl}?$filter=push_key eq ${message_key}`;
+
+	try {
+		let response = await axios.get(fullRequestUrl, {
+			headers: {
+				Authorization: token
+			}
+		});
+
+		let data = response.data.items[0];
+
+		return {...data.keys, ...data.values}
+
+	} catch (error) {
+		console.dir(error);
+		return null;
+	}
+}
+
+async function cancelOffer(message_key, offer_id) {
+	console.log(`Cancelling offer_id = ${offer_id}`);
+	
+	let cancelOfferQuery = 
+		`SELECT  o.SCHEME_ID
+		,       o.OFFER_ID
+		,       o.VOUCHER_IN_STORE_CODE
+		,       o.SHORT_DESCRIPTION
+		,       o.LONG_DESCRIPTION
+		,       o.START_DATE_TIME
+		,       o.END_DATE_TIME
+		,       'D'                 AS [STATUS]
+		,       o.OFFER_TYPE
+		,       o.IMAGE_URL_1
+		,       o.MORE_INFO_TEXT
+		,       o.ONLINE_OFFER_CLICKTHROUGH_URL
+		,       o.OFFER_CHANNEL
+		,       o.OFFER_STORES
+		,       o.SHOW_VALIDITY
+		,       o.INFO_BUTTON_TEXT
+		,       o.CRITERIA
+		,       o.DATE_CREATED
+		,       SYSDATETIME()       AS DATE_UPDATED
+		FROM    [${marketingCloud.mobilePushMainTable}] AS mpt
+		INNER JOIN [${marketingCloud.masterOfferTableName}] AS o
+		ON      mpt.OFFER_ID = o.OFFER_ID
+		WHERE   mpt.push_type = 'offer'
+		AND     mpt.push_key = ${message_key}`;
+
+	console.log(`Cancel Offer Query: ${cancelOfferQuery}`);
+
+	const dateTimestamp = new Date().toISOString();
+	const cancelOfferQueryName = `Cancel Offer ${offer_id} - ${dateTimestamp}`;
+
+	const cancelOfferQueryId = await createSQLQuery(marketingCloud.masterOfferKey, cancelOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, cancelOfferQueryName, cancelOfferQueryName);
+	await runSQLQuery(cancelOfferQueryId, cancelOfferQueryName);
+}
+
+async function cancelPush(message_key, push_content) {
+	console.log(`Cancelling push message: ${push_content}`);
+
+	let cancelPushQuery =
+		`SELECT  SCHEME_ID
+		,       MOBILE_MESSAGE_ID
+		,       LOYALTY_CARD_NUMBER
+		,       MESSAGE_CONTENT
+		,       TARGET_SEND_DATE_TIME
+		,       'D'         AS [STATUS]
+		,       PUSH_KEY
+		,       DATE_CREATED
+		,       SYSDATETIME() AS DATE_UPDATED
+		,       [URL]
+		,       [TITLE]
+		FROM    [${marketingCloud.messageTableName}]
+		WHERE   PUSH_KEY = '${message_key}'
+		AND     CAST(TARGET_SEND_DATE_TIME AS datetime) AT TIME ZONE 'UTC' >= SYSDATETIMEOFFSET()`;
+
+	console.log(`Cancel Push Query: ${cancelPushQuery}`);
+
+	const dateTimestamp = new Date().toISOString();
+	const cancelPushQueryName = `Cancel Push "${push_content.substring(0, 20)}..." - ${dateTimestamp}`;
+
+	const cancelPushQueryId = await createSQLQuery(marketingCloud.messageKey, cancelPushQuery, updateTypes.AddUpdate, marketingCloud.messageTableName, cancelPushQueryName, cancelPushQueryName);
+	await runSQLQuery(cancelPushQueryId, cancelPushQueryName);
+}
+
+
 /**
 
 POST /automation/v1/queries/{{queryID}}/actions/start/
@@ -1223,8 +1311,39 @@ app.post('/dataextension/update/', async function (req, res, next){
 	}
 });
 
-// create a SQL query activity
-app.post('/automation/create/query', async function (req, res, next){ 
+// cancel a push or offer
+app.post('/cancel/:message_key', async function (req, res, next) {
+
+	try {
+		const message_key = req.params.message_key;
+
+		// get offer type from mobile_push_main DE
+		const existingRow = await getExistingAppData(message_key);
+
+		if (existingRow == null) {
+			res.sendStatus(404);
+			return;
+		}
+
+		const offer_type = existingRow.push_type;
+
+		if (offer_type == "offer"){
+			await cancelOffer(message_key, existingRow.offer_id);
+		} else if (offer_type.includes("message")) {
+			await cancelPush(message_key, existingRow.message_content);
+		} else {
+			res.status(405).send("Unrecognised app message type.");
+			return;
+		}
+
+		res.sendStatus(202);
+	} catch (error) {
+		console.dir(error);
+		next(error);
+	}
+});
+
+app.post('/send/broadcast', async function (req, res, next){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
@@ -1237,7 +1356,7 @@ app.post('/automation/create/query', async function (req, res, next){
 	
 });
 
-app.post('/automation/create/query/seed', async function (req, res, next){ 
+app.post('/send/seed', async function (req, res, next){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
