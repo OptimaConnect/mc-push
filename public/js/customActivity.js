@@ -302,7 +302,7 @@ define([
         });
 
         $("#control_action_cancel").click(async function() {
-            if (confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than hour before go-live, please directly contact mobilize.")) {
+            if (confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than 2 hours before go-live, please directly contact mobilize.")) {
                 await cancelAppCampaign();
                 $("#control_action_cancel").prop("disabled", true);
                 $("#is_cancelled").val(true);
