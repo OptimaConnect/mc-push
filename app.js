@@ -968,7 +968,8 @@ function buildCommPayload(payload) {
         	"cell_type"					: 1,
         	"channel"					: 5,
         	"is_putput_flag"			: 1,
-        	"sent"						: true
+			"sent"						: true,
+			"base_contact_date"			: payload["offer_start_datetime"]
 		}
 	} else {
 		communicationCellData = {
@@ -979,7 +980,8 @@ function buildCommPayload(payload) {
         	"cell_type"					: 1,
         	"channel"					: 6,
         	"is_putput_flag"			: 1,
-        	"sent"						: true
+			"sent"						: true,
+			"base_contact_date"			: payload["message_target_send_datetime"]
 		}
 	}
 
