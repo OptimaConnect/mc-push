@@ -7,7 +7,6 @@ define([
     'use strict';
 
     var debug                       = true;
-    var apiWaitTime                 = 500;
     var connection                  = new Postmonger.Session();
     var payload                     = {};
     var onlineSetupStepEnabled      = false;
@@ -321,29 +320,21 @@ define([
 
     function updateApiStatus(endpointSelector, endpointStatus) {
 
-        if ( endpointStatus ) {
-            setTimeout(function() {
-                $("#" + endpointSelector + " > div > div").removeClass("slds-theme_info");
-                $("#" + endpointSelector + " > div > div > span:nth-child(2)").removeClass("slds-icon-utility-info");
-                $("#" + endpointSelector + " > div > div").addClass("slds-theme_success");
-                $("#" + endpointSelector + " > div > div > span:nth-child(2)").addClass("slds-icon-utility-success");
-                $("#" + endpointSelector + " > div > div > span:nth-child(2) svg use").attr("xlink:href","/assets/icons/utility-sprite/svg/symbols.svg#success");
-                $("#" + endpointSelector + " > div > div > .slds-notify__content h2").text($("#" + endpointSelector + " > div > div > .slds-notify__content h2").text().replace("Loading", "Loaded"));
-            }, apiWaitTime);
-        
+        if (endpointStatus) {
+            $(`#${endpointSelector} > div > div`).removeClass("slds-theme_info");
+            $(`#${endpointSelector} > div > div > span:nth-child(2)`).removeClass("slds-icon-utility-info");
+            $(`#${endpointSelector} > div > div`).addClass("slds-theme_success");
+            $(`#${endpointSelector} > div > div > span:nth-child(2)`).addClass("slds-icon-utility-success");
+            $(`#${endpointSelector} > div > div > span:nth-child(2) svg use`).attr("xlink:href", "/assets/icons/utility-sprite/svg/symbols.svg#success");
+            $(`#${endpointSelector} > div > div > .slds-notify__content h2`).text($(`#${endpointSelector} > div > div > .slds-notify__content h2`).text().replace("Loading", "Loaded"));
         } else {
-            setTimeout(function() {
-                $("#" + endpointSelector + " > div > div").removeClass("slds-theme_info");
-                $("#" + endpointSelector + " > div > div > span:nth-child(2)").removeClass("slds-icon-utility-info");
-                $("#" + endpointSelector + " > div > div").addClass("slds-theme_error");
-                $("#" + endpointSelector + " > div > div > span:nth-child(2)").addClass("slds-icon-utility-error");
-                $("#" + endpointSelector + " > div > div > span:nth-child(2) svg use").attr("xlink:href","/assets/icons/utility-sprite/svg/symbols.svg#error");
-                $("#" + endpointSelector + " > div > div > .slds-notify__content h2").text($("#" + endpointSelector + " > div > div > .slds-notify__content h2").text().replace("Loading", "Error Loading"));
-            }, apiWaitTime);
+            $(`#${endpointSelector} > div > div`).removeClass("slds-theme_info");
+            $(`#${endpointSelector} > div > div > span:nth-child(2)`).removeClass("slds-icon-utility-info");
+            $(`#${endpointSelector} > div > div`).addClass("slds-theme_error");
+            $(`#${endpointSelector} > div > div > span:nth-child(2)`).addClass("slds-icon-utility-error");
+            $(`#${endpointSelector} > div > div > span:nth-child(2) svg use`).attr("xlink:href", "/assets/icons/utility-sprite/svg/symbols.svg#error");
+            $(`#${endpointSelector} > div > div > .slds-notify__content h2`).text($(`#${endpointSelector} > div > div > .slds-notify__content h2`).text().replace("Loading", "Error Loading"));
         }
-
-        apiWaitTime = apiWaitTime + 200;
-
     }
 
     function showOrHideOfferFormsBasedOnType() {
