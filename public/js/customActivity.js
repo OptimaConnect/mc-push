@@ -255,15 +255,21 @@ define([
 
         $('#offer_promotion').change(function() {
             // get data attributes from dd and prepop hidden fields
-            $("#offer_promotion_type").val($("option:selected", this).attr("data-attribute-promotion-type"));
-            $("#offer_online_promotion_type").val($("option:selected", this).attr("data-attribute-online-promotion-type"));
-            $("#offer_online_code_1").val($("option:selected", this).attr("data-attribute-online-code"));
-            $("#offer_instore_code_1").val($("option:selected", this).attr("data-attribute-instore-code"));
-            $("#offer_unique_code_1").val($("option:selected", this).attr("data-attribute-voucher-pot"));
-            $("#offer_mc_id_1").val($("option:selected", this).attr("data-attribute-mc1"));
-            $("#offer_mc_id_6").val($("option:selected", this).attr("data-attribute-mc6"));
-            $("#communication_key").val($("option:selected", this).attr("data-attribute-cell"));
-            $("#offer_redemptions").val($("option:selected", this).attr("data-attribute-redemptions"));
+            const promoData = JSON.parse(decodeURI($("option:selected", this).attr("data-attribute-promotionobject")));
+            
+            $("#offer_promotion_type").val(promoData.promotiontype);
+            $("#offer_online_promotion_type").val(promoData.onlinepromotiontype);
+            $("#offer_online_code_1").val(promoData.global_code_1);
+            $("#offer_instore_code_1").val(promoData.instore_code_1);
+            $("#offer_unique_code_1").val(promoData.unique_code_1);
+            $("#offer_mc_id_1").val(promoData.mc_id_1);
+            $("#offer_mc_id_6").val(promoData.mc_id_6);
+            $("#communication_key").val(promoData.communication_cell_id);
+            $("#offer_redemptions").val(promoData.instore_code_1_redemptions);
+            $("#offer_campaign_code").val(promoData.campaign_code);
+            $("#offer_campaign_name").val(promoData.campaign_name);
+            $("#offer_cell_code").val(promoData.cell_code);
+            $("#offer_cell_name").val(promoData.cell_name);
         });
 
         // hide the tool tips on page load
@@ -645,15 +651,18 @@ define([
                         console.log(result.items[i].keys);
                     }
 
-                    let deRow = result.items[i].values;
+                    const deRow = result.items[i].values;
+                    const promotionKey = result.items[i].keys.promotion_key;
+                    const deRowData = encodeURI(JSON.stringify(deRow));
+
                     if (deRow.promotiontype != "nocode"){
-                        $("#offer_promotion").append(`<option data-attribute-redemptions=${deRow.instore_code_1_redemptions} data-attribute-control=${deRow.communication_cell_id_control} data-attribute-cell=${deRow.communication_cell_id} data-attribute-cell-name=${deRow.cell_name} data-attribute-mc6=${deRow.mc_id_6} data-attribute-mc1=${deRow.mc_id_1} data-attribute-instore-code=${deRow.instore_code_1} data-attribute-online-code=${deRow.global_code_1} data-attribute-online-promotion-type=${deRow.onlinepromotiontype} data-attribute-promotion-type=${deRow.promotiontype} data-attribute-voucher-pot=${deRow.unique_code_1} value=${result.items[i].keys.promotion_key}>${deRow.campaign_name}</option>`);
+                        $("#offer_promotion").append(`<option data-attribute-promotionobject=${deRowData} value=${promotionKey}>${deRow.cell_name}</option>`)
                     }
                 }
             }
 
             updateApiStatus("promotions-api", true);
-        } catch {
+        } catch (error) {
             updateApiStatus("promotions-api", false);
         }
         
