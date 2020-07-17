@@ -890,14 +890,21 @@ async function buildAndUpdate(payload, key) {
 }
 
 async function buildAndSend(payload) {
-	const newPushKey = await getNewPushKey();	
-	const newCommCellId = await getNewCommCellId();
+	const newPushKey = await getNewPushKey();
 
-	const pushPayload = buildPushPayload(payload, newCommCellId);
+	let commCellId;
+	const existingCommCellId = payload.find(element => element.key == "communication_key")?.value;
+	if (existingCommCellId) {
+		commCellId = existingCommCellId;
+	} else {
+		commCellId = await getNewCommCellId();
+	}
+
+	const pushPayload = buildPushPayload(payload, commCellId);
 	const pushObject = await saveToMainDataExtension(pushPayload, newPushKey);
 	
 	const commPayload = buildCommPayload(pushPayload);
-	const commObject = await saveToCommunicationDataExtension(commPayload, newCommCellId);
+	const commObject = await saveToCommunicationDataExtension(commPayload, commCellId);
 
 	return newPushKey;
 }
