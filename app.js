@@ -346,32 +346,20 @@ async function addQueryActivity(payload, seed) {
 
 		console.dir(communicationQuery);
 
-	} else if (payloadAttributes.push_type == 'offer' && payloadAttributes.offer_channel != '3') {
-		// TODO - Update this to pull communication cell id from promotion widget table - possibly unneeded - communication_key may already have come from the promo widget
-		// this is legit promotion, use promo key and join for comm data NOT TESTED
-		communicationQuery =
-			`SELECT parties.PARTY_ID AS PARTY_ID,
-			MPT.communication_key 	AS COMMUNICATION_CELL_ID,
-			CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
+	} else if (payloadAttributes.push_type == 'message_non_loyalty') {
+		communicationQuery = 
+			`SELECT parties.PARTY_ID,
+			MPT.communication_key	AS COMMUNICATION_CELL_ID,
+			CAST(${target_send_date_time} AS datetime) AS CONTACT_DATE
 			FROM
 			(
-				SELECT  PCD.PARTY_ID
-				,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
-				,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
-				FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
-				INNER JOIN [${sourceDataModel}] AS PCD
-				ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-				WHERE   ${appCardNumber} IS NOT NULL
+				SELECT  264698160 			AS PARTY_ID
+				,       '000000000000000' 	AS LOYALTY_CARD_NUMBER
 			) AS parties
 			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
-			ON MPT.push_key = ${payloadAttributes.key}
-			WHERE parties.CARD_RN = 1`
+			ON MPT.push_key = ${payloadAttributes.key}`
 
-		console.dir(communicationQuery);
-
-	} else if (payloadAttributes.push_type == 'offer' && payloadAttributes.offer_channel == '3') {
-
-		// this is informational, comm cell should come from offer page
+	} else if (payloadAttributes.push_type == 'offer') {
 		communicationQuery =
 			`SELECT parties.PARTY_ID AS PARTY_ID,
 			MPT.communication_key 	AS COMMUNICATION_CELL_ID,
@@ -393,8 +381,8 @@ async function addQueryActivity(payload, seed) {
 		console.dir(communicationQuery);
 	}
 
-	// Create and run comms history SQL - not needed for seeds or non-loyalty pushes
-	if (!seed && payloadAttributes.push_type != 'message_non_loyalty') {
+	// Create and run comms history SQL - not needed for seeds
+	if (!seed) {
 		const communicationQueryName = `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`;
 		const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
 		await runSQLQuery(communicationQueryId, communicationQueryName)
