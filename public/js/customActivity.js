@@ -690,7 +690,9 @@ define([
                 }
 
                 let de = result.items[i].values;
-                $("#update_contacts").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
+                if (de.channel == 'App'){
+                    $("#update_contacts").append("<option value=" + encodeURI(de.dataextensionname) + ">" + de.dataextensionname + "</option>");
+                }
             }
             updateApiStatus("updatecontacts-api", true);
         } catch (error) {
