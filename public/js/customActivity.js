@@ -350,24 +350,13 @@ define([
             $("#offer_cell_box").show();
             // hide promotion dropdown
             $("#promotion_element").hide();
-            $("#show_validity_form").hide();
-
-            if ($("#offer_validity").val() == "true") {
-                $("#offer_validity").val("false").change();
-            }
-        
             $("#info_button_text_form").show();
 
         } else {
 
             $("#offer_cell_box").hide();
             // show offer promotion
-            $("#promotion_element").show();
-            
-            if ($("#offer_validity").val() == "false" && $("#show_validity_form").is(":hidden")) {
-                $("#offer_validity").val("true").change();
-            }
-            $("#show_validity_form").show();
+            $("#promotion_element").show();            
             $("#info_button_text_form").hide();
         }
     }
