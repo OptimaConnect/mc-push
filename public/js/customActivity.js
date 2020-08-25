@@ -356,7 +356,6 @@ define([
                 $("#offer_validity").val("false").change();
             }
         
-            $("#click_through_url_form").show();
             $("#info_button_text_form").show();
 
         } else {
@@ -369,8 +368,6 @@ define([
                 $("#offer_validity").val("true").change();
             }
             $("#show_validity_form").show();
-
-            $("#click_through_url_form").hide();
             $("#info_button_text_form").hide();
         }
     }
