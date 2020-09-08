@@ -466,15 +466,21 @@ define([
 
         } else if ( stepToValidate == 0 ) {
 
-            var step0Selectors = ["#update_contacts", "#widget_name"];
+            // selectors set up: ["field name", is required, maximum character count]
+            var step0Selectors = [["#update_contacts", 1, 200], ["#widget_name", 1, 100]];
             var step0ErrorCount = 0;
 
             for ( var n = 0; n < step0Selectors.length; n++ ) {
 
-                console.log("The selector is " + step0Selectors[n]);
+                console.log("The selector is " + step0Selectors[n][0]);
 
-                if ( !$(step0Selectors[n]).val() ) {
+                if ( !$(step0Selectors[n][0]).val() && step0Selectors[n][1]==1 ) {
 
+                    document.getElementById("step0alerttext").innerText = `The field ${step0Selectors[n][0]} is missing.` 
+                    step0ErrorCount++;
+                }   else if ( $(step0Selectors[n][0]).val().length > step0Selectors[n][2] ) {
+
+                    document.getElementById("step0alerttext").innerText = `The character limit of ${step0Selectors[n][0]} is ${step0Selectors[n][2]}.` 
                     step0ErrorCount++;
                 }
             }
@@ -494,19 +500,19 @@ define([
 
         } else if ( stepToValidate == 1 ) {
 
-
-            var step1Selectors = [["#message_target_send_datetime", 100], ["#message_seed_send_datetime", 100], ["#message_title",30],  ["#cell_code",16],["#cell_name",100], ["#campaign_name", 100], ["#campaign_code", 12]];
+            // selectors set up: ["field name", is required, maximum character count]
+            var step1Selectors = [["#message_target_send_datetime", 1, 100], ["#message_seed_send_datetime", 1, 100], ["#message_title", 1, 30],  ["#cell_code",16],["#cell_name", 1, 100], ["#campaign_name", 1, 100], ["#campaign_code", 1, 12], ["#message_content", 1, 140], ["#message_Url", 0, 250]];
             var step1ErrorCount = 0;
 
             for ( var l = 0; l < step1Selectors.length; l++ ) {
 
-                console.log("The selector is " + step1Selectors[l]);
+                console.log("The selector is " + step1Selectors[l][0]);
 
-                if ( !$(step1Selectors[l][0]).val() ) {
+                if ( !$(step1Selectors[l][0]).val() && step1Selectors[l][1]==1 ) {
             
                     step1ErrorCount++;
                 
-                } else if ( $(step1Selectors[l][0]).val().length > step1Selectors[l][1] ) {
+                }   else if ( $(step1Selectors[l][0]).val().length > step1Selectors[l][2] ) {
 
                     step1ErrorCount++;
                 }
@@ -523,20 +529,24 @@ define([
             }
 
         } else if ( stepToValidate == 2 ) {
-
-            var step2Selectors = ["#offer_short_content", "#offer_start_datetime", "#offer_end_datetime", "#offer_type", "#offer_image_url"];
+            // selectors set up: ["field name", is required, maximum character count]
+            var step2Selectors = [["#offer_short_content", 1, 30], ["#offer_start_datetime", 1, 100], ["#offer_end_datetime", 1, 100], ["#offer_type", 1, 20], ["#offer_image_url", 1, 250], ["#offer_more_info", 1, 1000], ["#offer_click_through_url", 1, 250], ["#offer_info_button_text",0,20], ["offer_id", 1, 16] ];
             var step2ErrorCount = 0;
 
             for ( var m = 0; m < step2Selectors.length; m++ ) {
 
-                console.log("The selector is " + step2Selectors[m]);
+                console.log("The selector is " + step2Selectors[m][0]);
 
-                if ( !$(step2Selectors[m]).val() ) {
+                if ( !$(step2Selectors[m][0]).val() && step2Selectors[m][1]==1 ) {
+
+                    step2ErrorCount++;
+
+                }   else if ( $(step2Selectors[m][0]).val().length > step2Selectors[m][2] ) {
 
                     step2ErrorCount++;
                 }
             }
-
+                
 
 
             var selectedChannel = $("#offer_channel").val();
@@ -546,11 +556,15 @@ define([
 
             if ( selectedChannel == 3 || selectedChannel == '3') {
 
-                let step2CommSelectors = ["#offer_cell_code", "#offer_cell_name", "#offer_campaign_name", "#offer_campaign_code"]
-                for ( let b = 0; b < step2CommSelectors.length; b++ ) {
-                    console.log("The selector is " + step2CommSelectors[m]);
+                var step2CommSelectors = [["#offer_cell_code", 1, 16],  ["#offer_cell_name", 1, 100], ["#offer_campaign_name", 1, 100], ["#offer_campaign_code", 1, 12]]
+                for ( var b = 0; b < step2CommSelectors.length; b++ ) {
+                    console.log("The selector is " + step2CommSelectors[b][0]);
 
-                    if ( !$(step2CommSelectors[b]).val() ) {
+                    if ( !$(step2CommSelectors[b][0]).val() && step2CommSelectors[b][1]==1 ) {
+                        step2ErrorCount++;
+
+                    }   else if ( $(step2CommSelectors[b][0]).val().length > step2CommSelectors[b][2] ) {
+
                         step2ErrorCount++;
                     }
                 }
