@@ -87,6 +87,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+app.post('/journeybuilder/save/', activity.save );
+app.post('/journeybuilder/validate/', activity.validate );
+app.post('/journeybuilder/publish/', activity.publish );
+app.post('/journeybuilder/execute/', activity.execute );
+app.post('/journeybuilder/stop/', activity.stop );
+app.post('/journeybuilder/unpublish/', activity.unpublish );
+
 // Express in Development Mode
 if ('development' == app.get('env')) {
 	app.use(errorhandler());
@@ -1351,12 +1358,6 @@ app.get("/dataextension/lookup/promotions", (req, res, next) => {
 
 //#endregion endpoints
 
-app.post('/journeybuilder/save/', activity.save );
-app.post('/journeybuilder/validate/', activity.validate );
-app.post('/journeybuilder/publish/', activity.publish );
-app.post('/journeybuilder/execute/', activity.execute );
-app.post('/journeybuilder/stop/', activity.stop );
-app.post('/journeybuilder/unpublish/', activity.unpublish );
 
 // listening port
 http.createServer(app).listen(app.get('port'), function(){
