@@ -485,6 +485,7 @@ define([
                 }
             }
             if ( $("#update_contacts").val() == "none" && !$("#push_type_message_non_loyalty").is(":checked")) {
+                document.getElementById("step0alerttext").innerText = "An update contact data extension is required for offers and loyalty pushes"
                 step0ErrorCount++;
             }
 
@@ -504,16 +505,16 @@ define([
             var step1Selectors = [["#message_target_send_datetime", 1, 100], ["#message_seed_send_datetime", 1, 100], ["#message_title", 1, 30],  ["#cell_code",16],["#cell_name", 1, 100], ["#campaign_name", 1, 100], ["#campaign_code", 1, 12], ["#message_content", 1, 140], ["#message_Url", 0, 250]];
             var step1ErrorCount = 0;
 
-            for ( var l = 0; l < step1Selectors.length; l++ ) {
+            for ( var p = 0; p < step1Selectors.length; p++ ) {
 
-                console.log("The selector is " + step1Selectors[l][0]);
+                console.log("The selector is " + step1Selectors[p][0]);
 
-                if ( !$(step1Selectors[l][0]).val() && step1Selectors[l][1]==1 ) {
-            
+                if ( !$(step1Selectors[p][0]).val() && step1Selectors[p][1]==1 ) {
+                    document.getElementById("step1alerttext").innerText = `The field ${step1Selectors[p][0]} is missing.` 
                     step1ErrorCount++;
                 
-                }   else if ( $(step1Selectors[l][0]).val().length > step1Selectors[l][2] ) {
-
+                }   else if ( $(step1Selectors[p][0]).val().length > step1Selectors[p][2] ) {
+                    document.getElementById("step1alerttext").innerText = `The character limit of ${step1Selectors[p][0]} is ${step1Selectors[p][2]}.` 
                     step1ErrorCount++;
                 }
             }
@@ -530,7 +531,7 @@ define([
 
         } else if ( stepToValidate == 2 ) {
             // selectors set up: ["field name", is required, maximum character count]
-            var step2Selectors = [["#offer_short_content", 1, 30], ["#offer_start_datetime", 1, 100], ["#offer_end_datetime", 1, 100], ["#offer_type", 1, 20], ["#offer_image_url", 1, 250], ["#offer_more_info", 1, 1000], ["#offer_click_through_url", 1, 250], ["#offer_info_button_text",0,20], ["offer_id", 1, 16] ];
+            var step2Selectors = [["#offer_short_content", 1, 30], ["#offer_start_datetime", 1, 100], ["#offer_end_datetime", 1, 100], ["#offer_type", 1, 20], ["#offer_image_url", 1, 250], ["#offer_more_info", 1, 1000], ["#offer_click_through_url", 1, 250], ["#offer_info_button_text",0,20], ["#offer_id", 1, 16]];
             var step2ErrorCount = 0;
 
             for ( var m = 0; m < step2Selectors.length; m++ ) {
@@ -538,11 +539,11 @@ define([
                 console.log("The selector is " + step2Selectors[m][0]);
 
                 if ( !$(step2Selectors[m][0]).val() && step2Selectors[m][1]==1 ) {
-
+                    document.getElementById("step2alerttext").innerText = `The field ${step2Selectors[m][0]} is missing.` 
                     step2ErrorCount++;
 
-                }   else if ( $(step2Selectors[m][0]).val().length > step2Selectors[m][2] ) {
-
+                } else if ( $(step2Selectors[m][0]).val().length > step2Selectors[m][2] ) {
+                    document.getElementById("step2alerttext").innerText = `The character limit of ${step2Selectors[m][0]} is ${step2Selectors[m][2]}.`
                     step2ErrorCount++;
                 }
             }
@@ -561,10 +562,11 @@ define([
                     console.log("The selector is " + step2CommSelectors[b][0]);
 
                     if ( !$(step2CommSelectors[b][0]).val() && step2CommSelectors[b][1]==1 ) {
+                        document.getElementById("step2alerttext").innerText = `The field ${step2CommSelectors[b][0]} is missing.` 
                         step2ErrorCount++;
 
-                    }   else if ( $(step2CommSelectors[b][0]).val().length > step2CommSelectors[b][2] ) {
-
+                    } else if ( $(step2CommSelectors[b][0]).val().length > step2CommSelectors[b][2] ) {
+                        document.getElementById("step2alerttext").innerText = `The character limit of ${step2CommSelectors[b][0]} is ${step2CommSelectors[b][2]}.`
                         step2ErrorCount++;
                     }
                 }
@@ -573,9 +575,8 @@ define([
 
                 // check promotion isn't no-code
                 if ( $("#offer_promotion").val() == 'no-code') {
-
+                    document.getElementById("step2alerttext").innerText = "Voucher offers must have an Offer Promotion"
                     step2ErrorCount++;
-
                 }
 
             }
