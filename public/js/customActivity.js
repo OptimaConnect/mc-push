@@ -502,7 +502,7 @@ define([
         } else if ( stepToValidate == 1 ) {
 
             // selectors set up: ["field name", is required, maximum character count]
-            var step1Selectors = [["#message_target_send_datetime", 1, 100], ["#message_seed_send_datetime", 1, 100], ["#message_title", 1, 30],  ["#cell_code",16],["#cell_name", 1, 100], ["#campaign_name", 1, 100], ["#campaign_code", 1, 12], ["#message_content", 1, 140], ["#message_Url", 0, 250]];
+            var step1Selectors = [["#message_target_send_datetime", 1, 100], ["#message_seed_send_datetime", 1, 100], ["#message_title", 1, 30],  ["#cell_code",1 ,16],["#cell_name", 1, 100], ["#campaign_name", 1, 100], ["#campaign_code", 1, 12], ["#message_content", 1, 140], ["#message_Url", 0, 250]];
             var step1ErrorCount = 0;
 
             for ( var p = 0; p < step1Selectors.length; p++ ) {
@@ -513,7 +513,7 @@ define([
                     document.getElementById("step1alerttext").innerText = `The field ${step1Selectors[p][0]} is missing.` 
                     step1ErrorCount++;
                 
-                }   else if ( $(step1Selectors[p][0]).val().length > step1Selectors[p][2] ) {
+                }   else if ($(step1Selectors[p][0]).val() && $(step1Selectors[p][0]).val().length > step1Selectors[p][2] ) {
                     document.getElementById("step1alerttext").innerText = `The character limit of ${step1Selectors[p][0]} is ${step1Selectors[p][2]}.` 
                     step1ErrorCount++;
                 }
