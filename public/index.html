@@ -145,7 +145,7 @@
                     <fieldset class="slds-form-element slds-form-element_stacked">
                         <legend class="slds-form-element__legend slds-form-element__label">Update Contact Data Extension Name</legend>
                         <div class="slds-form-element sfmc-input">
-                            <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01"><abbr class="slds-required" title="required">* </abbr>Update Contact</label>
+                            <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01"><abbr class="slds-required" title="required">* </abbr>Data Extension Name</label>
                             <div class="slds-form-element__control">
                                 <div class="slds-select_container">
                                     <select class="slds-select" id="update_contacts">
@@ -162,7 +162,7 @@
                     <fieldset class="slds-form-element slds-form-element_stacked">
                         <legend class="slds-form-element__legend slds-form-element__label">Journey Builder Widget Name</legend>
                         <div class="slds-form-element sfmc-input">
-                            <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01"><abbr class="slds-required" title="required">* </abbr>Widget Name</label>
+                            <label id="widget_name_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01"><abbr class="slds-required" title="required">* </abbr>Widget Name</label>
                             <div class="slds-form-element__control">
                                 <input type="text" id="widget_name" placeholder="Name" required="" class="slds-input" />
                             </div>
@@ -196,22 +196,22 @@
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
                     <h2>Push Message Content</h2>
                     <div class="slds-form-element">
-                      <label class="slds-form-element__label" for="text-input-id-1">
-                        <abbr class="slds-required" title="required">* </abbr>Title</label>
+                      <label id="message_title_count" class="slds-form-element__label" for="text-input-id-1">
+                        <abbr class="slds-required" title="required"></abbr>Title</label>
                       <div class="slds-form-element__control">
                         <input type="text" id="message_title" required="" class="slds-input" value="Matalan" />
                       </div>
                     </div>
                     <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="textarea-id-01">
-                        <abbr class="slds-required" title="required">* </abbr>Content</label>
+                        <label id="message_content_count" class="slds-form-element__label" for="textarea-id-01">
+                        <abbr class="slds-required" title="required"></abbr>Message Content</label>
                         <div class="slds-form-element__control">
                             <textarea id="message_content" required="" class="slds-textarea" placeholder="Message Content..."></textarea>
                         </div>
                         <div id="chars1">300</div>
                     </div>
                     <div class="slds-form-element">
-                      <label class="slds-form-element__label" for="text-input-id-2">URL - Leave blank for default</label>
+                      <label id="message_url_count" class="slds-form-element__label" for="text-input-id-2">Deep Link URL (Leave Blank For Default)</label>
                       <div class="slds-form-element__control">
                         <input type="text" id="message_url" class="slds-input" />
                       </div>
@@ -243,28 +243,28 @@
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
                     <h2>Communication History Data</h2>
                     <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Code</label>
+                        <label id="campaign_code_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Code</label>
                         <div class="slds-form-element__control">
                             <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="campaign_code" placeholder="Campaign Code" class="slds-input" />
                         </div>
                         <div class="slds-form-element__help" id="form-error__campaign_code">This field is required</div>
                     </div>
                     <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Name</label>
+                        <label id="campaign_name_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Name</label>
                         <div class="slds-form-element__control">
                             <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="campaign_name" placeholder="Campaign Name" class="slds-input" />
                         </div>
                         <div class="slds-form-element__help" id="form-error__campaign_name">This field is required</div>
                     </div>
                     <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Code</label>
+                        <label id="cell_code_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Code</label>
                         <div class="slds-form-element__control">
                             <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="cell_code" placeholder="Cell Code" class="slds-input" />
                         </div>
                         <div class="slds-form-element__help" id="form-error__cell_code">This field is required</div>
                     </div>
                     <div class="slds-form-element sfmc-input">
-                        <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Name</label>
+                        <label id="cell_name_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Name</label>
                         <div class="slds-form-element__control">
                             <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="cell_name" placeholder="Cell Name" class="slds-input" />
                         </div>
@@ -299,34 +299,34 @@
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
                     <h2>Offer Content</h2>
                     <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="textarea-id-022">
-                        <abbr class="slds-required" title="required">* </abbr>Offer Short Description</label>
+                        <label id="offer_short_content_count" class="slds-form-element__label" for="textarea-id-022">
+                        <abbr class="slds-required" title="required">* </abbr>Short Description</label>
                         <div class="slds-form-element__control">
                             <input type="text" id="offer_short_content" required="" class="slds-textarea" placeholder="Short Message Content..."></textarea>
                         </div>
                     </div>
                     <div class="slds-form-element">
-                      <label class="slds-form-element__label" for="text-input-id-22">
+                      <label id="offer_image_url_count" class="slds-form-element__label" for="text-input-id-22">
                         <abbr class="slds-required" title="required">* </abbr>Image URL</label>
                       <div class="slds-form-element__control">
                         <input type="text" id="offer_image_url" placeholder="https://" required="" class="slds-input" />
                       </div>
                     </div>
                     <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="textarea-id-011">
+                        <label id="offer_more_info_count" class="slds-form-element__label" for="textarea-id-011">
                         <abbr class="slds-required" title="required">* </abbr>More Info/Terms & Conditions</label>
                         <div class="slds-form-element__control">
                             <textarea id="offer_more_info" required="" class="slds-textarea" placeholder="More Info..."></textarea>
                         </div>
                     </div>
                     <div class="slds-form-element" id="click_through_url_form">
-                        <label class="slds-form-element__label" for="text-input-id-22">Click Through URL</label>
+                        <label id="offer_click_through_url_count" class="slds-form-element__label" for="text-input-id-22">Click Through URL</label>
                         <div class="slds-form-element__control">
                             <input type="text" id="offer_click_through_url" placeholder="https://" required="" class="slds-input" />
                         </div>
                     </div>
                     <div class="slds-form-element" id="info_button_text_form">
-                        <label class="slds-form-element__label" for="textarea-id-011">
+                        <label id="offer_info_button_text_count" class="slds-form-element__label" for="textarea-id-011">
                         <abbr class="slds-required" title="required" >* </abbr>Info Button Text</label>
                         <div class="slds-form-element__control">
                             <input type="text" id="offer_info_button_text" required="" class="slds-textarea" placeholder="Info Button Text..."></textarea>
@@ -340,7 +340,7 @@
                     <div class="slds-grid">
                         <div class="slds-col">
                             <div class="slds-form-element">
-                                <label class="slds-form-element__label" for="text-input-id-22"><abbr class="slds-required"
+                                <label id="offer_id_count" class="slds-form-element__label" for="text-input-id-22"><abbr class="slds-required"
                                         title="required">* </abbr>Offer ID</label>
                                 <div class="slds-form-element__control">
                                     <input type="text" id="offer_id" placeholder="" required="" class="slds-input" />
@@ -419,28 +419,28 @@
                             <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="offer_cell_box">
                                 <h2>Communication History Data - Required for Informational offers</h2>
                                 <div class="slds-form-element sfmc-input">
-                                    <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Code</label>
+                                    <label id="offer_campaign_code_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Code</label>
                                     <div class="slds-form-element__control">
                                         <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_campaign_code" placeholder="Campaign Code" class="slds-input" />
                                     </div>
                                     <div class="slds-form-element__help" id="form-error__campaign_code">This field is required</div>
                                 </div>
                                 <div class="slds-form-element sfmc-input">
-                                    <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Name</label>
+                                    <label id="offer_campaign_name_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Campaign Name</label>
                                     <div class="slds-form-element__control">
                                         <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_campaign_name" placeholder="Campaign Name" class="slds-input" />
                                     </div>
                                     <div class="slds-form-element__help" id="form-error__campaign_name">This field is required</div>
                                 </div>
                                 <div class="slds-form-element sfmc-input">
-                                    <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Code</label>
+                                    <label id="offer_cell_code_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Code</label>
                                     <div class="slds-form-element__control">
                                         <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_cell_code" placeholder="Cell Code" class="slds-input" />
                                     </div>
                                     <div class="slds-form-element__help" id="form-error__cell_code">This field is required</div>
                                 </div>
                                 <div class="slds-form-element sfmc-input">
-                                    <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Name</label>
+                                    <label id="offer_cell_name_count" class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Cell Name</label>
                                     <div class="slds-form-element__control">
                                         <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_cell_name" placeholder="Cell Name" class="slds-input" />
                                     </div>

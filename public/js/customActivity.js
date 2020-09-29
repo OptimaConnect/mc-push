@@ -33,6 +33,69 @@ define([
         development = true;
     }    
 
+    var input_field_dictionary= new Map(); 
+    //"fieldname":["Step","CharacterLimit","Required", "Fixed Text"]
+    input_field_dictionary.set("update_contacts", [0, 200, 1, "Data Extension Name"]);
+    input_field_dictionary.set("widget_name", [0, 100, 1, "Widget Name"]);
+
+    input_field_dictionary.set("message_target_send_datetime", [1, 100, 1]);
+    input_field_dictionary.set("message_seed_send_datetime", [1, 100, 1]);
+    input_field_dictionary.set("message_title", [1, 30, 1, "Title"]);
+    input_field_dictionary.set("cell_code", [1, 16, 1, "Cell Code"]);
+    input_field_dictionary.set("cell_name", [1, 100, 1, "Cell Name"]);
+    input_field_dictionary.set("campaign_name", [1, 100, 1, "Campaign Name"]);
+    input_field_dictionary.set("campaign_code", [1, 12, 1, "Campaign Code"]);
+    input_field_dictionary.set("message_content", [1, 140, 1, "Message Content"]);
+    input_field_dictionary.set("message_url", [1, 250, 0, "Deep Link URL (Leave Blank For Default)"]);
+
+    input_field_dictionary.set("offer_short_content", [2, 30, 1, "Short Description"]);
+    input_field_dictionary.set("offer_start_datetime", [2, 100, 1]);
+    input_field_dictionary.set("offer_end_datetime", [2, 100, 1]);
+    input_field_dictionary.set("offer_type", [2, 20, 1]);
+    input_field_dictionary.set("offer_image_url", [2, 250, 1, "Image URL"]);
+    input_field_dictionary.set("offer_more_info", [2, 1000, 1, "More Info/Terms & Conditions"]);
+    input_field_dictionary.set("offer_click_through_url", [2, 250, 1, "Click Through URL"]);
+    input_field_dictionary.set("offer_info_button_text", [2, 20, 0, "Info Button Text"]);
+    input_field_dictionary.set("offer_id", [2, 16, 1, "Offer ID"]);
+    input_field_dictionary.set("offer_cell_code", [2, 16, "Info Only", "Cell Code"]);
+    input_field_dictionary.set("offer_cell_name", [2, 100, "Info Only", "Cell Name"]);
+    input_field_dictionary.set("offer_campaign_name", [2, 100, "Info Only", "Campaign Name"]);
+    input_field_dictionary.set("offer_campaign_code", [2, 12, "Info Only", "Campaign Code"]);
+
+    
+    //Running Character Counts on Input Fields
+    $("[type='text']").on("input", function(){
+        var field_name = this.id;
+        var count_field_name = `${field_name}_count`;
+        if (document.getElementById(count_field_name)){
+            var text_length = document.getElementById(field_name).value.length;
+            var max_length = input_field_dictionary.get(field_name)[1];
+            var fixed_text = input_field_dictionary.get(field_name)[3];
+            document.getElementById(count_field_name).innerText = `${fixed_text}: ${text_length} characters`;
+            if (text_length > max_length){
+              document.getElementById(count_field_name).style.color = 'red';
+            }else {
+                document.getElementById(count_field_name).style.color = 'black';
+            }
+        }
+    });
+    
+    $("textarea").on("input", function(){
+        var field_name = this.id;
+        var count_field_name = `${field_name}_count`;
+        if (document.getElementById(count_field_name)){
+            var text_length = document.getElementById(field_name).value.length;
+            var max_length = input_field_dictionary.get(field_name)[1];
+            var fixed_text = input_field_dictionary.get(field_name)[3];
+            document.getElementById(count_field_name).innerText = `${fixed_text}: ${text_length} characters`;
+            if (text_length > max_length){
+              document.getElementById(count_field_name).style.color = 'red';
+            }else {
+                document.getElementById(count_field_name).style.color = 'black';
+            }
+        }
+    });
+
     if (development) {
         payload = {
             arguments: {
@@ -456,153 +519,47 @@ define([
     function validateStep(stepToValidate) {
 
         if (debug) {
-            console.log("Step that will be validated");
-            console.log(stepToValidate);
+            console.log(`Step ${stepToValidate} to be validated`);
         }
 
         if ( $("#step" + stepToValidate).find('.slds-has-error').length > 0 ) {
-
             return false;
 
-        } else if ( stepToValidate == 0 ) {
-
-            // selectors set up: ["field name", is required, maximum character count]
-            var step0Selectors = [["#update_contacts", 1, 200], ["#widget_name", 1, 100]];
-            var step0ErrorCount = 0;
-
-            for ( var n = 0; n < step0Selectors.length; n++ ) {
-
-                console.log("The selector is " + step0Selectors[n][0]);
-
-                if ( !$(step0Selectors[n][0]).val() && step0Selectors[n][1]==1 ) {
-
-                    document.getElementById("step0alerttext").innerText = `The field ${step0Selectors[n][0]} is missing.` 
-                    step0ErrorCount++;
-                }   else if ( $(step0Selectors[n][0]).val().length > step0Selectors[n][2] ) {
-
-                    document.getElementById("step0alerttext").innerText = `The character limit of ${step0Selectors[n][0]} is ${step0Selectors[n][2]}.` 
-                    step0ErrorCount++;
-                }
-            }
-            if ( $("#update_contacts").val() == "none" && !$("#push_type_message_non_loyalty").is(":checked")) {
-                document.getElementById("step0alerttext").innerText = "An update contact data extension is required for offers and loyalty pushes"
-                step0ErrorCount++;
-            }
-
-            if ( step0ErrorCount == 0 ) {
-
-                return true;
-
-            } else {
-
-                return false;
-
-            }
-
-        } else if ( stepToValidate == 1 ) {
-
-            // selectors set up: ["field name", is required, maximum character count]
-            var step1Selectors = [["#message_target_send_datetime", 1, 100], ["#message_seed_send_datetime", 1, 100], ["#message_title", 1, 30],  ["#cell_code",1 ,16],["#cell_name", 1, 100], ["#campaign_name", 1, 100], ["#campaign_code", 1, 12], ["#message_content", 1, 140], ["#message_Url", 0, 250]];
-            var step1ErrorCount = 0;
-
-            for ( var p = 0; p < step1Selectors.length; p++ ) {
-
-                console.log("The selector is " + step1Selectors[p][0]);
-
-                if ( !$(step1Selectors[p][0]).val() && step1Selectors[p][1]==1 ) {
-                    document.getElementById("step1alerttext").innerText = `The field ${step1Selectors[p][0]} is missing.` 
-                    step1ErrorCount++;
-                
-                }   else if ($(step1Selectors[p][0]).val() && $(step1Selectors[p][0]).val().length > step1Selectors[p][2] ) {
-                    document.getElementById("step1alerttext").innerText = `The character limit of ${step1Selectors[p][0]} is ${step1Selectors[p][2]}.` 
-                    step1ErrorCount++;
-                }
-            }
-
-            if ( step1ErrorCount == 0 ) {
-
-                return true;
-
-            } else {
-
-                return false;
-
-            }
-
-        } else if ( stepToValidate == 2 ) {
-            // selectors set up: ["field name", is required, maximum character count]
-            var step2Selectors = [["#offer_short_content", 1, 30], ["#offer_start_datetime", 1, 100], ["#offer_end_datetime", 1, 100], ["#offer_type", 1, 20], ["#offer_image_url", 1, 250], ["#offer_more_info", 1, 1000], ["#offer_click_through_url", 1, 250], ["#offer_info_button_text",0,20], ["#offer_id", 1, 16]];
-            var step2ErrorCount = 0;
-
-            for ( var m = 0; m < step2Selectors.length; m++ ) {
-
-                console.log("The selector is " + step2Selectors[m][0]);
-
-                if ( !$(step2Selectors[m][0]).val() && step2Selectors[m][1]==1 ) {
-                    document.getElementById("step2alerttext").innerText = `The field ${step2Selectors[m][0]} is missing.` 
-                    step2ErrorCount++;
-
-                } else if ( $(step2Selectors[m][0]).val().length > step2Selectors[m][2] ) {
-                    document.getElementById("step2alerttext").innerText = `The character limit of ${step2Selectors[m][0]} is ${step2Selectors[m][2]}.`
-                    step2ErrorCount++;
-                }
-            }
-                
-
-
-            var selectedChannel = $("#offer_channel").val();
-
-            console.log("Channel value is");
-            console.log(selectedChannel);
-
-            if ( selectedChannel == 3 || selectedChannel == '3') {
-
-                var step2CommSelectors = [["#offer_cell_code", 1, 16],  ["#offer_cell_name", 1, 100], ["#offer_campaign_name", 1, 100], ["#offer_campaign_code", 1, 12]]
-                for ( var b = 0; b < step2CommSelectors.length; b++ ) {
-                    console.log("The selector is " + step2CommSelectors[b][0]);
-
-                    if ( !$(step2CommSelectors[b][0]).val() && step2CommSelectors[b][1]==1 ) {
-                        document.getElementById("step2alerttext").innerText = `The field ${step2CommSelectors[b][0]} is missing.` 
-                        step2ErrorCount++;
-
-                    } else if ( $(step2CommSelectors[b][0]).val().length > step2CommSelectors[b][2] ) {
-                        document.getElementById("step2alerttext").innerText = `The character limit of ${step2CommSelectors[b][0]} is ${step2CommSelectors[b][2]}.`
-                        step2ErrorCount++;
+        } else {
+            var ErrorCount = 0;
+            for (let [field_name, field_name_info] of  input_field_dictionary.entries()) {
+                if (stepToValidate == field_name_info[0]){
+                    console.log("The selector is " + field_name);
+                    if ( !document.getElementById(field_name).value && (field_name_info[2]==1 || (document.getElementById("offer_channel").value == '3' && field_name_info[2]=="Info Only")) ) {
+                        document.getElementById(`step${stepToValidate}alerttext`).innerText = `The field ${field_name} is missing.`;
+                        console.log(`The field ${field_name} is missing.`);
+                        ErrorCount++;
+                    } else if ( document.getElementById(field_name).value.length > field_name_info[1] ) {
+                        document.getElementById(`step${stepToValidate}alerttext`).innerText = `The character limit of ${field_name} is ${field_name_info[1]}.`;
+                        console.log(`The character limit of ${field_name} is ${field_name_info[1]}.`);
+                        ErrorCount++;
                     }
                 }
-
-            } else {
-
-                // check promotion isn't no-code
-                if ( $("#offer_promotion").val() == 'no-code') {
-                    document.getElementById("step2alerttext").innerText = "Voucher offers must have an Offer Promotion"
-                    step2ErrorCount++;
-                }
-
             }
-
-            console.log("The offer start date string is:");
-            console.log($("#offer_start_datetime").val());
-            console.log("The offer end date string is:");
-            console.log($("#offer_end_datetime").val());
-
-            if ( step2ErrorCount == 0 ) {
-
+            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("offer_promotion").value == "no-code") {
+                    document.getElementById("step2alerttext").innerText = "Voucher offers must have an Offer Promotion"
+                    console.log("Voucher offers must have an Offer Promotion");
+                    ErrorCount++;  
+            }
+            if ( stepToValidate == 0 && document.getElementById("update_contacts").value == "none" && !$("#push_type_message_non_loyalty").is(":checked")) {
+                document.getElementById("step0alerttext").innerText = "An update contact data extension is required for offers and loyalty pushes";
+                console.log("An update contact data extension is required for offers and loyalty pushes");
+                ErrorCount++;
+            }
+            
+            if ( ErrorCount == 0 ) {
                 return true;
-
             } else {
-
                 return false;
-
-            }            
-
-        } else {
-
-            return true;
-
+            }
         }
-        
-    }
+    }    
+    
 
     async function lookupControlGroups() {
         try {
