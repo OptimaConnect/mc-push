@@ -169,6 +169,27 @@
                         </div>
                     </fieldset>
                 </div>
+                <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
+                    <fieldset class="slds-form-element slds-form-element_stacked">
+                        <legend class="slds-form-element__legend slds-form-element__label">Campaign Type</legend>
+                        <div class="slds-form-element__control" id="recurring_type">
+                            <span class="slds-radio">
+                                <input type="radio" class="recurring_type" id="recurring_type_adhoc" value="adhoc" name="recurring_type" checked="checked" />
+                                <label class="slds-radio__label" for="recurring_type_adhoc">
+                                    <span class="slds-radio_faux"></span>
+                                    <span class="slds-form-element__label">Adhoc Campaign</span>
+                                </label>
+                            </span>
+                            <span class="slds-radio">
+                                <input type="radio" class="recurring_type" id="recurring_type_recurring" value="recurring" name="recurring_type" />
+                                <label class="slds-radio__label" for="recurring_type_recurring">
+                                    <span class="slds-radio_faux"></span>
+                                    <span class="slds-form-element__label">Recurring Campaign</span>
+                                </label>
+                            </span>
+                        </div>
+                    </fieldset>
+                </div>
             </div>
         </div>
     </div>
@@ -346,20 +367,6 @@
                                     <input type="text" id="offer_id" placeholder="" required="" class="slds-input" />
                                 </div>
                             </div>
-                            <div class="slds-form-element">
-                                <label class="slds-form-element__label" for="text-input-id-1">
-                                    <abbr class="slds-required" title="required">* </abbr>Start Datetime</label>
-                                <div class="slds-form-element__control">
-                                    <input type="datetime-local" id="offer_start_datetime" required="" class="slds-input" />
-                                </div>
-                            </div>
-                            <div class="slds-form-element">
-                                <label class="slds-form-element__label" for="text-input-id-1">
-                                    <abbr class="slds-required" title="required">* </abbr>End Datetime</label>
-                                <div class="slds-form-element__control">
-                                    <input type="datetime-local" id="offer_end_datetime" required="" class="slds-input" />
-                                </div>
-                            </div>
                             <div class="slds-form-element sfmc-input">
                                 <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Channel</label>
                                 <div class="slds-form-element__control">
@@ -386,34 +393,78 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="slds-form-element sfmc-input" id="promotion_element">
-                                <label class="slds-form-element__label"><b>Promotion</b></label>
-                                <div class="slds-form-element__control">
-                                    <div class="slds-select_container">
-                                        <select class="slds-select offer_promotion" id="offer_promotion">
-                                            <option value="no-code">No Code</option>
-                                        </select>
-                                        <input type="hidden" id="offer_promotion_type" />
-                                        <input type="hidden" id="offer_online_promotion_type" />
-                                        <input type="hidden" id="offer_unique_code_1" />
-                                        <input type="hidden" id="offer_instore_code_1" />
-                                        <input type="hidden" id="offer_online_code_1" />
-                                        <input type="hidden" id="offer_mc_id_1" />
-                                        <input type="hidden" id="offer_mc_id_6" />
-                                        <input type="hidden" id="communication_key" />
-                                        <input type="hidden" id="communication_key_control" />
-                                        <input type="hidden" id="offer_redemptions" />
+                            <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="adhoc_timings_box">
+                                <h2>Campaign Live Dates</h2>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label" for="text-input-id-1">
+                                        <abbr class="slds-required" title="required">* </abbr>Start Datetime</label>
+                                    <div class="slds-form-element__control">
+                                        <input type="datetime-local" id="offer_start_datetime" required="" class="slds-input" />
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label" for="text-input-id-1">
+                                        <abbr class="slds-required" title="required">* </abbr>End Datetime</label>
+                                    <div class="slds-form-element__control">
+                                        <input type="datetime-local" id="offer_end_datetime" required="" class="slds-input" />
                                     </div>
                                 </div>
                             </div>
-                            <input type="hidden" id="offer_stores" value="501" />
-                            <div class="slds-form-element" id="show_validity_form">
-                                <label class="slds-form-element__label" for="text-input-id-1">Show Validity</label>
-                                <div class="slds-select_container">
-                                    <select class="slds-select" id="offer_validity">
-                                        <option value="true">Yes</option>
-                                        <option value="false" selected>No</option>
-                                    </select>
+                            <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="recurring_timings_box">
+                                <h2>Campaign Duration and Timings</h2>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label" for="text-input-id-1">
+                                        <abbr class="slds-required" title="required">* </abbr>Target Send Time</label>
+                                    <div class="slds-form-element__control">
+                                        <input type="time" id="recurring_offer_time" required="" class="slds-input" />
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label" for="text-input-id-1">
+                                        <abbr class="slds-required" title="required">* </abbr>Offer Delay Days (Selection to Send)</label>
+                                    <div class="slds-form-element__control">
+                                        <input type="number" min="0" step="1" id="recurring_offer_delay_days" required="" class="slds-input" />
+                                    </div>
+                                </div>
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label" for="text-input-id-1">
+                                        <abbr class="slds-required" title="required">* </abbr>Offer Validity Days</label>
+                                    <div class="slds-form-element__control">
+                                        <input type="number" min="0" step="1" id="recurring_offer_validity_days" required="" class="slds-input" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="promotion_box">
+                            <h2>Promotion Data - Required for offers with Vouchers</h2>
+                                <div class="slds-form-element sfmc-input" id="promotion_element">
+                                    <label class="slds-form-element__label"><b>Promotion</b></label>
+                                    <div class="slds-form-element__control">
+                                        <div class="slds-select_container">
+                                            <select class="slds-select offer_promotion" id="offer_promotion">
+                                                <option value="no-code">No Code</option>
+                                            </select>
+                                            <input type="hidden" id="offer_promotion_type" />
+                                            <input type="hidden" id="offer_online_promotion_type" />
+                                            <input type="hidden" id="offer_unique_code_1" />
+                                            <input type="hidden" id="offer_instore_code_1" />
+                                            <input type="hidden" id="offer_online_code_1" />
+                                            <input type="hidden" id="offer_mc_id_1" />
+                                            <input type="hidden" id="offer_mc_id_6" />
+                                            <input type="hidden" id="communication_key" />
+                                            <input type="hidden" id="communication_key_control" />
+                                            <input type="hidden" id="offer_redemptions" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="offer_stores" value="501" />
+                                <div class="slds-form-element" id="show_validity_form">
+                                    <label class="slds-form-element__label" for="text-input-id-1">Show Validity</label>
+                                    <div class="slds-select_container">
+                                        <select class="slds-select" id="offer_validity">
+                                            <option value="true">Yes</option>
+                                            <option value="false" selected>No</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="offer_cell_box">

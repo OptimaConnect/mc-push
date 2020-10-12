@@ -315,6 +315,7 @@ define([
 
         // render relevant steps based on input
         $('#offer_channel').change(showOrHideOfferFormsBasedOnType);
+        $('#recurring_type').change(showOrHideOfferFormsBasedOnType); 
 
         $('#offer_promotion').change(function() {
             // get data attributes from dd and prepop hidden fields
@@ -407,20 +408,39 @@ define([
     }
 
     function showOrHideOfferFormsBasedOnType() {
-
-        if ( $("#offer_channel").val() == '3' || $("#offer_channel").val() == 3) {
-            // informational, show cell code and de-couple from promotion widget
+        var recurringType = $("input[name='recurring_type']:checked").val();
+        if (recurringType == 'recurring'){
+            //Recurring Camapaigns
             $("#offer_cell_box").show();
-            // hide promotion dropdown
-            $("#promotion_element").hide();
-            $("#info_button_text_form").show();
-
-        } else {
-
-            $("#offer_cell_box").hide();
-            // show offer promotion
-            $("#promotion_element").show();            
-            $("#info_button_text_form").hide();
+            $("#offer_type").hide();
+            $("#adhoc_timings_box").hide();
+            $("#recurring_timings_box").show();
+            if ($("#offer_channel").val() == '3'){
+                //Recurring Info Only
+                $("#promotion_box").hide();
+                $("#info_button_text_form").show();
+            } else {
+                //Recurring Vouchers
+                $("#promotion_box").show();
+                $("#info_button_text_form").hide();
+            }     
+        }
+        else {
+            //Adhoc Camapaigns
+            $("#offer_type").show();
+            $("#adhoc_timings_box").show();
+            $("#recurring_timings_box").hide();
+            if ( $("#offer_channel").val() == '3'){
+                //Adhoc Info Only Offers
+                $("#offer_cell_box").show();
+                $("#promotion_box").hide();
+                $("#info_button_text_form").show();
+            } else {
+                //Adhoc Voucher Offers
+                $("#offer_cell_box").hide();
+                $("#promotion_box").show();            
+                $("#info_button_text_form").hide();
+            }
         }
     }
 
