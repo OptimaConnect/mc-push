@@ -328,7 +328,6 @@ define([
             $("#offer_mc_id_1").val(promoData.mc_id_1);
             $("#offer_mc_id_6").val(promoData.mc_id_6);
             $("#communication_key").val(promoData.communication_cell_id);
-            $("#offer_redemptions").val(promoData.instore_code_1_redemptions);
             $("#offer_campaign_code").val(promoData.campaign_code);
             $("#offer_campaign_name").val(promoData.campaign_name);
             $("#offer_cell_code").val(promoData.cell_code);
@@ -413,13 +412,17 @@ define([
             $("#offer_cell_box").show();
             // hide promotion dropdown
             $("#promotion_element").hide();
+            $("#show_validity_form").hide();
+            $("#redemptions_allowed_form").hide();
             $("#info_button_text_form").show();
 
         } else {
 
             $("#offer_cell_box").hide();
             // show offer promotion
-            $("#promotion_element").show();            
+            $("#promotion_element").show();
+            $("#show_validity_form").show();
+            $("#redemptions_allowed_form").show();
             $("#info_button_text_form").hide();
         }
     }
