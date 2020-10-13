@@ -335,6 +335,7 @@ async function addQueryActivity(payload, seed) {
 		target_send_date_time = "MPT.[message_target_send_datetime] AT TIME ZONE 'GMT Standard Time'";
         visible_from_date_time = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
 		offer_end_datetime = "MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time'";
+		sourceDataModel = marketingCloud.partyCardDetailsTable;
 	}
 
 	let communicationQuery;
@@ -347,7 +348,7 @@ async function addQueryActivity(payload, seed) {
 			CAST(${target_send_date_time} AS datetime) AS CONTACT_DATE
 			FROM
 			(
-				SELECT  PCD.PARTY_ID
+				SELECT  PARTY_ID
 				,       LOYALTY_CARD_NUMBER
 				,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
 				FROM    (${PartiesAndCards}) AS UpdateContactDE
@@ -379,7 +380,7 @@ async function addQueryActivity(payload, seed) {
 			CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
 			FROM
 			(
-				SELECT  PCD.PARTY_ID
+				SELECT  PARTY_ID
 				,       LOYALTY_CARD_NUMBER
 				,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
 				FROM    (${PartiesAndCards}) AS UpdateContactDE
@@ -500,7 +501,7 @@ async function addQueryActivity(payload, seed) {
 					ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
 					FROM 
 					(
-						SELECT  PCD.PARTY_ID
+						SELECT  PARTY_ID
 						,       LOYALTY_CARD_NUMBER
 						,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
 						FROM    (${PartiesAndCards}) AS UpdateContactDE						
