@@ -329,7 +329,7 @@ async function addQueryActivity(payload, seed) {
 							FROM ${marketingCloud.seedListTable} 
 							UNION ALL 
 							SELECT UC.PARTY_ID, PCD.APP_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 0 AS [SEED_FLAG]
-							FROM ${payloadAttributes.update_contact} AS UC 
+							FROM [${payloadAttributes.update_contact}] AS UC 
 							JOIN ${marketingCloud.partyCardDetailsTable} AS PCD 
 							ON UC.PARTY_ID = PCD.PARTY_ID`;
 		target_send_date_time = "MPT.[message_target_send_datetime] AT TIME ZONE 'GMT Standard Time'";
