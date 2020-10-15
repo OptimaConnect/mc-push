@@ -54,7 +54,8 @@ if ( !local ) {
 	  seedListTable: 					process.env.seedListTable,
 	  automationScheduleExtension:  	process.env.automationScheduleExtension,
 	  queryFolder: 						process.env.queryFolder,
-	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey
+	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey,
+	  voucherGroupKey:					process.env.voucherGroupKey
 	};
 	console.dir(marketingCloud);
 }
@@ -75,6 +76,7 @@ const commCellIncrementUrl 			= marketingCloud.restUrl + "data/v1/customobjectda
 const updateCommCellIncrementUrl  	= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.commCellIncrementDataExtension + "/rowset";
 const mobilePushMainTableUrl  		= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.mobilePushMainKey				+ "/rowset";
 const uniqueVoucherPotsUrl 			= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.uniqueVoucherPotsKey			+ "/rowset";
+const voucherGroupUrl 				= marketingCloud.restUrl + "data/v1/customobjectdata/key/" 	+ marketingCloud.voucherGroupKey 				+ "/rowset";
 
 
 const automationUrl 		= marketingCloud.automationEndpoint;
@@ -399,7 +401,7 @@ async function addQueryActivity(payload, seed) {
 	// now we handle whether this is a voucher offer or a informational offer
 	if (payloadAttributes.push_type == "offer") {
 
-		if (payloadAttributes.offer_channel != "3" || payloadAttributes.offer_channel != 3) {
+		if (payloadAttributes.offer_channel != "3") {
 			let online_assignment_query =
 				`SELECT parties.PARTY_ID	AS PARTY_ID,
 				MPT.offer_mc_id_1       AS MC_UNIQUE_PROMOTION_ID,
@@ -1348,7 +1350,29 @@ app.get("/dataextension/lookup/promotions", (req, res, next) => {
 			res.json(response.data);
 		})
 		.catch((error) => {
-		    console.dir("Error getting update contacts");
+		    console.dir("Error getting promotions");
+			console.dir(error);
+			next(error);
+		});
+	})		
+
+});
+
+app.get("/dataextension/lookup/vouchergroups", (req, res, next) => {
+
+	getOauth2Token().then((tokenResponse) => {
+
+		axios.get(voucherGroupUrl, { 
+			headers: { 
+				Authorization: tokenResponse
+			}
+		})
+		.then(response => {
+			// If request is good... 
+			res.json(response.data);
+		})
+		.catch((error) => {
+		    console.dir("Error getting voucher Groups");
 			console.dir(error);
 			next(error);
 		});

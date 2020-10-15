@@ -65,6 +65,21 @@
                             </div>
                         </div>
                     </div>
+                    <div id="vouchergroup-api" style="height:4rem">
+                        <div class="slds-notify_container slds-is-relative">
+                            <div class="slds-notify slds-notify_toast slds-theme_info" role="status">
+                                <span class="slds-assistive-text">info</span>
+                                <span class="slds-icon_container slds-icon-utility-info slds-m-right_small slds-no-flex slds-align-top" title="Description of icon when needed">
+                                    <svg class="slds-icon slds-icon_small" aria-hidden="true">
+                                        <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#info"></use>
+                                    </svg>
+                                </span>
+                                <div class="slds-notify__content">
+                                    <h2 class="slds-text-heading_small">Loading Voucher Groups</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div id="controlgroup-api" style="height:4rem">
                         <div class="slds-notify_container slds-is-relative">
                             <div class="slds-notify slds-notify_toast slds-theme_info" role="status">
@@ -411,7 +426,7 @@
                                 </div>
                             </div>
                             <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="recurring_timings_box">
-                                <h2>Campaign Duration and Timings</h2>
+                                <h2>Campaign Duration and Timings</h2>                               
                                 <div class="slds-form-element">
                                     <label class="slds-form-element__label" for="text-input-id-1">
                                         <abbr class="slds-required" title="required">* </abbr>Target Send Time</label>
@@ -436,25 +451,84 @@
                             </div>
                             <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small" id="promotion_box">
                             <h2>Promotion Data - Required for offers with Vouchers</h2>
-                                <div class="slds-form-element sfmc-input" id="promotion_element">
-                                    <label class="slds-form-element__label"><b>Promotion</b></label>
+                                <div class="slds-form-element__control" id="seed_selection_type">
+                                    <span class="slds-radio">
+                                        <input type="radio" class="recurring_type" id="seed_selection_today" value="today" name="seed_selection_type" checked="checked" />
+                                        <label class="slds-radio__label" for="seed_selection_today">
+                                            <span class="slds-radio_faux"></span>
+                                            <span class="slds-form-element__label">Treat seeds as if selected today</span>
+                                        </label>
+                                    </span>
+                                     <span class="slds-radio">
+                                        <input type="radio" class="recurring_type" id="seed_selection_specific" value="specific_date" name="seed_selection_type" />
+                                        <label class="slds-radio__label" for="seed_selection_specific">
+                                            <span class="slds-radio_faux"></span>
+                                            <span class="slds-form-element__label">Treat seeds as if selected on a specific date</span>
+                                        </label>
+                                    </span>
+                                </div>
+                                <div class="slds-form-element" id="seed_selection_date_element">
+                                    <label class="slds-form-element__label" for="text-input-id-1"> 
+                                        <abbr class="slds-required" title="required">* </abbr>Seeds Psuedo Selection Date</label>
                                     <div class="slds-form-element__control">
-                                        <div class="slds-select_container">
-                                            <select class="slds-select offer_promotion" id="offer_promotion">
-                                                <option value="no-code">No Code</option>
-                                            </select>
-                                            <input type="hidden" id="offer_promotion_type" />
-                                            <input type="hidden" id="offer_online_promotion_type" />
-                                            <input type="hidden" id="offer_unique_code_1" />
-                                            <input type="hidden" id="offer_instore_code_1" />
-                                            <input type="hidden" id="offer_online_code_1" />
-                                            <input type="hidden" id="offer_mc_id_1" />
-                                            <input type="hidden" id="offer_mc_id_6" />
-                                            <input type="hidden" id="communication_key" />
-                                            <input type="hidden" id="communication_key_control" />
-                                            <input type="hidden" id="offer_redemptions" />
+                                        <input type="date" id="seed_selection_date" required="" class="slds-input" />
+                                    </div>
+                                </div>
+                                <div class="slds-grid" id="promotion_element">
+                                    <div class="slds-col">
+                                        <div class="slds-form-element sfmc-input">
+                                            <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Promotion Search Filter</label>
+                                            <div class="slds-form-element__control">
+                                                <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="offer_promotion_filter" placeholder="" class="slds-input" />
+                                            </div>
                                         </div>
                                     </div>
+                                    <div class="slds-col">
+                                        <div class="slds-form-element sfmc-input">
+                                            <label class="slds-form-element__label">Promotion</label>
+                                            <div class="slds-form-element__control">
+                                                <div class="slds-select_container">
+                                                    <select class="slds-select offer_promotion" id="offer_promotion">
+                                                        <option value="no-code">No Code</option>
+                                                    </select>
+                                                    <input type="hidden" id="offer_promotion_type" />
+                                                    <input type="hidden" id="offer_online_promotion_type" />
+                                                    <input type="hidden" id="offer_unique_code_1" />
+                                                    <input type="hidden" id="offer_instore_code_1" />
+                                                    <input type="hidden" id="offer_online_code_1" />
+                                                    <input type="hidden" id="offer_mc_id_1" />
+                                                    <input type="hidden" id="offer_mc_id_6" />
+                                                    <input type="hidden" id="communication_key" />
+                                                    <input type="hidden" id="communication_key_control" />
+                                                    <input type="hidden" id="offer_redemptions" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>                                    
+                                </div>
+                                <div class="slds-grid" id="voucher_group_element">
+                                    <div class="slds-col">
+                                        <div class="slds-form-element sfmc-input">
+                                            <label class="slds-form-element__label" for="tooltip-showing-form-element-help-01">Voucher Search Filter</label>
+                                            <div class="slds-form-element__control">
+                                                <input data-attribute-type="varchar" data-attribute-length="30" type="text" id="voucher_group_filter" placeholder="" class="slds-input" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col">
+                                        <div class="slds-form-element sfmc-input">
+                                            <label class="slds-form-element__label">Voucher Group</label>
+                                            <div class="slds-form-element__control">
+                                                <div class="slds-select_container">
+                                                    <select class="slds-select voucher_group" id="voucher_group" type="text">
+                                                        <option value="no-code">No Code</option>
+                                                        <option value="no-code">Peter Was Here</option>
+                                                        <option value="no-code">WooHoo</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>                                    
                                 </div>
                                 <input type="hidden" id="offer_stores" value="501" />
                                 <div class="slds-form-element" id="show_validity_form">

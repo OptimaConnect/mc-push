@@ -35,32 +35,34 @@ define([
 
     var input_field_dictionary= new Map(); 
     //"fieldname":["Step","CharacterLimit","Required", "Fixed Text"]
-    input_field_dictionary.set("update_contacts", [0, 200, 1, "Data Extension Name"]);
-    input_field_dictionary.set("widget_name", [0, 100, 1, "Widget Name"]);
+    input_field_dictionary.set("update_contacts", [0, 200, "always", "Data Extension Name"]);
+    input_field_dictionary.set("widget_name", [0, 100, "always", "Widget Name"]);
 
-    input_field_dictionary.set("message_target_send_datetime", [1, 100, 1]);
-    input_field_dictionary.set("message_seed_send_datetime", [1, 100, 1]);
-    input_field_dictionary.set("message_title", [1, 30, 1, "Title"]);
-    input_field_dictionary.set("cell_code", [1, 16, 1, "Cell Code"]);
-    input_field_dictionary.set("cell_name", [1, 100, 1, "Cell Name"]);
-    input_field_dictionary.set("campaign_name", [1, 100, 1, "Campaign Name"]);
-    input_field_dictionary.set("campaign_code", [1, 12, 1, "Campaign Code"]);
-    input_field_dictionary.set("message_content", [1, 140, 1, "Message Content"]);
+    input_field_dictionary.set("message_target_send_datetime", [1, 100, "always"]);
+    input_field_dictionary.set("message_seed_send_datetime", [1, 100, "always"]);
+    input_field_dictionary.set("message_title", [1, 30, "always", "Title"]);
+    input_field_dictionary.set("cell_code", [1, 16, "always", "Cell Code"]);
+    input_field_dictionary.set("cell_name", [1, 100, "always", "Cell Name"]);
+    input_field_dictionary.set("campaign_name", [1, 100, "always", "Campaign Name"]);
+    input_field_dictionary.set("campaign_code", [1, 12, "always", "Campaign Code"]);
+    input_field_dictionary.set("message_content", [1, 140, "always", "Message Content"]);
     input_field_dictionary.set("message_url", [1, 250, 0, "Deep Link URL (Leave Blank For Default)"]);
 
-    input_field_dictionary.set("offer_short_content", [2, 30, 1, "Short Description"]);
-    input_field_dictionary.set("offer_start_datetime", [2, 100, 1]);
-    input_field_dictionary.set("offer_end_datetime", [2, 100, 1]);
-    input_field_dictionary.set("offer_type", [2, 20, 1]);
-    input_field_dictionary.set("offer_image_url", [2, 250, 1, "Image URL"]);
-    input_field_dictionary.set("offer_more_info", [2, 1000, 1, "More Info/Terms & Conditions"]);
-    input_field_dictionary.set("offer_click_through_url", [2, 250, 1, "Click Through URL"]);
-    input_field_dictionary.set("offer_info_button_text", [2, 20, 0, "Info Button Text"]);
-    input_field_dictionary.set("offer_id", [2, 16, 1, "Offer ID"]);
-    input_field_dictionary.set("offer_cell_code", [2, 16, "Info Only", "Cell Code"]);
-    input_field_dictionary.set("offer_cell_name", [2, 100, "Info Only", "Cell Name"]);
-    input_field_dictionary.set("offer_campaign_name", [2, 100, "Info Only", "Campaign Name"]);
-    input_field_dictionary.set("offer_campaign_code", [2, 12, "Info Only", "Campaign Code"]);
+    input_field_dictionary.set("offer_short_content", [2, 30, "always", "Short Description"]);
+    input_field_dictionary.set("offer_image_url", [2, 250, "always", "Image URL"]);
+    input_field_dictionary.set("offer_more_info", [2, 1000, "always", "More Info/Terms & Conditions"]);
+    input_field_dictionary.set("offer_click_through_url", [2, 250, "always", "Click Through URL"]);
+    input_field_dictionary.set("offer_info_button_text", [2, 20, "informational", "Info Button Text"]);
+    input_field_dictionary.set("offer_id", [2, 16, "always", "Offer ID"]);
+    input_field_dictionary.set("offer_start_datetime", [2, 100, "adhoc"]);
+    input_field_dictionary.set("offer_end_datetime", [2, 100, "adhoc"]);
+    input_field_dictionary.set("recurring_offer_time", [2, 100, "recurring"]);
+    input_field_dictionary.set("recurring_offer_delay_days", [2, 100, "recurring"]);
+    input_field_dictionary.set("recurring_offer_validity_days", [2, 100, "recurring"]);
+    input_field_dictionary.set("offer_cell_code", [2, 16, ["informational", "recurring"], "Cell Code"]);
+    input_field_dictionary.set("offer_cell_name", [2, 100, ["informational", "recurring"], "Cell Name"]);
+    input_field_dictionary.set("offer_campaign_name", [2, 100, ["informational", "recurring"], "Campaign Name"]);
+    input_field_dictionary.set("offer_campaign_code", [2, 12, ["informational", "recurring"], "Campaign Code"]);
 
     
     //Running Character Counts on Input Fields
@@ -94,6 +96,20 @@ define([
                 document.getElementById(count_field_name).style.color = 'black';
             }
         }
+    });
+
+    $("#offer_promotion_filter").on("input", function(){
+        var searchValue = document.getElementById("offer_promotion_filter").value.toLowerCase();
+        $("#offer_promotion option").filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(searchValue) > -1)
+        });
+    });
+
+    $("#voucher_group_filter").on("input", function(){
+        var searchValue = document.getElementById("voucher_group_filter").value.toLowerCase();
+        $("#voucher_group option").filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(searchValue) > -1)
+        });
     });
 
     if (development) {
@@ -145,6 +161,7 @@ define([
 
         let lookupTasks = [
             lookupPromos(),
+            lookupVoucherGroups(),
             lookupControlGroups(),
             lookupUpdateContacts()
         ];
@@ -158,6 +175,7 @@ define([
 
         if (development) {
             showOrHideOfferFormsBasedOnType();
+            showOrHideSeedsSelectionDate();
         }
     }
 
@@ -242,6 +260,7 @@ define([
         }
 
         showOrHideOfferFormsBasedOnType();
+        showOrHideSeedsSelectionDate();
     }
 
     function loadEvents() {
@@ -316,6 +335,7 @@ define([
         // render relevant steps based on input
         $('#offer_channel').change(showOrHideOfferFormsBasedOnType);
         $('#recurring_type').change(showOrHideOfferFormsBasedOnType); 
+        $('#seed_selection_type').change(showOrHideSeedsSelectionDate); 
 
         $('#offer_promotion').change(function() {
             // get data attributes from dd and prepop hidden fields
@@ -422,6 +442,9 @@ define([
             } else {
                 //Recurring Vouchers
                 $("#promotion_box").show();
+                $("#voucher_group_element").show(); //Voucher groups or promotions
+                $("#promotion_element").hide(); //Imagine a voucher world without promo widgets...
+                $("#seed_selection_type").show(); //It would be so nice
                 $("#info_button_text_form").hide();
             }     
         }
@@ -438,9 +461,21 @@ define([
             } else {
                 //Adhoc Voucher Offers
                 $("#offer_cell_box").hide();
-                $("#promotion_box").show();            
+                $("#promotion_box").show();
+                $("#voucher_group_element").hide(); //Voucher groups or promotions
+                $("#promotion_element").show(); //Imagine a voucher world without promo widgets... 
+                $("#seed_selection_type").hide(); //It would be so nice           
                 $("#info_button_text_form").hide();
             }
+        }
+    }
+
+    function showOrHideSeedsSelectionDate() {
+        var seedSelectionToday = $("input[name='seed_selection_type']:checked").val();
+        if (seedSelectionToday == 'today'){
+            $("#seed_selection_date_element").hide();
+        }else{
+            $("#seed_selection_date_element").show();
         }
     }
 
@@ -547,10 +582,16 @@ define([
 
         } else {
             var ErrorCount = 0;
+            var recurringType = $("input[name='recurring_type']:checked").val();
+            var seedSelectionToday = $("input[name='seed_selection_type']:checked").val();
             for (let [field_name, field_name_info] of  input_field_dictionary.entries()) {
                 if (stepToValidate == field_name_info[0]){
                     console.log("The selector is " + field_name);
-                    if ( !document.getElementById(field_name).value && (field_name_info[2]==1 || (document.getElementById("offer_channel").value == '3' && field_name_info[2]=="Info Only")) ) {
+                    if ( !document.getElementById(field_name).value && 
+                            (   field_name_info[2]=="always"
+                            ||  (document.getElementById("offer_channel").value == '3' && field_name_info[2].includes("informational"))
+                            ||  field_name_info[2].includes(recurringType)
+                            )){
                         document.getElementById(`step${stepToValidate}alerttext`).innerText = `The field ${field_name} is missing.`;
                         console.log(`The field ${field_name} is missing.`);
                         ErrorCount++;
@@ -561,10 +602,20 @@ define([
                     }
                 }
             }
-            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("offer_promotion").value == "no-code") {
+            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("offer_promotion").value == "no-code" && recurringType == "adhoc") {
                     document.getElementById("step2alerttext").innerText = "Voucher offers must have an Offer Promotion"
                     console.log("Voucher offers must have an Offer Promotion");
                     ErrorCount++;  
+            }
+            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("voucher_group").value == "no-code" && recurringType == "recurring") {
+                document.getElementById("step2alerttext").innerText = "Voucher offers must have an Voucher Group"
+                console.log("Voucher offers must have an Voucher Group");
+                ErrorCount++;  
+            }
+            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && !document.getElementById("seed_selection_date").value  && recurringType == "recurring" && seedSelectionToday == "specific_date") {
+                document.getElementById("step2alerttext").innerText = "Choose a date to treat seeds as if selected on that date"
+                console.log("Choose a date to treat seeds as if selected on that date");
+                ErrorCount++;  
             }
             if ( stepToValidate == 0 && document.getElementById("update_contacts").value == "none" && !$("#push_type_message_non_loyalty").is(":checked")) {
                 document.getElementById("step0alerttext").innerText = "An update contact data extension is required for offers and loyalty pushes";
@@ -621,24 +672,19 @@ define([
                 }
             });
 
-            if ( debug ) {
-                console.log('lookup promotions executed');
-                console.log(result.items);               
-            }
-
+            console.log('lookup promotions executed');
+            console.log(result.items); 
             var i;
             if ( result.items ) {
                 for (i = 0; i < result.items.length; ++i) {
-                    if ( debug ) {
-                        console.log(result.items[i].keys);
-                    }
-
+                    
+                    console.log(result.items[i].keys); 
                     const deRow = result.items[i].values;
                     const promotionKey = result.items[i].keys.promotion_key;
                     const deRowData = encodeURI(JSON.stringify(deRow));
 
                     if (deRow.promotiontype != "nocode"){
-                        $("#offer_promotion").append(`<option data-attribute-promotionobject=${deRowData} value=${promotionKey}>${deRow.cell_name}</option>`)
+                        $("#offer_promotion").append(`<option data-attribute-promotionobject=${deRowData} value=${promotionKey}>${deRow.cell_name}</option>`);
                     }
                 }
             }
@@ -646,6 +692,36 @@ define([
             updateApiStatus("promotions-api", true);
         } catch (error) {
             updateApiStatus("promotions-api", false);
+        }
+        
+    }
+
+    async function lookupVoucherGroups() {
+        try{
+            // access offer types and build select input
+            let result = await $.ajax({
+                url: "/dataextension/lookup/vouchergroups",
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                }
+            });
+
+            console.log('lookup voucher groups executed');
+            console.log(result.items); 
+            var i;
+            if ( result.items ) {
+                for (i = 0; i < result.items.length; ++i) {
+                    
+                    console.log(result.items[i].keys); 
+                    const deRow = result.items[i].values;
+                    const voucherGroupId = result.items[i].keys.voucher_group_id;
+                    $("#voucher_group").append(`<option value=${voucherGroupId}>${deRow.voucher_group_name} - ${voucherGroupId}</option>`);
+               }
+            }
+
+            updateApiStatus("vouchergroup-api", true);
+        } catch (error) {
+            updateApiStatus("vouchergroup-api", false);
         }
         
     }
