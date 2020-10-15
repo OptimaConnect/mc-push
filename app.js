@@ -308,27 +308,36 @@ async function addQueryActivity(payload, seed) {
 	console.dir("The Payload Attributes type is");
 	console.dir(payloadAttributes.push_type);
 
-	let sourceDataModel;
+	let PartiesAndCards;
 	let appCardNumber;
 	let target_send_date_time;
 	let visible_from_date_time;
+	let offer_end_datetime;
+	let sourceDataModel;
 
 	if (seed) {
-		payloadAttributes.update_contact = marketingCloud.seedListTable;
 		payloadAttributes.query_name = payloadAttributes.query_name + " - SEEDLIST";
-		sourceDataModel = marketingCloud.seedListTable;
-		appCardNumber = "PCD.MATALAN_CARD_NUMBER";
+		PartiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
+							FROM [${marketingCloud.seedListTable}]`;
 		target_send_date_time =
 			`CASE	WHEN MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
 						THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
 					ELSE MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time'
 			END`;
-		visible_from_date_time = "SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'"
+        visible_from_date_time = "SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'";
+		offer_end_datetime = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
 	} else {
-		sourceDataModel = marketingCloud.partyCardDetailsTable;
-		appCardNumber = "PCD.APP_CARD_NUMBER";
+		PartiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
+							FROM [${marketingCloud.seedListTable}]
+							UNION ALL 
+							SELECT UC.PARTY_ID, PCD.APP_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 0 AS [SEED_FLAG]
+							FROM [${payloadAttributes.update_contact}] AS UC 
+							JOIN [${marketingCloud.partyCardDetailsTable}] AS PCD 
+							ON UC.PARTY_ID = PCD.PARTY_ID`;
 		target_send_date_time = "MPT.[message_target_send_datetime] AT TIME ZONE 'GMT Standard Time'";
-		visible_from_date_time = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
+        visible_from_date_time = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
+		offer_end_datetime = "MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time'";
+		sourceDataModel = marketingCloud.partyCardDetailsTable;
 	}
 
 	let communicationQuery;
@@ -341,13 +350,11 @@ async function addQueryActivity(payload, seed) {
 			CAST(${target_send_date_time} AS datetime) AS CONTACT_DATE
 			FROM
 			(
-				SELECT  PCD.PARTY_ID
-				,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
-				,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
-				FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
-				INNER JOIN [${sourceDataModel}] AS PCD
-				ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-				WHERE   ${appCardNumber} IS NOT NULL
+				SELECT  PARTY_ID
+				,       LOYALTY_CARD_NUMBER
+				,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
+				FROM    (${PartiesAndCards}) AS UpdateContactDE
+				WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 			) AS parties
 			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 			ON MPT.push_key = ${payloadAttributes.key}
@@ -375,13 +382,11 @@ async function addQueryActivity(payload, seed) {
 			CAST(${visible_from_date_time} AS datetime) AS CONTACT_DATE
 			FROM
 			(
-				SELECT  PCD.PARTY_ID
-				,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
-				,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
-				FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
-				INNER JOIN [${sourceDataModel}] AS PCD
-				ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-				WHERE   ${appCardNumber} IS NOT NULL
+				SELECT  PARTY_ID
+				,       LOYALTY_CARD_NUMBER
+				,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
+				FROM    (${PartiesAndCards}) AS UpdateContactDE
+				WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 			) AS parties
 			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 			ON MPT.push_key = ${payloadAttributes.key}
@@ -408,13 +413,11 @@ async function addQueryActivity(payload, seed) {
 				GETDATE()               AS ASSIGNMENT_DATETIME
 				FROM
 				(
-					SELECT  PCD.PARTY_ID
-					,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
-					,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
-					FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
-					INNER JOIN [${sourceDataModel}] AS PCD
-					ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-					WHERE   ${appCardNumber} IS NOT NULL
+					SELECT  PARTY_ID
+					,       LOYALTY_CARD_NUMBER
+					,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
+					FROM    (${PartiesAndCards}) AS UpdateContactDE
+					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = ${payloadAttributes.key}
@@ -426,13 +429,11 @@ async function addQueryActivity(payload, seed) {
 				GETDATE()               AS ASSIGNMENT_DATETIME
 				FROM
 				(
-					SELECT  PCD.PARTY_ID
-					,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
-					,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
-					FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
-					INNER JOIN [${sourceDataModel}] AS PCD
-					ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-					WHERE   ${appCardNumber} IS NOT NULL
+					SELECT  PARTY_ID
+					,       LOYALTY_CARD_NUMBER
+					,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
+					FROM    (${PartiesAndCards}) AS UpdateContactDE
+					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = ${payloadAttributes.key}
@@ -493,7 +494,7 @@ async function addQueryActivity(payload, seed) {
 							ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 							END AS [VISIBLE_FROM_DATE_TIME],
 					FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
-					FORMAT(MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+					FORMAT(${offer_end_datetime} AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
 					MPT.offer_redemptions                           AS NO_REDEMPTIONS_ALLOWED,
 					CASE    WHEN mo.STATUS IS NULL THEN 'A'
 							WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
@@ -502,13 +503,11 @@ async function addQueryActivity(payload, seed) {
 					ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
 					FROM 
 					(
-						SELECT  PCD.PARTY_ID
-						,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
-						,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
-						FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
-						INNER JOIN [${sourceDataModel}] AS PCD
-						ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-						WHERE   ${appCardNumber} IS NOT NULL
+						SELECT  PARTY_ID
+						,       LOYALTY_CARD_NUMBER
+						,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
+						FROM    (${PartiesAndCards}) AS UpdateContactDE						
+						WHERE  LOYALTY_CARD_NUMBER  IS NOT NULL
 					) AS parties
 					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 					ON MPT.push_key = ${payloadAttributes.key}
@@ -553,7 +552,7 @@ async function addQueryActivity(payload, seed) {
 						ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 						END AS [VISIBLE_FROM_DATE_TIME],
 				FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
-				FORMAT(MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+				FORMAT(${offer_end_datetime} AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
 				ISNULL(MPT.offer_redemptions, 1)    AS NO_REDEMPTIONS_ALLOWED,
 				CASE    WHEN mo.STATUS IS NULL THEN 'A'
 						WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
@@ -561,13 +560,11 @@ async function addQueryActivity(payload, seed) {
 				SYSDATETIME()   AS DATE_UPDATED
 				FROM
 				(
-					SELECT  PCD.PARTY_ID
-					,       ${appCardNumber} AS LOYALTY_CARD_NUMBER
-					,       ROW_NUMBER() OVER (PARTITION BY ${appCardNumber} ORDER BY PCD.PARTY_ID) AS CARD_RN
-					FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
-					INNER JOIN [${sourceDataModel}] AS PCD
-					ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-					WHERE   ${appCardNumber} IS NOT NULL
+					SELECT  PARTY_ID
+					,       LOYALTY_CARD_NUMBER
+					,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
+					FROM    (${PartiesAndCards}) AS UpdateContactDE
+					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = ${payloadAttributes.key}
