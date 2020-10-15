@@ -344,8 +344,10 @@ define([
         $("#push_type_offer").click();
 
         $("#control_action_save").click(function(){
-            $("#sent").val(true);
-            saveToDataExtension(buildActivityPayload());
+           if (validateSummaryPage()) {
+                $("#sent").val(true);
+                saveToDataExtension(buildActivityPayload());
+            }
         });
 
         $("#control_action_update").click(function(){
@@ -519,7 +521,11 @@ define([
 
     }
 
-    function validateStep(stepToValidate) {
+    function validateStep(stepToValidate, currentPage) {
+
+        if (!currentPage) {
+            currentPage = stepToValidate
+        }
 
         if (debug) {
             console.log(`Step ${stepToValidate} to be validated`);
@@ -534,23 +540,23 @@ define([
                 if (stepToValidate == field_name_info[0]){
                     console.log("The selector is " + field_name);
                     if ( !document.getElementById(field_name).value && (field_name_info[2]==1 || (document.getElementById("offer_channel").value == '3' && field_name_info[2]=="Info Only")) ) {
-                        document.getElementById(`step${stepToValidate}alerttext`).innerText = `The field ${field_name} is missing.`;
+                        document.getElementById(`step${currentPage}alerttext`).innerText = `The field ${field_name} is missing.`;
                         console.log(`The field ${field_name} is missing.`);
                         ErrorCount++;
                     } else if ( document.getElementById(field_name).value.length > field_name_info[1] ) {
-                        document.getElementById(`step${stepToValidate}alerttext`).innerText = `The character limit of ${field_name} is ${field_name_info[1]}.`;
+                        document.getElementById(`step${currentPage}alerttext`).innerText = `The character limit of ${field_name} is ${field_name_info[1]}.`;
                         console.log(`The character limit of ${field_name} is ${field_name_info[1]}.`);
                         ErrorCount++;
                     }
                 }
             }
             if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("offer_promotion").value == "no-code") {
-                    document.getElementById("step2alerttext").innerText = "Voucher offers must have an Offer Promotion"
+                    document.getElementById(`step${currentPage}alerttext`).innerText = "Voucher offers must have an Offer Promotion"
                     console.log("Voucher offers must have an Offer Promotion");
                     ErrorCount++;  
             }
             if ( stepToValidate == 0 && document.getElementById("update_contacts").value == "none" && !$("#push_type_message_non_loyalty").is(":checked")) {
-                document.getElementById("step0alerttext").innerText = "An update contact data extension is required for offers and loyalty pushes";
+                document.getElementById(`step${currentPage}alerttext`).innerText = "An update contact data extension is required for offers and loyalty pushes";
                 console.log("An update contact data extension is required for offers and loyalty pushes");
                 ErrorCount++;
             }
@@ -562,6 +568,21 @@ define([
             }
         }
     }    
+
+    function validateSummaryPage() {
+        
+        const step0result = validateStep(0, 3);
+
+        const step1result = validateStep(1, 3);
+
+        const step2result = validateStep(2, 3);
+
+        if (step0result && step1result && step2result) {
+            return true;
+        } else {
+            return false;
+        }        
+    }
     
 
     async function lookupControlGroups() {
@@ -951,6 +972,7 @@ define([
                 contentType: 'application/json',                     
                 success: function(data) {
                     console.log('success');
+                    toggleStepError(3, "hide");
                     console.log(data);
                     $("#message_key_hidden").val(data);
                     $("#main_setup_key").html(data);
@@ -961,14 +983,14 @@ define([
                     $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
-                    if ( debug ) {
                         console.log(err);
-                    }
+                        toggleStepError(3, "show");
                 }
             }); 
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            toggleStepError(3, "show");
         }
 
     }
@@ -1002,14 +1024,16 @@ define([
                     $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
-                    if ( debug ) {
                         console.log(err);
-                    }
+                        toggleStepError(3, "show");
                 }
             }); 
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            toggleStepError(3, "show");
+            
+            
         }
 
     }
@@ -1034,9 +1058,12 @@ define([
 
             console.log('success');
             console.log(data);
+            toggleStepError(3, "show");
+
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            toggleStepError(3, "show");
         }
     }
 
@@ -1064,6 +1091,7 @@ define([
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            toggleStepError(3, "show");
         }
     }
 
@@ -1078,11 +1106,12 @@ define([
                     Authorization: `Bearer ${fuelToken}`
                 }
             });
-
             console.log(result);
+            toggleStepError(3, "show");
         } catch (error) {
             console.log("Error cancelling campaign.");
             console.log(error);
+            toggleStepError(3, "show");
         }
     }
 

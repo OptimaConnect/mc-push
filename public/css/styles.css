@@ -45,7 +45,7 @@ body {
 	width: 50%!important;
 }
 #step3alert {
-	margin-bottom: 10px;
+	display: none;
 }
 #offer_cell_box {
 	display:none;
