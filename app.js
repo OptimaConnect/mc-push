@@ -316,7 +316,7 @@ async function addQueryActivity(payload, seed) {
 	if (seed) {
 		payloadAttributes.query_name = payloadAttributes.query_name + " - SEEDLIST";
 		PartiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
-							FROM ${marketingCloud.seedListTable}`;
+							FROM [${marketingCloud.seedListTable}]`;
 		target_send_date_time =
 			`CASE	WHEN MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
 						THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
@@ -326,11 +326,11 @@ async function addQueryActivity(payload, seed) {
 		offer_end_datetime = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
 	} else {
 		PartiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
-							FROM ${marketingCloud.seedListTable} 
+							FROM [${marketingCloud.seedListTable}]
 							UNION ALL 
 							SELECT UC.PARTY_ID, PCD.APP_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 0 AS [SEED_FLAG]
-							FROM ${payloadAttributes.update_contact} AS UC 
-							JOIN ${marketingCloud.partyCardDetailsTable} AS PCD 
+							FROM [${payloadAttributes.update_contact}] AS UC 
+							JOIN [${marketingCloud.partyCardDetailsTable}] AS PCD 
 							ON UC.PARTY_ID = PCD.PARTY_ID`;
 		target_send_date_time = "MPT.[message_target_send_datetime] AT TIME ZONE 'GMT Standard Time'";
         visible_from_date_time = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
