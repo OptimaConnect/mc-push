@@ -309,7 +309,6 @@ async function addQueryActivity(payload, seed) {
 	console.dir(payloadAttributes.push_type);
 
 	let PartiesAndCards;
-	let appCardNumber;
 	let target_send_date_time;
 	let visible_from_date_time;
 	let offer_end_datetime;

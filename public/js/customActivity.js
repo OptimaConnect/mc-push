@@ -349,6 +349,7 @@ define([
             $("#offer_mc_id_1").val(promoData.mc_id_1);
             $("#offer_mc_id_6").val(promoData.mc_id_6);
             $("#communication_key").val(promoData.communication_cell_id);
+            $("#offer_redemptions").val(promoData.instore_code_1_redemptions);
             $("#offer_campaign_code").val(promoData.campaign_code);
             $("#offer_campaign_name").val(promoData.campaign_name);
             $("#offer_cell_code").val(promoData.cell_code);
