@@ -306,8 +306,7 @@ async function addQueryActivity(payload, seed) {
 	console.dir("The Payload Attributes type is");
 	console.dir(payloadAttributes.push_type);
 
-	let PartiesAndCards;
-	let appCardNumber;
+	let partiesAndCards;
 	let target_send_date_time;
 	let visible_from_date_time;
 	let offer_end_datetime;
@@ -315,17 +314,21 @@ async function addQueryActivity(payload, seed) {
 
 	if (seed) {
 		payloadAttributes.query_name = payloadAttributes.query_name + " - SEEDLIST";
-		PartiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
+		partiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
 							FROM [${marketingCloud.seedListTable}]`;
 		target_send_date_time =
 			`CASE	WHEN MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
 						THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
 					ELSE MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time'
 			END`;
-        visible_from_date_time = "SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'";
-		offer_end_datetime = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
+		visible_from_date_time = "SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'";
+		if (payload.find(lambda => lambda.key == 'offer_validity').value == 'true'){
+			offer_end_datetime = "MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time'";
+		} else {
+			offer_end_datetime = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
+		}		
 	} else {
-		PartiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
+		partiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
 							FROM [${marketingCloud.seedListTable}]
 							UNION ALL 
 							SELECT UC.PARTY_ID, PCD.APP_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 0 AS [SEED_FLAG]
@@ -351,7 +354,7 @@ async function addQueryActivity(payload, seed) {
 				SELECT  PARTY_ID
 				,       LOYALTY_CARD_NUMBER
 				,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
-				FROM    (${PartiesAndCards}) AS UpdateContactDE
+				FROM    (${partiesAndCards}) AS UpdateContactDE
 				WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 			) AS parties
 			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
@@ -383,7 +386,7 @@ async function addQueryActivity(payload, seed) {
 				SELECT  PARTY_ID
 				,       LOYALTY_CARD_NUMBER
 				,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
-				FROM    (${PartiesAndCards}) AS UpdateContactDE
+				FROM    (${partiesAndCards}) AS UpdateContactDE
 				WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 			) AS parties
 			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
@@ -414,7 +417,7 @@ async function addQueryActivity(payload, seed) {
 					SELECT  PARTY_ID
 					,       LOYALTY_CARD_NUMBER
 					,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
-					FROM    (${PartiesAndCards}) AS UpdateContactDE
+					FROM    (${partiesAndCards}) AS UpdateContactDE
 					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
@@ -430,7 +433,7 @@ async function addQueryActivity(payload, seed) {
 					SELECT  PARTY_ID
 					,       LOYALTY_CARD_NUMBER
 					,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
-					FROM    (${PartiesAndCards}) AS UpdateContactDE
+					FROM    (${partiesAndCards}) AS UpdateContactDE
 					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
@@ -504,7 +507,7 @@ async function addQueryActivity(payload, seed) {
 						SELECT  PARTY_ID
 						,       LOYALTY_CARD_NUMBER
 						,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
-						FROM    (${PartiesAndCards}) AS UpdateContactDE						
+						FROM    (${partiesAndCards}) AS UpdateContactDE						
 						WHERE  LOYALTY_CARD_NUMBER  IS NOT NULL
 					) AS parties
 					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
@@ -561,7 +564,7 @@ async function addQueryActivity(payload, seed) {
 					SELECT  PARTY_ID
 					,       LOYALTY_CARD_NUMBER
 					,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
-					FROM    (${PartiesAndCards}) AS UpdateContactDE
+					FROM    (${partiesAndCards}) AS UpdateContactDE
 					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
 				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
