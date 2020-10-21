@@ -108,7 +108,12 @@ define([
     $("#voucher_group_filter").on("input", function(){
         var searchValue = document.getElementById("voucher_group_filter").value.toLowerCase();
         $("#voucher_group option").filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(searchValue) > -1)
+            var voucherGroupName = $(this).text().toLowerCase();
+            var voucherGroupfiltered = voucherGroupName.indexOf(searchValue) > -1;
+            $(this).toggle(voucherGroupfiltered)
+            //if (voucherGroupfiltered == 1){
+            //    console.log(`${searchValue} found in ${voucherGroupName}`);
+            //}
         });
     });
 
