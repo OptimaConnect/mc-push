@@ -351,27 +351,33 @@ define([
         });
 
         $("#control_action_update").click(function(){
+            if (validateSummaryPage()) {
             updateExistingRow(buildActivityPayload());
+            }
         });
 
         $("#control_action_seed").click(async function(){
+            if (validateSummaryPage()) {
             $("#control_action_seed").prop("disabled", true);
             await sendCampaignToSeeds(buildActivityPayload());
             $("#seed_sent").val(true);
             $("#control_action_seed").html("Resend to seeds");
             $("#control_action_seed").prop("disabled", false);
+            }
         });
 
         $("#control_action_broadcast").click(async function(){
+            if (validateSummaryPage()) {
             $("#is_broadcast").val(true);
             $("#control_action_broadcast").prop('disabled', true);
             await broadcastCampaign(buildActivityPayload());
             $("#control_action_broadcast").html("Scheduled");
             $("#control_action_cancel").prop('disabled', false);
+            }
         });
 
         $("#control_action_cancel").click(async function() {
-            if (confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than 2 hours before go-live, please directly contact mobilize.")) {
+            if (validateSummaryPage() && confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than 2 hours before go-live, please directly contact mobilize.")) {
                 await cancelAppCampaign();
                 $("#control_action_cancel").prop("disabled", true);
                 $("#is_cancelled").val(true);
@@ -560,6 +566,11 @@ define([
                 console.log("An update contact data extension is required for offers and loyalty pushes");
                 ErrorCount++;
             }
+            if ( stepToValidate == 1 && (document.getElementById("message_target_send_datetime").value < document.getElementById("message_seed_send_datetime").value)){
+                document.getElementById(`step${currentPage}alerttext`).innerText = "The target send datetime must be after the seed send datetime.";
+                console.log("The target send datetime must be after the seed send datetime.");
+			     ErrorCount++;
+            }
             
             if ( ErrorCount == 0 ) {
                 return true;
@@ -571,16 +582,18 @@ define([
 
     function validateSummaryPage() {
         
-        const step0result = validateStep(0, 3);
-
-        const step1result = validateStep(1, 3);
-
-        const step2result = validateStep(2, 3);
-
-        if (step0result && step1result && step2result) {
+        var pushType = $("#step0 .slds-radio input[name='push_type']:checked").val();
+        
+        if (pushType.includes('message') && validateStep(0, 3) && validateStep(1, 3)) {
             return true;
+
+        } else if (pushType == "offer" && validateStep(0, 3) && validateStep(2, 3)) {
+                return true;
+
         } else {
+            toggleStepError(3,"show");
             return false;
+            
         }        
     }
     
@@ -1003,7 +1016,7 @@ define([
 
         if ( debug ) {
             console.log("Data Object to be saved is: ");
-            console.log(payloadToSave);
+            console.log(payloadToSave);  
         }
 
         try {
@@ -1018,6 +1031,7 @@ define([
                 success: function(data) {
                     console.log('success');
                     console.log(data);
+                    toggleStepError(3, "hide");
                     $("#control_action_save").html("Data has been updated");
                     $("#control_action_update").prop('disabled', false);
                     $("#control_action_seed").prop('disabled', false);
@@ -1058,7 +1072,7 @@ define([
 
             console.log('success');
             console.log(data);
-            toggleStepError(3, "show");
+            toggleStepError(3, "hide");
 
         } catch(e) {
             console.log("Error saving data");
@@ -1087,6 +1101,7 @@ define([
 
             console.log('success');
             console.log(data);
+            toggleStepError(3, "hide");
             $("#query_key_hidden").val(data);
         } catch(e) {
             console.log("Error saving data");
@@ -1107,7 +1122,7 @@ define([
                 }
             });
             console.log(result);
-            toggleStepError(3, "show");
+            toggleStepError(3, "hide");
         } catch (error) {
             console.log("Error cancelling campaign.");
             console.log(error);
