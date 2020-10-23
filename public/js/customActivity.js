@@ -368,11 +368,7 @@ define([
 
         $("#control_action_broadcast").click(async function(){
             if (validateSummaryPage()) {
-            $("#is_broadcast").val(true);
-            $("#control_action_broadcast").prop('disabled', true);
             await broadcastCampaign(buildActivityPayload());
-            $("#control_action_broadcast").html("Scheduled");
-            $("#control_action_cancel").prop('disabled', false);
             }
         });
 
@@ -581,7 +577,7 @@ define([
     }    
 
     function validateSummaryPage() {
-        
+       
         var pushType = $("#step0 .slds-radio input[name='push_type']:checked").val();
         
         if (pushType.includes('message') && validateStep(0, 3) && validateStep(1, 3)) {
@@ -997,7 +993,9 @@ define([
                 }
                 , error: function(jqXHR, textStatus, err){
                         console.log(err);
+                        document.getElementById("step3alerttext").innerText = jqXHR.responseText;
                         toggleStepError(3, "show");
+                        
                 }
             }); 
         } catch(e) {
@@ -1039,6 +1037,7 @@ define([
                 }
                 , error: function(jqXHR, textStatus, err){
                         console.log(err);
+                        document.getElementById("step3alerttext").innerText = jqXHR.responseText;
                         toggleStepError(3, "show");
                 }
             }); 
@@ -1077,6 +1076,7 @@ define([
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            document.getElementById("step3alerttext").innerText = e.responseText;
             toggleStepError(3, "show");
         }
     }
@@ -1088,7 +1088,8 @@ define([
             console.log(payloadToSave);
         }
 
-        try {
+        try {            
+            $("#control_action_broadcast").prop('disabled', true);
             const data = await $.ajax({ 
                 url: '/send/broadcast',
                 headers: {
@@ -1099,14 +1100,20 @@ define([
                 contentType: 'application/json'
             });
 
+            $("#is_broadcast").val(true);
+            $("#control_action_broadcast").html("Scheduled");
+            $("#control_action_cancel").prop('disabled', false);
             console.log('success');
             console.log(data);
             toggleStepError(3, "hide");
             $("#query_key_hidden").val(data);
+
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            document.getElementById("step3alerttext").innerText = e.responseText;
             toggleStepError(3, "show");
+            $("#control_action_broadcast").prop('disabled', false);
         }
     }
 
@@ -1126,6 +1133,7 @@ define([
         } catch (error) {
             console.log("Error cancelling campaign.");
             console.log(error);
+            document.getElementById("step3alerttext").innerText = error.responseText;
             toggleStepError(3, "show");
         }
     }
