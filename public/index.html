@@ -591,14 +591,14 @@
     -->
 
     <div id="step3" class="step">
-        <div id="step3alert" class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning" role="alert">
-            <span class="slds-assistive-text">warning</span>
+        <div id="step3alert" class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert" hidden>
+            <span class="slds-assistive-text">error</span>
             <span class="slds-icon_container slds-icon-utility-warning slds-m-right_x-small" title="Description of icon when needed">
                 <svg class="slds-icon slds-icon_x-small" aria-hidden="true">
                     <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#warning"></use>
                 </svg>
             </span>
-            <h2>Please ensure you have saved this widget to the Journey Builder cache by pressing the "Done" button in the bottom right.
+            <h2 id="step3alerttext">An error has occurred.
             </h2>
         </div>
         <div class="slds-grid slds-gutters">
