@@ -344,32 +344,36 @@ define([
         $("#push_type_offer").click();
 
         $("#control_action_save").click(function(){
-            $("#sent").val(true);
-            saveToDataExtension(buildActivityPayload());
+           if (validateSummaryPage()) {
+                $("#sent").val(true);
+                saveToDataExtension(buildActivityPayload());
+            }
         });
 
         $("#control_action_update").click(function(){
+            if (validateSummaryPage()) {
             updateExistingRow(buildActivityPayload());
+            }
         });
 
         $("#control_action_seed").click(async function(){
+            if (validateSummaryPage()) {
             $("#control_action_seed").prop("disabled", true);
             await sendCampaignToSeeds(buildActivityPayload());
             $("#seed_sent").val(true);
             $("#control_action_seed").html("Resend to seeds");
             $("#control_action_seed").prop("disabled", false);
+            }
         });
 
         $("#control_action_broadcast").click(async function(){
-            $("#is_broadcast").val(true);
-            $("#control_action_broadcast").prop('disabled', true);
+            if (validateSummaryPage()) {
             await broadcastCampaign(buildActivityPayload());
-            $("#control_action_broadcast").html("Scheduled");
-            $("#control_action_cancel").prop('disabled', false);
+            }
         });
 
         $("#control_action_cancel").click(async function() {
-            if (confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than 2 hours before go-live, please directly contact mobilize.")) {
+            if (validateSummaryPage() && confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than 2 hours before go-live, please directly contact mobilize.")) {
                 await cancelAppCampaign();
                 $("#control_action_cancel").prop("disabled", true);
                 $("#is_cancelled").val(true);
@@ -519,7 +523,11 @@ define([
 
     }
 
-    function validateStep(stepToValidate) {
+    function validateStep(stepToValidate, currentPage) {
+
+        if (!currentPage) {
+            currentPage = stepToValidate
+        }
 
         if (debug) {
             console.log(`Step ${stepToValidate} to be validated`);
@@ -534,25 +542,30 @@ define([
                 if (stepToValidate == field_name_info[0]){
                     console.log("The selector is " + field_name);
                     if ( !document.getElementById(field_name).value && (field_name_info[2]==1 || (document.getElementById("offer_channel").value == '3' && field_name_info[2]=="Info Only")) ) {
-                        document.getElementById(`step${stepToValidate}alerttext`).innerText = `The field ${field_name} is missing.`;
+                        document.getElementById(`step${currentPage}alerttext`).innerText = `The field ${field_name} is missing.`;
                         console.log(`The field ${field_name} is missing.`);
                         ErrorCount++;
                     } else if ( document.getElementById(field_name).value.length > field_name_info[1] ) {
-                        document.getElementById(`step${stepToValidate}alerttext`).innerText = `The character limit of ${field_name} is ${field_name_info[1]}.`;
+                        document.getElementById(`step${currentPage}alerttext`).innerText = `The character limit of ${field_name} is ${field_name_info[1]}.`;
                         console.log(`The character limit of ${field_name} is ${field_name_info[1]}.`);
                         ErrorCount++;
                     }
                 }
             }
             if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("offer_promotion").value == "no-code") {
-                    document.getElementById("step2alerttext").innerText = "Voucher offers must have an Offer Promotion"
+                    document.getElementById(`step${currentPage}alerttext`).innerText = "Voucher offers must have an Offer Promotion"
                     console.log("Voucher offers must have an Offer Promotion");
                     ErrorCount++;  
             }
             if ( stepToValidate == 0 && document.getElementById("update_contacts").value == "none" && !$("#push_type_message_non_loyalty").is(":checked")) {
-                document.getElementById("step0alerttext").innerText = "An update contact data extension is required for offers and loyalty pushes";
+                document.getElementById(`step${currentPage}alerttext`).innerText = "An update contact data extension is required for offers and loyalty pushes";
                 console.log("An update contact data extension is required for offers and loyalty pushes");
                 ErrorCount++;
+            }
+            if ( stepToValidate == 1 && (document.getElementById("message_target_send_datetime").value < document.getElementById("message_seed_send_datetime").value)){
+                document.getElementById(`step${currentPage}alerttext`).innerText = "The target send datetime must be after the seed send datetime.";
+                console.log("The target send datetime must be after the seed send datetime.");
+			     ErrorCount++;
             }
             
             if ( ErrorCount == 0 ) {
@@ -562,6 +575,23 @@ define([
             }
         }
     }    
+
+    function validateSummaryPage() {
+       
+        var pushType = $("#step0 .slds-radio input[name='push_type']:checked").val();
+        
+        if (pushType.includes('message') && validateStep(0, 3) && validateStep(1, 3)) {
+            return true;
+
+        } else if (pushType == "offer" && validateStep(0, 3) && validateStep(2, 3)) {
+                return true;
+
+        } else {
+            toggleStepError(3,"show");
+            return false;
+            
+        }        
+    }
     
 
     async function lookupControlGroups() {
@@ -951,6 +981,7 @@ define([
                 contentType: 'application/json',                     
                 success: function(data) {
                     console.log('success');
+                    toggleStepError(3, "hide");
                     console.log(data);
                     $("#message_key_hidden").val(data);
                     $("#main_setup_key").html(data);
@@ -961,14 +992,16 @@ define([
                     $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
-                    if ( debug ) {
                         console.log(err);
-                    }
+                        document.getElementById("step3alerttext").innerText = jqXHR.responseText;
+                        toggleStepError(3, "show");
+                        
                 }
             }); 
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            toggleStepError(3, "show");
         }
 
     }
@@ -981,7 +1014,7 @@ define([
 
         if ( debug ) {
             console.log("Data Object to be saved is: ");
-            console.log(payloadToSave);
+            console.log(payloadToSave);  
         }
 
         try {
@@ -996,20 +1029,24 @@ define([
                 success: function(data) {
                     console.log('success');
                     console.log(data);
+                    toggleStepError(3, "hide");
                     $("#control_action_save").html("Data has been updated");
                     $("#control_action_update").prop('disabled', false);
                     $("#control_action_seed").prop('disabled', false);
                     $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
-                    if ( debug ) {
                         console.log(err);
-                    }
+                        document.getElementById("step3alerttext").innerText = jqXHR.responseText;
+                        toggleStepError(3, "show");
                 }
             }); 
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            toggleStepError(3, "show");
+            
+            
         }
 
     }
@@ -1034,9 +1071,13 @@ define([
 
             console.log('success');
             console.log(data);
+            toggleStepError(3, "hide");
+
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            document.getElementById("step3alerttext").innerText = e.responseText;
+            toggleStepError(3, "show");
         }
     }
 
@@ -1047,7 +1088,8 @@ define([
             console.log(payloadToSave);
         }
 
-        try {
+        try {            
+            $("#control_action_broadcast").prop('disabled', true);
             const data = await $.ajax({ 
                 url: '/send/broadcast',
                 headers: {
@@ -1058,12 +1100,20 @@ define([
                 contentType: 'application/json'
             });
 
+            $("#is_broadcast").val(true);
+            $("#control_action_broadcast").html("Scheduled");
+            $("#control_action_cancel").prop('disabled', false);
             console.log('success');
             console.log(data);
+            toggleStepError(3, "hide");
             $("#query_key_hidden").val(data);
+
         } catch(e) {
             console.log("Error saving data");
             console.log(e);
+            document.getElementById("step3alerttext").innerText = e.responseText;
+            toggleStepError(3, "show");
+            $("#control_action_broadcast").prop('disabled', false);
         }
     }
 
@@ -1078,11 +1128,13 @@ define([
                     Authorization: `Bearer ${fuelToken}`
                 }
             });
-
             console.log(result);
+            toggleStepError(3, "hide");
         } catch (error) {
             console.log("Error cancelling campaign.");
             console.log(error);
+            document.getElementById("step3alerttext").innerText = error.responseText;
+            toggleStepError(3, "show");
         }
     }
 

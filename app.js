@@ -1145,7 +1145,11 @@ app.post('/dataextension/add/', async function (req, res, next){
 		res.status(201).send(JSON.stringify(newPushKey));
 	} catch(err) {
 		console.dir(err);
-		next(err);
+		const error_message = err.response?.data?.additionalErrors[0]?.message;
+		if (error_message){
+			res.status(400).send(error_message);
+		}
+		res.status(500).send(JSON.stringify(err));		
 	}
 });
 
@@ -1158,7 +1162,11 @@ app.post('/dataextension/update/', async function (req, res, next){
 		res.send(JSON.stringify(returnedUpdatePayload));
 	} catch(err) {
 		console.dir(err);
-		next(err);
+		const error_message = err.response?.data?.additionalErrors[0]?.message;
+		if (error_message){
+			res.status(400).send(error_message);
+		}
+		res.status(500).send(JSON.stringify(err));
 	}
 });
 
@@ -1190,7 +1198,11 @@ app.post('/cancel/:message_key', async function (req, res, next) {
 		res.sendStatus(202);
 	} catch (error) {
 		console.dir(error);
-		next(error);
+		const error_message = err.response?.data?.additionalErrors[0]?.message;
+		if (error_message){
+			res.status(400).send(error_message);
+		}
+		res.status(500).send(JSON.stringify(error));
 	}
 });
 
@@ -1202,7 +1214,11 @@ app.post('/send/broadcast', async function (req, res, next){
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
-		next(err);
+		const error_message = err.response?.data?.additionalErrors[0]?.message;
+		if (error_message){
+			res.status(400).send(error_message);
+		}
+		res.status(500).send(JSON.stringify(err));
 	}
 	
 });
@@ -1215,7 +1231,11 @@ app.post('/send/seed', async function (req, res, next){
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
-		next(err);
+		const error_message = err.response?.data?.additionalErrors[0]?.message;
+		if (error_message){
+			res.status(400).send(error_message);
+		}
+		res.status(500).send(JSON.stringify(err));
 	}
 	
 });
