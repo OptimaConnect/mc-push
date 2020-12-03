@@ -54,7 +54,9 @@ if ( !local ) {
 	  seedListTable: 					process.env.seedListTable,
 	  automationScheduleExtension:  	process.env.automationScheduleExtension,
 	  queryFolder: 						process.env.queryFolder,
-	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey
+	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey,
+	  stagingMemberOfferId:				process.env.stagingMemberOfferId,
+	  stagingMemberOfferName:			process.env.stagingMemberOfferName
 	};
 	console.dir(marketingCloud);
 }
@@ -504,26 +506,13 @@ async function addQueryActivity(payload, seed) {
 			// Query to handle any offers that use unique online codes
 			let memberOfferPart1Query;
 			let memberOfferPart2Query;
-			memberOfferPart1Query =
-				`SELECT A.SCHEME_ID,
-				A.LOYALTY_CARD_NUMBER,
-				A.PARTY_ID,
-				A.OFFER_ID,
-				ISNULL(A.EXISTING_ON_LINE_CODE, vp.CouponCode) AS VOUCHER_ON_LINE_CODE,
-				A.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
-				A.[VISIBLE_FROM_DATE_TIME],
-				A.[START_DATE_TIME],
-				A.[END_DATE_TIME],
-				A.NO_REDEMPTIONS_ALLOWED,
-				A.STATUS,
-				A.DATE_UPDATED
-				FROM (
-					SELECT 'Matalan' AS SCHEME_ID,
+			memberOfferPart1Query = 
+				`SELECT 'Matalan' AS SCHEME_ID,
 					parties.LOYALTY_CARD_NUMBER,
 					parties.PARTY_ID,
 					MPT.offer_id AS OFFER_ID,
 					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
-					mo.VOUCHER_ON_LINE_CODE						AS EXISTING_ON_LINE_CODE,
+					mo.VOUCHER_ON_LINE_CODE						AS GLOBAL_OR_EXISTING_ONLINE_CODE,
 					CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
 							ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 							END AS [VISIBLE_FROM_DATE_TIME],
@@ -548,17 +537,29 @@ async function addQueryActivity(payload, seed) {
 					LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
 					ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
 					AND MPT.OFFER_ID = mo.OFFER_ID
-					WHERE parties.CARD_RN = 1
-				) A
-				LEFT JOIN (
-					SELECT  CouponCode
-					,       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RN
-					FROM    [${payloadAttributes.unique_code_1}]
-					WHERE   IsClaimed = 0
-				) VP
-				ON A.RN = VP.RN`
+					WHERE parties.CARD_RN = 1`
+				
 			
-			memberOfferPart2Query = `SELECT `
+			memberOfferPart2Query =  `SELECT pt1.SCHEME_ID,
+			pt1.LOYALTY_CARD_NUMBER,
+			pt1.PARTY_ID,
+			pt1.OFFER_ID,
+			ISNULL(pt1.GLOBAL_OR_EXISTING_ONLINE_CODE, vp.CouponCode) AS VOUCHER_ON_LINE_CODE,
+			pt1.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
+			pt1.[VISIBLE_FROM_DATE_TIME],
+			pt1.[START_DATE_TIME],
+			pt1.[END_DATE_TIME],
+			pt1.NO_REDEMPTIONS_ALLOWED,
+			pt1.STATUS,
+			pt1.DATE_UPDATED
+			FROM	[${marketingCloud.stagingMemberOfferName}] pt1
+			LEFT JOIN (
+				SELECT  CouponCode
+				,       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RN
+				FROM    [${payloadAttributes.unique_code_1}]
+				WHERE   IsClaimed = 0
+			) vp
+			ON pt1.RN = vp.RN`;
 
 			claimUniqueVoucherQuery =
 				`SELECT uv.CouponCode
