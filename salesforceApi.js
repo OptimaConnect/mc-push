@@ -10,7 +10,7 @@ if ( !local ) {
 	};
 	console.dir(environment);
 }
-const automationUrl 		= environment.restUrl + "/automation/v1/automations/;
+const automationUrl 		= environment.restUrl + "/automation/v1/automations/";
 const queryUrl 				= environment.restUrl + "/automation/v1/queries/";
 
 exports.getOauth2Token = async function(){
@@ -67,5 +67,3 @@ exports.createSQLQuery = async function(targetKey, query, updateType, target, na
 	    throw new Error(e);
     }
 }
-
-exports.createAutomation = async function(
