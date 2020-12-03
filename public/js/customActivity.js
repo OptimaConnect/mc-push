@@ -107,7 +107,7 @@ define([
 
     $("#voucher_group_filter").on("input", function(){
         var searchValue = document.getElementById("voucher_group_filter").value.toLowerCase();
-        $("#voucher_group option").filter(function() {
+        $("#recurring_voucher_group_id option").filter(function() {
             var voucherGroupName = $(this).text().toLowerCase();
             var voucherGroupfiltered = voucherGroupName.indexOf(searchValue) > -1;
             $(this).toggle(voucherGroupfiltered)
@@ -399,6 +399,12 @@ define([
             }
         });
 
+        $("#recurring_action_broadcast").click(async function(){
+            if (validateSummaryPage()) {
+            await createRecurringAutomation(buildActivityPayload());
+            }
+        });
+
         $("#control_action_cancel").click(async function() {
             if (validateSummaryPage() && confirm("Please confirm you'd like to cancel the app offer/push.\n\nIf you would like to cancel a push campaign less than 2 hours before go-live, please directly contact mobilize.")) {
                 await cancelAppCampaign();
@@ -620,7 +626,7 @@ define([
                     console.log("Voucher offers must have an Offer Promotion");
                     ErrorCount++;  
             }
-            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("voucher_group").value == "no-code" && recurringType == "recurring") {
+            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("recurring_voucher_group_id").value == "no-code" && recurringType == "recurring") {
                 document.getElementById(`step${currentPage}alerttext`).innerText = "Voucher offers must have an Voucher Group"
                 console.log("Voucher offers must have an Voucher Group");
                 ErrorCount++;  
@@ -750,7 +756,7 @@ define([
                     console.log(result.items[i].keys); 
                     const deRow = result.items[i].values;
                     const voucherGroupId = result.items[i].keys.voucher_group_id;
-                    $("#voucher_group").append(`<option value=${voucherGroupId}>${deRow.voucher_group_name} - ${voucherGroupId}</option>`);
+                    $("#recurring_voucher_group_id").append(`<option value=${voucherGroupId}>${deRow.voucher_group_name} - ${voucherGroupId}</option>`);
                }
             }
 
@@ -1212,6 +1218,42 @@ define([
             document.getElementById("step3alerttext").innerText = e.responseText;
             toggleStepError(3, "show");
             $("#control_action_broadcast").prop('disabled', false);
+        }
+    }
+
+    async function createRecurringAutomation(payloadToSave) {
+
+        if ( debug ) {
+            console.log("Data Object to be saved is: ");
+            console.log(payloadToSave);
+        }
+
+        try {            
+            //$("#control_action_broadcast").prop('disabled', true);
+            const data = await $.ajax({ 
+                url: '/send/createautomation',
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                },
+                type: 'POST',
+                data: JSON.stringify(payloadToSave),
+                contentType: 'application/json'
+            });
+
+            //$("#is_broadcast").val(true);
+            //$("#control_action_broadcast").html("Scheduled");
+            //$("#control_action_cancel").prop('disabled', false);
+            console.log('success');
+            console.log(data);
+            toggleStepError(3, "hide");
+            $("#query_key_hidden").val(data);
+
+        } catch(e) {
+            console.log("Error saving data");
+            console.log(e);
+            document.getElementById("step3alerttext").innerText = e.responseText;
+            toggleStepError(3, "show");
+            //$("#control_action_broadcast").prop('disabled', false);
         }
     }
 

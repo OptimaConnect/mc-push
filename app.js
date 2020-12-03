@@ -17,7 +17,8 @@ const app 				= express();
 const local       		= false;
 const { ServiceBusClient } = require('@azure/service-bus');
 const journeyTokenHandler = require("./journeytokenhandler.js");
-
+const recurringSql 		= require("./recurringSql.js");
+const salesforceApi		= require("./salesforceApi.js");
 
 // access Heroku variables
 if ( !local ) {
@@ -55,7 +56,25 @@ if ( !local ) {
 	  automationScheduleExtension:  	process.env.automationScheduleExtension,
 	  queryFolder: 						process.env.queryFolder,
 	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey,
-	  voucherGroupKey:					process.env.voucherGroupKey
+	  voucherGroupKey:					process.env.voucherGroupKey,
+	  promotionIncrementsName:			process.env.promotionIncrementsName,
+	  voucherSetName:					process.env.voucherSetName,
+	  voucherSubsetName:				process.env.voucherSubsetName,
+	  recurringVoucherSubsetsName:		process.env.recurringVoucherSubsetsName,
+	  stagingCommunicationCellName:		process.env.stagingCommunicationCellName,
+	  stagingPromotionDescriptionName:	process.env.stagingPromotionDescriptionName,
+	  globalVoucherName:				process.env.globalVoucherName,
+	  communicationCellName:			process.env.communicationCellName,
+	  recurringCampaignsName: 			process.env.recurringCampaignsName,
+	  stagingMemberOfferName:			process.env.stagingMemberOfferName,
+	  uniqueVoucherName:				process.env.uniqueVoucherName,
+	  stagingCommunicationCellId:		process.env.stagingCommunicationCellId,
+	  stagingPromotionDescriptionId:	process.env.stagingPromotionDescriptionId,
+	  recurringVoucherSubsetsId:		process.env.recurringVoucherSubsetsId,
+	  promotionDescriptionId:			process.env.promotionDescriptionId,
+	  recurringCampaignsId:				process.env.recurringCampaignsId,
+	  stagingMemberOfferId:				process.env.stagingMemberOfferId,
+	  uniqueVoucherId:					process.env.uniqueVoucherId
 	};
 	console.dir(marketingCloud);
 }
@@ -103,26 +122,6 @@ if ('development' == app.get('env')) {
 	app.use(journeyTokenHandler.validateToken);
 }
 
-
-const getOauth2Token = () => new Promise((resolve, reject) => {
-	axios({
-		method: 'post',
-		url: marketingCloud.authUrl,
-		data:{
-			"grant_type": "client_credentials",
-			"client_id": marketingCloud.clientId,
-			"client_secret": marketingCloud.clientSecret
-		}
-	})
-	.then(function (oauthResponse) {
-		console.dir('Bearer '.concat(oauthResponse.data.access_token));
-		return resolve('Bearer '.concat(oauthResponse.data.access_token));
-	})
-	.catch(function (error) {
-		console.dir("Error getting Oauth Token");
-		return reject(error);
-	});
-});
 
 async function definePayloadAttributes(payload, seed) {
 
@@ -243,50 +242,6 @@ const updateTypes = {
 	Append: 2
 }
 
-const createSQLQuery = (targetKey, query, updateType, target, name, description) => new Promise((resolve, reject) => {
-
-	getOauth2Token().then((tokenResponse) => {
-
-		//console.dir("Oauth Token");
-		//console.dir(tokenResponse);
-
-		/**
-		* targetUpdateTypeId
-		* 0 = Overwrite
-		* 1 = Add/Update (requires PK)
-		* 2 = Append
-		*/
-
-		var queryDefinitionPayload = {
-		    "name": name,
-		    "description": description,
-		    "queryText": query,
-		    "targetName": target,
-		    "targetKey": targetKey,
-		    "targetUpdateTypeId": updateType,
-		    "categoryId": marketingCloud.queryFolder
-		}
-
-	   	axios({
-			method: 'post',
-			url: automationUrl,
-			headers: {'Authorization': tokenResponse},
-			data: queryDefinitionPayload
-		})
-		.then(function (response) {
-			console.dir(response.data);
-			return resolve(response.data.queryDefinitionId);
-		})
-		.catch(function (error) {
-			console.dir(error);
-			return reject(error);
-		});
-
-	})
-
-});
-
-
 async function addQueryActivity(payload, seed) {
 
 	console.dir("Payload for Query");
@@ -401,7 +356,7 @@ async function addQueryActivity(payload, seed) {
 	// Create and run comms history SQL - not needed for seeds
 	if (!seed) {
 		const communicationQueryName = `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`;
-		const communicationQueryId = await createSQLQuery(marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
+		const communicationQueryId = await salesforceApi.createSQLQuery(marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
 		await runSQLQuery(communicationQueryId, communicationQueryName)
 		returnIds["communication_query_id"] = communicationQueryId;
 	}
@@ -462,7 +417,7 @@ async function addQueryActivity(payload, seed) {
 
 			// create and run the voucher assignment query
 			const assignmentQueryName = `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`;
-			const assignmentQueryId = await createSQLQuery(marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, assignmentQueryName, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
+			const assignmentQueryId = await salesforceApi.createSQLQuery(marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, assignmentQueryName, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
 			await runSQLQuery(assignmentQueryId, assignmentQueryName);
 			returnIds["assignment_query_id"] = assignmentQueryId;
 		}
@@ -608,8 +563,8 @@ async function addQueryActivity(payload, seed) {
 
 		const masterOfferQueryName = `Master Offer - ${dateString} - ${payloadAttributes.query_name}`;
 		const memberOfferQueryName = `Member Offer - ${dateString} - ${payloadAttributes.query_name}`;
-		const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
-		const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
+		const masterOfferQueryId = await salesforceApi.createSQLQuery(marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
+		const memberOfferQueryId = await salesforceApi.createSQLQuery(marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
 		await runSQLQuery(masterOfferQueryId, masterOfferQueryName);
 		await runSQLQuery(memberOfferQueryId, memberOfferQueryName);
 
@@ -618,7 +573,7 @@ async function addQueryActivity(payload, seed) {
 			const voucherDeKey = await getKeyForVoucherDataExtensionByName(payloadAttributes.unique_code_1);
 
 			const claimUniqueVoucherQueryName = `Claim Unique Voucher - ${dateString} - ${payloadAttributes.query_name}`;
-			claimUniqueVoucherQueryId = await createSQLQuery(voucherDeKey, claimUniqueVoucherQuery, updateTypes.AddUpdate, payloadAttributes.unique_code_1, claimUniqueVoucherQueryName, claimUniqueVoucherQueryName);
+			claimUniqueVoucherQueryId = await salesforceApi.createSQLQuery(voucherDeKey, claimUniqueVoucherQuery, updateTypes.AddUpdate, payloadAttributes.unique_code_1, claimUniqueVoucherQueryName, claimUniqueVoucherQueryName);
 			await runSQLQuery(claimUniqueVoucherQueryId, claimUniqueVoucherQueryName);
 		}
 
@@ -634,7 +589,7 @@ async function addQueryActivity(payload, seed) {
 		console.dir(messageFinalQuery);
 
 		const messageQueryName = `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`;
-		const messageQueryId = await createSQLQuery(marketingCloud.messageKey, messageFinalQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
+		const messageQueryId = await salesforceApi.createSQLQuery(marketingCloud.messageKey, messageFinalQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
 		await runSQLQuery(messageQueryId, messageQueryName);
 		returnIds["member_message_query_id"] = messageQueryId;
 	}
@@ -757,7 +712,7 @@ async function addQueryActivity(payload, seed) {
 
 async function getNewPushKey() {
 
-	const token = await getOauth2Token();
+	const token = await salesforceApi.getOauth2Token();
 
 	const getResponse = await axios.get(incrementsUrl, { 
 		headers: { 
@@ -792,7 +747,7 @@ async function getNewPushKey() {
 
 async function getNewCommCellId() {
 
-	const token = await getOauth2Token();
+	const token = await salesforceApi.getOauth2Token();
 	const getResponse = await axios.get(commCellIncrementUrl, { 
 		headers: { 
 			Authorization: token
@@ -839,7 +794,7 @@ async function saveToCommunicationDataExtension(commCellPayload, commCellId) {
 	
 	console.dir(insertPayload);
 
-	const token = await getOauth2Token();
+	const token = await salesforceApi.getOauth2Token();
 
 	const response = await axios({
 		method: 'post',
@@ -867,7 +822,7 @@ async function saveToMainDataExtension(pushPayload, pushKey) {
 	
 	console.dir(insertPayload);
 
-	const tokenResponse = await getOauth2Token();
+	const tokenResponse = await salesforceApi.getOauth2Token();
 
 	const response = await axios({
 		method: 'post',
@@ -917,7 +872,7 @@ function buildPushPayload(payload, commCellKey) {
 		mobilePushData[payload[i].key] = payload[i].value;
 	}
 
-	if ( mobilePushData["push_type"].includes('message') || mobilePushData["push_type"] == 'offer' && mobilePushData["offer_channel"] == '3' ) {
+	if (!mobilePushData["communication_key"]) {
 		mobilePushData["communication_key"] = commCellKey;
 		mobilePushData["communication_control_key"] = parseInt(commCellKey) + 1;
 	}
@@ -1029,7 +984,7 @@ async function runSQLQuery(executeThisQueryId, queryName) {
 }
 
 async function getKeyForVoucherDataExtensionByName(voucherDEName) {
-	let tokenResponse = await getOauth2Token();
+	let tokenResponse = await salesforceApi.getOauth2Token();
 
 	const fullRequestUrl = `${uniqueVoucherPotsUrl}?$filter=dataExtensionName eq ${voucherDEName}`;
 
@@ -1049,7 +1004,7 @@ async function getKeyForVoucherDataExtensionByName(voucherDEName) {
 }
 
 async function getExistingAppData(message_key) {
-	let token = await getOauth2Token();
+	let token = await salesforceApi.getOauth2Token();
 	const fullRequestUrl = `${mobilePushMainTableUrl}?$filter=push_key eq ${message_key}`;
 
 	try {
@@ -1103,7 +1058,7 @@ async function cancelOffer(message_key, offer_id) {
 	const dateTimestamp = new Date().toISOString();
 	const cancelOfferQueryName = `Cancel Offer ${offer_id} - ${dateTimestamp}`;
 
-	const cancelOfferQueryId = await createSQLQuery(marketingCloud.masterOfferKey, cancelOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, cancelOfferQueryName, cancelOfferQueryName);
+	const cancelOfferQueryId = await salesforceApi.createSQLQuery(marketingCloud.masterOfferKey, cancelOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, cancelOfferQueryName, cancelOfferQueryName);
 	await runSQLQuery(cancelOfferQueryId, cancelOfferQueryName);
 }
 
@@ -1131,7 +1086,7 @@ async function cancelPush(message_key, push_content) {
 	const dateTimestamp = new Date().toISOString();
 	const cancelPushQueryName = `Cancel Push "${push_content.substring(0, 20)}..." - ${dateTimestamp}`;
 
-	const cancelPushQueryId = await createSQLQuery(marketingCloud.messageKey, cancelPushQuery, updateTypes.AddUpdate, marketingCloud.messageTableName, cancelPushQueryName, cancelPushQueryName);
+	const cancelPushQueryId = await salesforceApi.createSQLQuery(marketingCloud.messageKey, cancelPushQuery, updateTypes.AddUpdate, marketingCloud.messageTableName, cancelPushQueryName, cancelPushQueryName);
 	await runSQLQuery(cancelPushQueryId, cancelPushQueryName);
 }
 
@@ -1222,7 +1177,23 @@ app.post('/send/broadcast', async function (req, res, next){
 		}
 		res.status(500).send(JSON.stringify(err));
 	}
-	
+});
+
+app.post('/send/createautomation', async function (req, res, next){ 
+	console.dir("Dump request body");
+	console.dir(req.body);
+	const payloadAttributes = await definePayloadAttributes(payload);
+	try {
+		const returnedQueryId = await recurringSql.recurringCamapign(marketingCloud, payloadAttributes);
+		res.send(JSON.stringify(returnedQueryId));
+	} catch(err) {
+		console.dir(err);
+		const error_message = err.response?.data?.additionalErrors[0]?.message;
+		if (error_message){
+			res.status(400).send(error_message);
+		}
+		res.status(500).send(JSON.stringify(err));
+	}
 });
 
 app.post('/send/seed', async function (req, res, next){ 
@@ -1244,7 +1215,7 @@ app.post('/send/seed', async function (req, res, next){
 
 // Fetch existing row from mobile push main table
 app.get("/dataextension/lookup/mobilepushmain/:pushKey", (req, res, next) => {
-	getOauth2Token().then((tokenResponse) => {
+	salesforceApi.getOauth2Token().then((tokenResponse) => {
 		const fullRequestUrl = `${mobilePushMainTableUrl}?$filter=push_key eq ${req.params.pushKey}`;
 
 		axios.get(fullRequestUrl, { 
@@ -1268,7 +1239,7 @@ app.get("/dataextension/lookup/mobilepushmain/:pushKey", (req, res, next) => {
 //Fetch increment values
 app.get("/dataextension/lookup/increments", (req, res, next) => {
 
-	getOauth2Token().then((tokenResponse) => {
+	salesforceApi.getOauth2Token().then((tokenResponse) => {
 
 		axios.get(incrementsUrl, { 
 			headers: { 
@@ -1290,7 +1261,7 @@ app.get("/dataextension/lookup/increments", (req, res, next) => {
 //Fetch increment values
 app.get("/dataextension/lookup/commincrements", (req, res, next) => {
 
-	getOauth2Token().then((tokenResponse) => {
+	salesforceApi.getOauth2Token().then((tokenResponse) => {
 
 		axios.get(commCellIncrementUrl, { 
 			headers: { 
@@ -1312,7 +1283,7 @@ app.get("/dataextension/lookup/commincrements", (req, res, next) => {
 //Fetch rows from control group data extension
 app.get("/dataextension/lookup/controlgroups", (req, res, next) => {
 
-	getOauth2Token().then((tokenResponse) => {
+	salesforceApi.getOauth2Token().then((tokenResponse) => {
 
 		axios.get(controlGroupsUrl, { 
 			headers: { 
@@ -1335,7 +1306,7 @@ app.get("/dataextension/lookup/controlgroups", (req, res, next) => {
 //Fetch rows from update contacts data extension
 app.get("/dataextension/lookup/updatecontacts", (req, res, next) => {
 
-	getOauth2Token().then((tokenResponse) => {
+	salesforceApi.getOauth2Token().then((tokenResponse) => {
 
 		axios.get(updateContactsUrl, { 
 			headers: { 
@@ -1358,7 +1329,7 @@ app.get("/dataextension/lookup/updatecontacts", (req, res, next) => {
 //Fetch rows from update contacts data extension
 app.get("/dataextension/lookup/promotions", (req, res, next) => {
 
-	getOauth2Token().then((tokenResponse) => {
+	salesforceApi.getOauth2Token().then((tokenResponse) => {
 
 		axios.get(promotionsUrl, { 
 			headers: { 
@@ -1380,7 +1351,7 @@ app.get("/dataextension/lookup/promotions", (req, res, next) => {
 
 app.get("/dataextension/lookup/vouchergroups", (req, res, next) => {
 
-	getOauth2Token().then((tokenResponse) => {
+	salesforceApi.getOauth2Token().then((tokenResponse) => {
 
 		axios.get(voucherGroupUrl, { 
 			headers: { 
