@@ -54,7 +54,9 @@ if ( !local ) {
 	  seedListTable: 					process.env.seedListTable,
 	  automationScheduleExtension:  	process.env.automationScheduleExtension,
 	  queryFolder: 						process.env.queryFolder,
-	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey
+	  uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey,
+	  stagingMemberOfferId:				process.env.stagingMemberOfferId,
+	  stagingMemberOfferName:			process.env.stagingMemberOfferName
 	};
 	console.dir(marketingCloud);
 }
@@ -464,33 +466,53 @@ async function addQueryActivity(payload, seed) {
 			await runSQLQuery(assignmentQueryId, assignmentQueryName);
 			returnIds["assignment_query_id"] = assignmentQueryId;
 		}
+		let masterOfferQuery =
+			`SELECT	'Matalan' AS SCHEME_ID,
+			mpt.offer_id AS OFFER_ID,
+			mpt.offer_instore_code_1 									AS VOUCHER_IN_STORE_CODE,
+			mpt.offer_short_content 									AS SHORT_DESCRIPTION,
+			ISNULL(NULLIF(mpt.offer_long_description, ''), ' ') 		AS LONG_DESCRIPTION,
+			FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS START_DATE_TIME,
+			FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS END_DATE_TIME,
+			CASE    WHEN o.STATUS IS NULL THEN 'A'
+					WHEN o.STATUS = 'A' AND (o.DATE_MOBILIZE_SYNC < o.DATE_UPDATED OR o.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
+					ELSE 'C' END			AS STATUS,
+			mpt.offer_type 					AS OFFER_TYPE,
+			mpt.offer_image_url 			AS IMAGE_URL_1,
+			mpt.offer_more_info 			AS MORE_INFO_TEXT,
+			mpt.offer_click_through_url 	AS ONLINE_OFFER_CLICKTHROUGH_URL,
+			mpt.offer_channel 				AS OFFER_CHANNEL,
+			'501' 							AS OFFER_STORES,
+			mpt.offer_validity 				AS SHOW_VALIDITY,
+			mpt.offer_info_button_text 		AS INFO_BUTTON_TEXT,
+			SYSDATETIME()                   AS DATE_UPDATED
+			FROM [${marketingCloud.mobilePushMainTable}] AS mpt
+			LEFT JOIN [${marketingCloud.masterOfferTableName}] AS o
+			ON      mpt.OFFER_ID = o.OFFER_ID
+			WHERE   push_type = 'offer'
+			AND     push_key = ${payloadAttributes.key}`
 
-		let memberOfferQuery;
+		console.dir(masterOfferQuery);
+
+		const masterOfferQueryName = `Master Offer - ${dateString} - ${payloadAttributes.query_name}`;
+		const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
+		await runSQLQuery(masterOfferQueryId, masterOfferQueryName);
+		returnIds["master_offer_query_id"] = masterOfferQueryId;
+		
 		let claimUniqueVoucherQuery;
 		if ((payloadAttributes.promotion_type == 'online' || payloadAttributes.promotion_type == 'online_instore')
 			&& payloadAttributes.online_promotion_type == 'unique') {
 
 			// Query to handle any offers that use unique online codes
-			memberOfferQuery =
-				`SELECT A.SCHEME_ID,
-				A.LOYALTY_CARD_NUMBER,
-				A.PARTY_ID,
-				A.OFFER_ID,
-				ISNULL(A.EXISTING_ON_LINE_CODE, vp.CouponCode) AS VOUCHER_ON_LINE_CODE,
-				A.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
-				A.[VISIBLE_FROM_DATE_TIME],
-				A.[START_DATE_TIME],
-				A.[END_DATE_TIME],
-				A.NO_REDEMPTIONS_ALLOWED,
-				A.STATUS,
-				A.DATE_UPDATED
-				FROM (
-					SELECT 'Matalan' AS SCHEME_ID,
+			let memberOfferPart1Query;
+			let memberOfferPart2Query;
+			memberOfferPart1Query = 
+				`SELECT 'Matalan' AS SCHEME_ID,
 					parties.LOYALTY_CARD_NUMBER,
 					parties.PARTY_ID,
 					MPT.offer_id AS OFFER_ID,
 					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
-					mo.VOUCHER_ON_LINE_CODE						AS EXISTING_ON_LINE_CODE,
+					mo.VOUCHER_ON_LINE_CODE						AS GLOBAL_OR_EXISTING_ONLINE_CODE,
 					CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
 							ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 							END AS [VISIBLE_FROM_DATE_TIME],
@@ -515,15 +537,29 @@ async function addQueryActivity(payload, seed) {
 					LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
 					ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
 					AND MPT.OFFER_ID = mo.OFFER_ID
-					WHERE parties.CARD_RN = 1
-				) A
-				LEFT JOIN (
-					SELECT  CouponCode
-					,       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RN
-					FROM    [${payloadAttributes.unique_code_1}]
-					WHERE   IsClaimed = 0
-				) VP
-				ON A.RN = VP.RN`
+					WHERE parties.CARD_RN = 1`
+				
+			
+			memberOfferPart2Query =  `SELECT pt1.SCHEME_ID,
+			pt1.LOYALTY_CARD_NUMBER,
+			pt1.PARTY_ID,
+			pt1.OFFER_ID,
+			ISNULL(pt1.GLOBAL_OR_EXISTING_ONLINE_CODE, vp.CouponCode) AS VOUCHER_ON_LINE_CODE,
+			pt1.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
+			pt1.[VISIBLE_FROM_DATE_TIME],
+			pt1.[START_DATE_TIME],
+			pt1.[END_DATE_TIME],
+			pt1.NO_REDEMPTIONS_ALLOWED,
+			pt1.STATUS,
+			pt1.DATE_UPDATED
+			FROM	[${marketingCloud.stagingMemberOfferName}] pt1
+			LEFT JOIN (
+				SELECT  CouponCode
+				,       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RN
+				FROM    [${payloadAttributes.unique_code_1}]
+				WHERE   IsClaimed = 0
+			) vp
+			ON pt1.RN = vp.RN`;
 
 			claimUniqueVoucherQuery =
 				`SELECT uv.CouponCode
@@ -538,10 +574,23 @@ async function addQueryActivity(payload, seed) {
 				ON      mo.VOUCHER_ON_LINE_CODE = uv.CouponCode
 				WHERE   mpt.push_key = ${payloadAttributes.key}
 				AND 	uv.IsClaimed = 0`
+
+			console.dir(memberOfferPart1Query);
+			const memberOfferPart1QueryName = `Member Offer Part 1 - ${dateString} - ${payloadAttributes.query_name}`;
+			const memberOfferPart1QueryId = await createSQLQuery(marketingCloud.stagingMemberOfferId, memberOfferPart1Query, updateTypes.Overwrite, marketingCloud.stagingMemberOfferName, memberOfferPart1QueryName, `Part 1 Member Offer Assignment for ${payloadAttributes.query_name}`);
+			await runSQLQuery(memberOfferPart1QueryId, memberOfferPart1QueryName);
+			returnIds["member_offer_part1_query_id"] = memberOfferPart1QueryId;
+
+			console.dir(memberOfferPart2Query);
+			const memberOfferPart2QueryName = `Member Offer Part 2 - ${dateString} - ${payloadAttributes.query_name}`;
+			const memberOfferPart2QueryId = await createSQLQuery(marketingCloud.memberOfferKey, memberOfferPart2Query, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferPart2QueryName, `Part 2 Member Offer Assignment for ${payloadAttributes.query_name}`);
+			await runSQLQuery(memberOfferPart2QueryId, memberOfferPart2QueryName);
+			returnIds["member_offer_part2_query_id"] = memberOfferPart2QueryId;
 		}
 		else {
 
 			// Query to handle all other member offer types - global vouchers and informational
+			let memberOfferQuery;
 			memberOfferQuery =
 				`SELECT 'Matalan'                AS SCHEME_ID,
 				parties.LOYALTY_CARD_NUMBER     AS LOYALTY_CARD_NUMBER,
@@ -573,43 +622,13 @@ async function addQueryActivity(payload, seed) {
 				ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
 				AND MPT.OFFER_ID = mo.OFFER_ID
 				WHERE parties.CARD_RN = 1`;
+
+				console.dir(memberOfferQuery);
+				const memberOfferQueryName = `Member Offer - ${dateString} - ${payloadAttributes.query_name}`;
+				const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
+				await runSQLQuery(memberOfferQueryId, memberOfferQueryName);
+				returnIds["member_offer_query_id"] = memberOfferQueryId;
 		}
-
-		let masterOfferQuery =
-			`SELECT	'Matalan' AS SCHEME_ID,
-			mpt.offer_id AS OFFER_ID,
-			mpt.offer_instore_code_1 									AS VOUCHER_IN_STORE_CODE,
-			mpt.offer_short_content 									AS SHORT_DESCRIPTION,
-			ISNULL(NULLIF(mpt.offer_long_description, ''), ' ') 		AS LONG_DESCRIPTION,
-			FORMAT(MPT.offer_start_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS START_DATE_TIME,
-			FORMAT(MPT.offer_end_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS END_DATE_TIME,
-			CASE    WHEN o.STATUS IS NULL THEN 'A'
-					WHEN o.STATUS = 'A' AND (o.DATE_MOBILIZE_SYNC < o.DATE_UPDATED OR o.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
-					ELSE 'C' END			AS STATUS,
-			mpt.offer_type 					AS OFFER_TYPE,
-			mpt.offer_image_url 			AS IMAGE_URL_1,
-			mpt.offer_more_info 			AS MORE_INFO_TEXT,
-			mpt.offer_click_through_url 	AS ONLINE_OFFER_CLICKTHROUGH_URL,
-			mpt.offer_channel 				AS OFFER_CHANNEL,
-			'501' 							AS OFFER_STORES,
-			mpt.offer_validity 				AS SHOW_VALIDITY,
-			mpt.offer_info_button_text 		AS INFO_BUTTON_TEXT,
-			SYSDATETIME()                   AS DATE_UPDATED
-			FROM [${marketingCloud.mobilePushMainTable}] AS mpt
-			LEFT JOIN [${marketingCloud.masterOfferTableName}] AS o
-			ON      mpt.OFFER_ID = o.OFFER_ID
-			WHERE   push_type = 'offer'
-			AND     push_key = ${payloadAttributes.key}`
-
-		console.dir(masterOfferQuery);
-		console.dir(memberOfferQuery);
-
-		const masterOfferQueryName = `Master Offer - ${dateString} - ${payloadAttributes.query_name}`;
-		const memberOfferQueryName = `Member Offer - ${dateString} - ${payloadAttributes.query_name}`;
-		const masterOfferQueryId = await createSQLQuery(marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
-		const memberOfferQueryId = await createSQLQuery(marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
-		await runSQLQuery(masterOfferQueryId, masterOfferQueryName);
-		await runSQLQuery(memberOfferQueryId, memberOfferQueryName);
 
 		let claimUniqueVoucherQueryId;
 		if (claimUniqueVoucherQuery) {
@@ -620,8 +639,6 @@ async function addQueryActivity(payload, seed) {
 			await runSQLQuery(claimUniqueVoucherQueryId, claimUniqueVoucherQueryName);
 		}
 
-		returnIds["master_offer_query_id"] = masterOfferQueryId;
-		returnIds["member_offer_query_id"] = memberOfferQueryId;
 		returnIds["claim_unique_voucher_query_id"] = claimUniqueVoucherQueryId;
 
 	}
