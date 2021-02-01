@@ -1,15 +1,14 @@
 const axios 			= require('axios');
 require('dotenv').config();
-const local       		= false;
-if ( !local ) {
-	var environment = {
-	  authUrl: 							process.env.authUrl,
-	  clientId: 						process.env.clientId,
-	  clientSecret: 					process.env.clientSecret,
-	  restUrl: 							process.env.restUrl,
-	};
-	console.dir(environment);
-}
+
+var environment = {
+  authUrl: 							process.env.authUrl,
+  clientId: 						process.env.clientId,
+  clientSecret: 					process.env.clientSecret,
+  restUrl: 							process.env.restUrl,
+};
+console.dir(environment);
+
 const automationUrl 		= environment.restUrl + "/automation/v1/automations/";
 const queryUrl 				= environment.restUrl + "/automation/v1/queries/";
 
