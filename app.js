@@ -78,10 +78,6 @@ var marketingCloud = {
 };
 console.dir(marketingCloud);
 
-
-const azureServiceBusConnectionString =	process.env.azureServiceBusConnectionString;
-const azureQueueName = process.env.azureQueueName;
-
 // url constants
 const scheduleUrl 					= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.automationScheduleExtension 	+ "/rowset";
 const communicationCellUrl 			= marketingCloud.restUrl + "hub/v1/dataevents/key:" 		+ marketingCloud.communicationCellDataExtension + "/rowset";
@@ -131,9 +127,8 @@ function formatPromotionKey (promotionKey) {
 }
 
 function formatQueryDate (automationRunDate, automationRunTime) {
-	const formattedQueryDate = 	automationRunDate.concat(" ", automationRunTime);
+	const formattedQueryDate = 	automationRunDate + " " + automationRunTime;
 	return formattedQueryDate;
-	;
 }
 
 function isRecurring (automationRecurring) {
@@ -146,39 +141,36 @@ function isRecurring (automationRecurring) {
 	return queryRecurring;
 }
 
-async function definePayloadAttributes(payload, seed) {
+function definePayloadAttributes(payload) {
 
 	console.dir("Payload passed to attributes function is:");
 	console.dir(payload);
-	
-	try {
-		var attributes = {
-			key: payload["message_key_hidden"], 
-			control_group: decodeURI(payload["control_group"]), 
-			update_contact: decodeURI(payload["update_contacts"]), 
-			query_name: payload["widget_name"],
-			push_type: payload["push_type"],
-			promotion_key: formatPromotionKey(payload["offer_promotion"]),
-			query_date: formatQueryDate(payload["automation_run_date"], payload["automation_run_time"]),
-			query_recurring: isRecurring(payload["automation_recurring"]),
-			offer_channel: payload["offer_channel"],
-			promotion_type: payload["offer_promotion_type"],
-			online_promotion_type: payload["offer_online_promotion_type"],
-			instore_code_1: payload["offer_instore_code_1"],
-			online_code_1: payload["offer_online_code_1"],
-			unique_code_1: payload["offer_unique_code_1"],
-			mc_1: payload["offer_mc_1"],
-			mc_6: payload["offer_mc_6"],
-			communication_key: payload["communication_key"],
-			communication_key_control: payload["communication_key_control"]
-		};
+
+	var attributes = {
+		key: payload.find(prop => prop.key == "message_key_hidden")?.value,
+		control_group: decodeURI(payload.find(prop => prop.key == "control_group")?.value),
+		update_contact: decodeURI(payload.find(prop => prop.key == "update_contacts")?.value), 
+		query_name: payload.find(prop => prop.key == "widget_name")?.value,
+		push_type: payload.find(prop => prop.key == "push_type")?.value,
+		promotion_key: formatPromotionKey(payload.find(prop => prop.key == "offer_promotion")?.value),
+		query_date: formatQueryDate(payload.find(prop => prop.key == "automation_run_date")?.value, payload.find(prop => prop.key == "automation_run_time")?.value),
+		//query_recurring: isRecurring(payload.find(prop => prop.key == "automation_recurring")?.value),
+		offer_channel: payload.find(prop => prop.key == "offer_channel")?.value,
+		promotion_type: payload.find(prop => prop.key == "offer_promotion_type")?.value,
+		online_promotion_type: payload.find(prop => prop.key == "offer_online_promotion_type")?.value,
+		instore_code_1: payload.find(prop => prop.key == "offer_instore_code_1")?.value,
+		online_code_1: payload.find(prop => prop.key == "offer_online_code_1")?.value,
+		unique_code_1: payload.find(prop => prop.key == "offer_unique_code_1")?.value,
+		mc_1: payload.find(prop => prop.key == "offer_mc_1")?.value,
+		mc_6: payload.find(prop => prop.key == "offer_mc_6")?.value,
+		communication_key: payload.find(prop => prop.key == "communication_key")?.value,
+		communication_key_control: payload.find(prop => prop.key == "communication_key_control")?.value,
+		offer_validity: payload.find(prop => prop.key == "offer_validity")?.value
+	};
 		
-		console.dir("The attributes return is");
-		console.dir(attributes);
+	console.dir("The attributes return is");
+	console.dir(attributes);
 	return attributes;
-	} catch(e) {
-		return e;
-	}
 };
 
 const updateTypes = {
@@ -439,29 +431,6 @@ async function sendBackUpdatedPayload(payload) {
 	return messageKeyToUpdate;
 }
 
-async function runSQLQuery(executeThisQueryId, queryName) {
-	const sbClient = ServiceBusClient.createFromConnectionString(azureServiceBusConnectionString);
-	const queueClient = sbClient.createQueueClient(azureQueueName);
-	const sender = queueClient.createSender();
-	try {
-		const queryToRunMessage = {
-			body: {
-				queryId: executeThisQueryId,
-				queryName: queryName
-			},
-			contentType: "application/json",
-		}
-
-		await sender.send(queryToRunMessage);
-
-		console.dir(`Query queued for execution: ${JSON.stringify(queryToRunMessage.body)}`);
-		await queueClient.close();
-
-	} finally {
-		await sbClient.close();
-	}
-}
-
 async function getKeyForVoucherDataExtensionByName(voucherDEName) {
 	let tokenResponse = await salesforceApi.getOauth2Token();
 
@@ -538,7 +507,7 @@ async function cancelOffer(message_key, offer_id) {
 	const cancelOfferQueryName = `Cancel Offer ${offer_id} - ${dateTimestamp}`;
 
 	const cancelOfferQueryId = await salesforceApi.createSQLQuery(marketingCloud.masterOfferKey, cancelOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, cancelOfferQueryName, cancelOfferQueryName);
-	await runSQLQuery(cancelOfferQueryId, cancelOfferQueryName);
+	await salesforceApi.runSQLQuery(cancelOfferQueryId, cancelOfferQueryName);
 }
 
 async function cancelPush(message_key, push_content) {
@@ -566,7 +535,7 @@ async function cancelPush(message_key, push_content) {
 	const cancelPushQueryName = `Cancel Push "${push_content.substring(0, 20)}..." - ${dateTimestamp}`;
 
 	const cancelPushQueryId = await salesforceApi.createSQLQuery(marketingCloud.messageKey, cancelPushQuery, updateTypes.AddUpdate, marketingCloud.messageTableName, cancelPushQueryName, cancelPushQueryName);
-	await runSQLQuery(cancelPushQueryId, cancelPushQueryName);
+	await salesforceApi.runSQLQuery(cancelPushQueryId, cancelPushQueryName);
 }
 
 
@@ -646,7 +615,7 @@ app.post('/send/broadcast', async function (req, res, next){
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
-		const returnedQueryId = await adhocSql.addQueryActivity(req.body, false, marketingCloud);
+		const returnedQueryId = await adhocSql.addQueryActivity(definePayloadAttributes(req.body), false, marketingCloud, updateTypes);
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
@@ -679,7 +648,7 @@ app.post('/send/seed', async function (req, res, next){
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
-		const returnedQueryId = await adhocSql.addQueryActivity(req.body, true, marketingCloud);
+		const returnedQueryId = await adhocSql.addQueryActivity(definePayloadAttributes(req.body), true, marketingCloud, updateTypes);
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);

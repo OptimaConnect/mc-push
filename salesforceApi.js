@@ -1,26 +1,33 @@
-const axios 			= require('axios');
+const axios 				= require('axios');
+const { ServiceBusClient } 	= require('@azure/service-bus');
 require('dotenv').config();
 
-var environment = {
+const environment = {
   authUrl: 							process.env.authUrl,
   clientId: 						process.env.clientId,
   clientSecret: 					process.env.clientSecret,
   restUrl: 							process.env.restUrl,
+  queryFolder: 						process.env.queryFolder,
+  azureServiceBusConnectionString:	process.env.azureServiceBusConnectionString,
+  azureQueueName: 					process.env.azureQueueName,
+  automationEndpoint: 				process.env.automationEndpoint,
 };
 console.dir(environment);
 
-const automationUrl 		= environment.restUrl + "/automation/v1/automations/";
-const queryUrl 				= environment.restUrl + "/automation/v1/queries/";
+const automationUrl 		= environment.restUrl + "automation/v1/automations/";
+const queryUrl 				= environment.restUrl + "automation/v1/queries/";
 
-exports.getOauth2Token = async function(){
+exports.getOauth2Token = getOauth2Token
+
+async function getOauth2Token(){
     try{
 	    const oauthResponse = await axios({
 	    	method: 'post',
-	    	url: marketingCloud.authUrl,
+	    	url: environment.authUrl,
 	    	data:{
 	    		"grant_type": "client_credentials",
-	    		"client_id": marketingCloud.clientId,
-	    		"client_secret": marketingCloud.clientSecret
+	    		"client_id": environment.clientId,
+	    		"client_secret": environment.clientSecret
 	    	}
 	    })
 	    console.dir('Bearer '.concat(oauthResponse.data.access_token));
@@ -33,7 +40,7 @@ exports.getOauth2Token = async function(){
 }
 
 exports.createSQLQuery = async function(targetKey, query, updateType, target, name, description){
-    await getOauth2Token();
+    const tokenResponse = await getOauth2Token();
     
 	//console.dir("Oauth Token");
 	//console.dir(tokenResponse);
@@ -50,19 +57,37 @@ exports.createSQLQuery = async function(targetKey, query, updateType, target, na
 	    "targetName": target,
 	    "targetKey": targetKey,
 	    "targetUpdateTypeId": updateType,
-        "categoryId": marketingCloud.queryFolder}
+        "categoryId": environment.queryFolder}
         
-    try {        
-	    const response = await axios({
-	    	method: 'post',
-	    	url: automationUrl,
-	    	headers: {'Authorization': tokenResponse},
-	    	data: queryDefinitionPayload
-	    })
-	    console.dir(response.data);
-	    return (response.data.queryDefinitionId);
-	} catch(e) {
-	    console.dir(e);
-	    throw new Error(e);
-    }
+    const response = await axios({
+		method: 'post',
+		url: queryUrl,
+		headers: {'Authorization': tokenResponse},
+		data: queryDefinitionPayload
+	})
+	console.dir(response.data);
+	return (response.data.queryDefinitionId);
+}
+
+exports.runSQLQuery = async function(executeThisQueryId, queryName) {
+	const sbClient = ServiceBusClient.createFromConnectionString(environment.azureServiceBusConnectionString);
+	const queueClient = sbClient.createQueueClient(environment.azureQueueName);
+	const sender = queueClient.createSender();
+	try {
+		const queryToRunMessage = {
+			body: {
+				queryId: executeThisQueryId,
+				queryName: queryName
+			},
+			contentType: "application/json",
+		}
+
+		await sender.send(queryToRunMessage);
+
+		console.dir(`Query queued for execution: ${JSON.stringify(queryToRunMessage.body)}`);
+		await queueClient.close();
+
+	} finally {
+		await sbClient.close();
+	}
 }

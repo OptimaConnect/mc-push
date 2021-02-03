@@ -1,10 +1,25 @@
 const { v4: uuidv4 } 	= require('uuid');
 const salesforceApi		= require("./salesforceApi.js");
 
-exports.addQueryActivity = async function(payload, seed, marketingCloud){
+const environment = {
+	seedListTable: 						process.env.seedListTable,
+	partyCardDetailsTable:  			process.env.partyCardDetailsTable,
+	mobilePushMainTable: 				process.env.mobilePushMainTable,
+	communicationHistoryKey: 			process.env.communicationHistoryKey,
+	communicationTableName: 			process.env.communicationTableName,
+	assignmentKey: 						process.env.assignmentKey,
+	assignmentTableName: 				process.env.assignmentTableName,
+	memberOfferTableName: 				process.env.memberOfferTableName,
+	masterOfferTableName: 				process.env.masterOfferTableName,
+	masterOfferKey: 					process.env.masterOfferKey,
+	memberOfferKey: 					process.env.memberOfferKey,
+	messageKey: 						process.env.messageKey,
+	messageTableName: 					process.env.messageTableName,
+	partyCardDetailsTable:  			process.env.partyCardDetailsTable
+};
 
-	console.dir("Payload for Query");
-	console.dir(payload);
+exports.addQueryActivity = async function(payloadAttributes, seed, updateTypes){
+
 	var returnIds = [];
 
 	var m = new Date();
@@ -16,7 +31,6 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 		("0" + m.getUTCMinutes()).slice(-2) +
 		("0" + m.getUTCSeconds()).slice(-2);
 
-	const payloadAttributes = await definePayloadAttributes(payload);
 	console.dir("The Payload Attributes");
 	console.dir(payloadAttributes);
 	console.dir("The Payload Attributes type is");
@@ -31,30 +45,30 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 	if (seed) {
 		payloadAttributes.query_name = payloadAttributes.query_name + " - SEEDLIST";
 		partiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
-							FROM [${marketingCloud.seedListTable}]`;
+							FROM [${environment.seedListTable}]`;
 		target_send_date_time =
 			`CASE	WHEN MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
 						THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
 					ELSE MPT.[message_seed_send_datetime] AT TIME ZONE 'GMT Standard Time'
 			END`;
 		visible_from_date_time = "SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'";
-		if (payload.find(lambda => lambda.key == 'offer_validity').value == 'true'){
+		if (payloadAttributes.offer_validity == 'true'){
 			offer_end_datetime = "MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time'";
 		} else {
 			offer_end_datetime = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
 		}		
 	} else {
 		partiesAndCards = `SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
-							FROM [${marketingCloud.seedListTable}]
+							FROM [${environment.seedListTable}]
 							UNION ALL 
 							SELECT UC.PARTY_ID, PCD.APP_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 0 AS [SEED_FLAG]
 							FROM [${payloadAttributes.update_contact}] AS UC 
-							JOIN [${marketingCloud.partyCardDetailsTable}] AS PCD 
+							JOIN [${environment.partyCardDetailsTable}] AS PCD 
 							ON UC.PARTY_ID = PCD.PARTY_ID`;
 		target_send_date_time = "MPT.[message_target_send_datetime] AT TIME ZONE 'GMT Standard Time'";
         visible_from_date_time = "MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time'";
 		offer_end_datetime = "MPT.[offer_end_datetime] AT TIME ZONE 'GMT Standard Time'";
-		sourceDataModel = marketingCloud.partyCardDetailsTable;
+		sourceDataModel = environment.partyCardDetailsTable;
 	}
 
 	let communicationQuery;
@@ -73,7 +87,7 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 				FROM    (${partiesAndCards}) AS UpdateContactDE
 				WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 			) AS parties
-			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+			INNER JOIN [${environment.mobilePushMainTable}] AS MPT
 			ON MPT.push_key = ${payloadAttributes.key}
 			WHERE parties.CARD_RN = 1`
 
@@ -89,7 +103,7 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 				SELECT  264698160 			AS PARTY_ID
 				,       '000000000000000' 	AS LOYALTY_CARD_NUMBER
 			) AS parties
-			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+			INNER JOIN [${environment.mobilePushMainTable}] AS MPT
 			ON MPT.push_key = ${payloadAttributes.key}`
 
 	} else if (payloadAttributes.push_type == 'offer') {
@@ -105,7 +119,7 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 				FROM    (${partiesAndCards}) AS UpdateContactDE
 				WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 			) AS parties
-			INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+			INNER JOIN [${environment.mobilePushMainTable}] AS MPT
 			ON MPT.push_key = ${payloadAttributes.key}
 			WHERE parties.CARD_RN = 1`
 
@@ -115,8 +129,8 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 	// Create and run comms history SQL - not needed for seeds
 	if (!seed) {
 		const communicationQueryName = `IF028 - Communication History - ${dateString} - ${payloadAttributes.query_name}`;
-		const communicationQueryId = await salesforceApi.createSQLQuery(marketingCloud.communicationHistoryKey, communicationQuery, updateTypes.Append, marketingCloud.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
-		await runSQLQuery(communicationQueryId, communicationQueryName)
+		const communicationQueryId = await salesforceApi.createSQLQuery(environment.communicationHistoryKey, communicationQuery, updateTypes.Append, environment.communicationTableName, communicationQueryName, `Communication Cell Assignment in IF028 for ${payloadAttributes.query_name}`);
+		await salesforceApi.runSQLQuery(communicationQueryId, communicationQueryName)
 		returnIds["communication_query_id"] = communicationQueryId;
 	}
 
@@ -136,7 +150,7 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 					FROM    (${partiesAndCards}) AS UpdateContactDE
 					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
-				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				INNER JOIN [${environment.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = ${payloadAttributes.key}
 				WHERE parties.CARD_RN = 1`
 
@@ -152,7 +166,7 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 					FROM    (${partiesAndCards}) AS UpdateContactDE
 					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
-				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				INNER JOIN [${environment.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = ${payloadAttributes.key}
 				WHERE parties.CARD_RN = 1`
 
@@ -176,8 +190,8 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 
 			// create and run the voucher assignment query
 			const assignmentQueryName = `IF024 Assignment - ${dateString} - ${payloadAttributes.query_name}`;
-			const assignmentQueryId = await salesforceApi.createSQLQuery(marketingCloud.assignmentKey, assignmentQuery, updateTypes.Append, marketingCloud.assignmentTableName, assignmentQueryName, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
-			await runSQLQuery(assignmentQueryId, assignmentQueryName);
+			const assignmentQueryId = await salesforceApi.createSQLQuery(environment.assignmentKey, assignmentQuery, updateTypes.Append, environment.assignmentTableName, assignmentQueryName, `Assignment in PROMOTION_ASSIGNMENT in IF024 for ${payloadAttributes.query_name}`);
+			await salesforceApi.runSQLQuery(assignmentQueryId, assignmentQueryName);
 			returnIds["assignment_query_id"] = assignmentQueryId;
 		}
 
@@ -226,9 +240,9 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 						FROM    (${partiesAndCards}) AS UpdateContactDE						
 						WHERE  LOYALTY_CARD_NUMBER  IS NOT NULL
 					) AS parties
-					INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+					INNER JOIN [${environment.mobilePushMainTable}] AS MPT
 					ON MPT.push_key = ${payloadAttributes.key}
-					LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
+					LEFT JOIN [${environment.memberOfferTableName}] AS mo
 					ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
 					AND MPT.OFFER_ID = mo.OFFER_ID
 					WHERE parties.CARD_RN = 1
@@ -247,8 +261,8 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 				,       mo.PARTY_ID AS SubscriberKey
 				,       mo.PARTY_ID AS PARTY_ID
 				,       SYSDATETIMEOFFSET() AS ClaimedDate
-				FROM    [${marketingCloud.memberOfferTableName}] AS mo
-				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS mpt
+				FROM    [${environment.memberOfferTableName}] AS mo
+				INNER JOIN [${environment.mobilePushMainTable}] AS mpt
 				ON      mo.OFFER_ID = mpt.OFFER_ID
 				INNER JOIN [${payloadAttributes.unique_code_1}] AS uv 
 				ON      mo.VOUCHER_ON_LINE_CODE = uv.CouponCode
@@ -283,9 +297,9 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 					FROM    (${partiesAndCards}) AS UpdateContactDE
 					WHERE   LOYALTY_CARD_NUMBER IS NOT NULL
 				) AS parties
-				INNER JOIN [${marketingCloud.mobilePushMainTable}] AS MPT
+				INNER JOIN [${environment.mobilePushMainTable}] AS MPT
 				ON MPT.push_key = ${payloadAttributes.key}
-				LEFT JOIN [${marketingCloud.memberOfferTableName}] AS mo
+				LEFT JOIN [${environment.memberOfferTableName}] AS mo
 				ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
 				AND MPT.OFFER_ID = mo.OFFER_ID
 				WHERE parties.CARD_RN = 1`;
@@ -311,8 +325,8 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 			mpt.offer_validity 				AS SHOW_VALIDITY,
 			mpt.offer_info_button_text 		AS INFO_BUTTON_TEXT,
 			SYSDATETIME()                   AS DATE_UPDATED
-			FROM [${marketingCloud.mobilePushMainTable}] AS mpt
-			LEFT JOIN [${marketingCloud.masterOfferTableName}] AS o
+			FROM [${environment.mobilePushMainTable}] AS mpt
+			LEFT JOIN [${environment.masterOfferTableName}] AS o
 			ON      mpt.OFFER_ID = o.OFFER_ID
 			WHERE   push_type = 'offer'
 			AND     push_key = ${payloadAttributes.key}`
@@ -322,10 +336,10 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 
 		const masterOfferQueryName = `Master Offer - ${dateString} - ${payloadAttributes.query_name}`;
 		const memberOfferQueryName = `Member Offer - ${dateString} - ${payloadAttributes.query_name}`;
-		const masterOfferQueryId = await salesforceApi.createSQLQuery(marketingCloud.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, marketingCloud.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
-		const memberOfferQueryId = await salesforceApi.createSQLQuery(marketingCloud.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, marketingCloud.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
-		await runSQLQuery(masterOfferQueryId, masterOfferQueryName);
-		await runSQLQuery(memberOfferQueryId, memberOfferQueryName);
+		const masterOfferQueryId = await salesforceApi.createSQLQuery(environment.masterOfferKey, masterOfferQuery, updateTypes.AddUpdate, environment.masterOfferTableName, masterOfferQueryName, `Master Offer Assignment for ${payloadAttributes.query_name}`);
+		const memberOfferQueryId = await salesforceApi.createSQLQuery(environment.memberOfferKey, memberOfferQuery, updateTypes.AddUpdate, environment.memberOfferTableName, memberOfferQueryName, `Member Offer Assignment for ${payloadAttributes.query_name}`);
+		await salesforceApi.runSQLQuery(masterOfferQueryId, masterOfferQueryName);
+		await salesforceApi.runSQLQuery(memberOfferQueryId, memberOfferQueryName);
 
 		let claimUniqueVoucherQueryId;
 		if (claimUniqueVoucherQuery) {
@@ -333,7 +347,7 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 
 			const claimUniqueVoucherQueryName = `Claim Unique Voucher - ${dateString} - ${payloadAttributes.query_name}`;
 			claimUniqueVoucherQueryId = await salesforceApi.createSQLQuery(voucherDeKey, claimUniqueVoucherQuery, updateTypes.AddUpdate, payloadAttributes.unique_code_1, claimUniqueVoucherQueryName, claimUniqueVoucherQueryName);
-			await runSQLQuery(claimUniqueVoucherQueryId, claimUniqueVoucherQueryName);
+			await salesforceApi.runSQLQuery(claimUniqueVoucherQueryId, claimUniqueVoucherQueryName);
 		}
 
 		returnIds["master_offer_query_id"] = masterOfferQueryId;
@@ -343,19 +357,19 @@ exports.addQueryActivity = async function(payload, seed, marketingCloud){
 	}
 	else if (payloadAttributes.push_type.includes("message")) {
 
-		let messageFinalQuery = CreatePushMessageQuery(payloadAttributes, marketingCloud);
+		let messageFinalQuery = CreatePushMessageQuery(payloadAttributes);
 
 		console.dir(messageFinalQuery);
 
 		const messageQueryName = `IF008 Message - ${dateString} - ${payloadAttributes.query_name}`;
-		const messageQueryId = await salesforceApi.createSQLQuery(marketingCloud.messageKey, messageFinalQuery, updateTypes.Append, marketingCloud.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
-		await runSQLQuery(messageQueryId, messageQueryName);
+		const messageQueryId = await salesforceApi.createSQLQuery(environment.messageKey, messageFinalQuery, updateTypes.Append, environment.messageTableName, messageQueryName, `Message Assignment in IF008 for ${payloadAttributes.query_name}`);
+		await salesforceApi.runSQLQuery(messageQueryId, messageQueryName);
 		returnIds["member_message_query_id"] = messageQueryId;
 	}
     return returnIds;
 }
 
-function CreatePushMessageQuery(payloadAttributes, marketingCloud) {
+function CreatePushMessageQuery(payloadAttributes) {
     let messageUrl;
     if (payloadAttributes.push_type == "message_non_loyalty") {
         messageUrl = `CASE 	WHEN ISNULL(MPT.message_url, '') LIKE  'content://my_rewards%' 	THEN 'content://home'
@@ -382,9 +396,9 @@ function CreatePushMessageQuery(payloadAttributes, marketingCloud) {
         'A'							AS STATUS,
         MPT.message_title           AS TITLE,
         ${messageUrl}	            AS [URL]
-        FROM [${marketingCloud.seedListTable}] AS UpdateContactDE
-        INNER JOIN [${marketingCloud.seedListTable}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
-        INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
+        FROM [${environment.seedListTable}] AS UpdateContactDE
+        INNER JOIN [${environment.seedListTable}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+        INNER JOIN [${environment.mobilePushMainTable}] as MPT
         ON MPT.push_key = ${payloadAttributes.key}
         WHERE PCD.MATALAN_CARD_NUMBER IS NOT NULL`;
 
@@ -399,7 +413,7 @@ function CreatePushMessageQuery(payloadAttributes, marketingCloud) {
             'A'							AS STATUS,
             MPT.message_title           AS TITLE,
             ${messageUrl}     			AS [URL]
-            FROM [${marketingCloud.mobilePushMainTable}] as MPT
+            FROM [${environment.mobilePushMainTable}] as MPT
             WHERE MPT.push_key = ${payloadAttributes.key}`;
     }
     else {
@@ -418,11 +432,11 @@ function CreatePushMessageQuery(payloadAttributes, marketingCloud) {
                 ,       PCD.APP_CARD_NUMBER AS LOYALTY_CARD_NUMBER
                 ,       ROW_NUMBER() OVER (PARTITION BY PCD.APP_CARD_NUMBER ORDER BY PCD.PARTY_ID) AS CARD_RN
                 FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
-                INNER JOIN [${marketingCloud.partyCardDetailsTable}] AS PCD
+                INNER JOIN [${environment.partyCardDetailsTable}] AS PCD
                 ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
                 WHERE   PCD.APP_CARD_NUMBER IS NOT NULL
             ) AS parties
-            INNER JOIN [${marketingCloud.mobilePushMainTable}] as MPT
+            INNER JOIN [${environment.mobilePushMainTable}] as MPT
             ON MPT.push_key = ${payloadAttributes.key}
             WHERE parties.CARD_RN = 1`;
     }
@@ -435,8 +449,8 @@ function CreatePushMessageQuery(payloadAttributes, marketingCloud) {
         'A'							AS STATUS,
         MPT.message_title           AS TITLE,
         ${messageUrl}	            AS [URL]
-        FROM [${marketingCloud.mobilePushMainTable}] AS MPT
-        CROSS JOIN [${marketingCloud.seedListTable}] AS S
+        FROM [${environment.mobilePushMainTable}] AS MPT
+        CROSS JOIN [${environment.seedListTable}] AS S
         WHERE MPT.push_key = ${payloadAttributes.key}
         AND   S.MATALAN_CARD_NUMBER IS NOT NULL`;
 
