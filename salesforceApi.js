@@ -51,13 +51,13 @@ exports.createSQLQuery = async function(targetKey, query, updateType, target, na
 	* 2 = Append
 	*/
 	var queryDefinitionPayload = {
-	    "name": name,
-	    "description": description,
-	    "queryText": query,
-	    "targetName": target,
-	    "targetKey": targetKey,
-	    "targetUpdateTypeId": updateType,
-        "categoryId": environment.queryFolder}
+	    name: name,
+	    description: description,
+	    queryText: query,
+	    targetName: target,
+	    targetKey: targetKey,
+	    targetUpdateTypeId: updateType,
+        categoryId: environment.queryFolder}
         
     const response = await axios({
 		method: 'post',
@@ -67,6 +67,19 @@ exports.createSQLQuery = async function(targetKey, query, updateType, target, na
 	})
 	console.dir(response.data);
 	return (response.data.queryDefinitionId);
+}
+
+exports.createSQLAutomation = async function(body){
+	const tokenResponse = await getOauth2Token();
+	const bodyString = JSON.stringify(body);
+    const response = await axios({
+		method: 'post',
+		url: automationUrl,
+		headers: {'Authorization': tokenResponse},
+		data: body
+	})
+	console.dir(response.data);
+	return (response.data.id);
 }
 
 exports.runSQLQuery = async function(executeThisQueryId, queryName) {

@@ -131,15 +131,15 @@ function formatQueryDate (automationRunDate, automationRunTime) {
 	return formattedQueryDate;
 }
 
-function isRecurring (automationRecurring) {
-	let queryRecurring;
-	if ( !automationRecurring) {
-		queryRecurring = false;
-	} else {
-		queryRecurring = true;
-	}
-	return queryRecurring;
-}
+//function isRecurring (automationRecurring) {
+//	let queryRecurring;
+//	if ( !automationRecurring) {
+//		queryRecurring = false;
+//	} else {
+//		queryRecurring = true;
+//	}
+//	return queryRecurring;
+//}
 
 function definePayloadAttributes(payload) {
 
@@ -630,10 +630,9 @@ app.post('/send/broadcast', async function (req, res, next){
 app.post('/send/createautomation', async function (req, res, next){ 
 	console.dir("Dump request body");
 	console.dir(req.body);
-	const payloadAttributes = await definePayloadAttributes(payload);
 	try {
-		const returnedQueryId = await recurringSql.recurringCamapign(marketingCloud, payloadAttributes);
-		res.send(JSON.stringify(returnedQueryId));
+		const returnedAutomationId = await recurringSql.recurringCamapign(marketingCloud, definePayloadAttributes(req.body));
+		res.send(JSON.stringify(returnedAutomationId));
 	} catch(err) {
 		console.dir(err);
 		const error_message = err.response?.data?.additionalErrors[0]?.message;

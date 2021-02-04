@@ -396,8 +396,7 @@ function CreatePushMessageQuery(payloadAttributes) {
         'A'							AS STATUS,
         MPT.message_title           AS TITLE,
         ${messageUrl}	            AS [URL]
-        FROM [${environment.seedListTable}] AS UpdateContactDE
-        INNER JOIN [${environment.seedListTable}] AS PCD ON PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+        FROM [${environment.seedListTable}] AS PCD
         INNER JOIN [${environment.mobilePushMainTable}] as MPT
         ON MPT.push_key = ${payloadAttributes.key}
         WHERE PCD.MATALAN_CARD_NUMBER IS NOT NULL`;

@@ -10,12 +10,11 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 
 	const m = new Date();
 	const dateString =
-	m.getUTCFullYear() +
+	("0" + m.getUTCFullYear()).slice(-2) +
 	("0" + (m.getUTCMonth() + 1)).slice(-2) +
 	("0" + m.getUTCDate()).slice(-2) +
 	("0" + m.getUTCHours()).slice(-2) +
-	("0" + m.getUTCMinutes()).slice(-2) +
-	("0" + m.getUTCSeconds()).slice(-2);
+	("0" + m.getUTCMinutes()).slice(-2);
 
 	// overwrite staging communication cell
 	const stagingCommunicationCellQuery = `select  pi.communication_cell_code_id_increment + 1 AS COMMUNICATION_CELL_ID
@@ -32,13 +31,26 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	CROSS JOIN [${marketingCloud.promotionIncrementsName}] pi
 	where mpmt.push_key = ${payloadAttributes.key}`;
 
-	const stagingCommunicationCellQueryName = `${payloadAttributes.query_name} - staging comm cell - ${dateString}`;
+	const stagingCommunicationCellQueryName = `Staging comm cell - ${dateString} - ${payloadAttributes.query_name}`;
 	const stagingCommunicationCellQueryId = await salesforceApi.createSQLQuery(marketingCloud.stagingCommunicationCellId
 													, stagingCommunicationCellQuery
 													, updateTypes.Overwrite
 													, marketingCloud.stagingCommunicationCellName
 													, stagingCommunicationCellQueryName
 													, `${payloadAttributes.query_name} - staging comm cell`);
+
+	const stagingCommunicationCellActivity = {
+		name: stagingCommunicationCellQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: stagingCommunicationCellQueryId
+	};
+	const automationStep0 = {
+		annotation: "",
+		stepnumber: 0,
+		activities: [stagingCommunicationCellActivity],
+
+	};
 
 	// overwirte staging vouceher subsets
 	const stagingVoucherSubsetsQuery = `SELECT	vsubset.PUSH_KEY
@@ -66,13 +78,26 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	) AS vsubset
 	WHERE	vsubset.rn = 1`;
 
-	const stagingVoucherSubsetsQueryName = `${payloadAttributes.query_name} - staging voucher subsets - ${dateString}`;
-	const stagingVoucherSubsetsQueryId = await salesforceApi.createSQLQuery(marketingCloud.stagingCommunicationCellId
+	const stagingVoucherSubsetsQueryName = `Staging voucher subsets - ${dateString} - ${payloadAttributes.query_name}`;
+	const stagingVoucherSubsetsQueryId = await salesforceApi.createSQLQuery(marketingCloud.recurringVoucherSubsetsId
 													, stagingVoucherSubsetsQuery
 													, updateTypes.Overwrite
 													, marketingCloud.recurringVoucherSubsetsName
 													, stagingVoucherSubsetsQueryName
 													, `${payloadAttributes.query_name} - staging voucher subsets`);
+
+	const stagingVoucherSubsetsActivity = {
+		name: stagingVoucherSubsetsQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: stagingVoucherSubsetsQueryId
+	};
+	const automationStep1 = {
+		annotation: "",
+		stepnumber: 1,
+		activities: [stagingVoucherSubsetsActivity],
+
+	};
 
 	// overwrite staging promotion desc
 	const stagingPromoDescriptionQuery = `SELECT	pi.mc_unique_promotion_id_increment + 1 AS MC_UNIQUE_PROMOTION_ID
@@ -125,7 +150,7 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	ON		mpmt.PUSH_KEY = ${payloadAttributes.key}
 	WHERE	arvs.BARCODE_FLAG = 1`;
 
-	const stagingPromoDescriptionQueryName = `${payloadAttributes.query_name} - staging promo desc - ${dateString}`;
+	const stagingPromoDescriptionQueryName = `Staging promo desc - ${dateString} - ${payloadAttributes.query_name}`;
 	const stagingPromoDescriptionQueryId = await salesforceApi.createSQLQuery(marketingCloud.stagingPromotionDescriptionId
 													, stagingPromoDescriptionQuery
 													, updateTypes.Overwrite
@@ -133,11 +158,24 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 													, stagingPromoDescriptionQueryName
 													, `${payloadAttributes.query_name} - staging promo desc`);
 
+	const stagingPromoDescriptionActivity = {
+		name: stagingPromoDescriptionQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: stagingPromoDescriptionQueryId
+	};
+	const automationStep2 = {
+		annotation: "",
+		stepnumber: 2,
+		activities: [stagingPromoDescriptionActivity],
+
+	};
+
 	//from staging into comm cell and promo desc
 	const appendCommunicationCellQuery = `SELECT	*
 	FROM	[${marketingCloud.stagingCommunicationCellName}]`;
 
-	const appendCommunicationCellQueryName = `${payloadAttributes.query_name} - append comm cell - ${dateString}`;
+	const appendCommunicationCellQueryName = `Append comm cell - ${dateString} - ${payloadAttributes.query_name}`;
 	const appendCommunicationCellQueryId = await salesforceApi.createSQLQuery(marketingCloud.communicationCellDataExtension
 													, appendCommunicationCellQuery
 													, updateTypes.Append
@@ -145,16 +183,35 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 													, appendCommunicationCellQueryName
 													, `${payloadAttributes.query_name} - append comm cell`);
 
+	const appendCommunicationCellActivity = {
+		name: appendCommunicationCellQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: appendCommunicationCellQueryId
+	};												
+
 	const appendPromoDescriptionQuery = `SELECT	*
 	FROM	[${marketingCloud.stagingPromotionDescriptionName}]`;
 
-	const appendPromoDescriptionQueryName = `${payloadAttributes.query_name} - append promo desc - ${dateString}`;
+	const appendPromoDescriptionQueryName = `Append promo desc - ${dateString} - ${payloadAttributes.query_name}`;
 	const appendPromoDescriptionQueryId = await salesforceApi.createSQLQuery(marketingCloud.promotionDescriptionId
 													, appendPromoDescriptionQuery
 													, updateTypes.Append
 													, marketingCloud.promotionDescriptionTable
 													, appendPromoDescriptionQueryName
 													, `${payloadAttributes.query_name} - append promo desc`);
+
+	const appendPromoDescriptionActivity = {
+		name: appendPromoDescriptionQueryName,
+		objectTypeId: 300,
+		displayOrder: 1,
+		activityObjectId: appendPromoDescriptionQueryId
+	};
+	const automationStep3 = {
+		annotation: "",
+		stepnumber: 3,
+		activities: [appendCommunicationCellActivity, appendPromoDescriptionActivity]
+	};
 
 	//update increments
 	const incrementUpdateQuery = `SELECT	1 AS INCREMENT_KEY
@@ -185,13 +242,25 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 		) AS promo
 	) AS maxpromo`;
 
-	const incrementUpdateQueryName = `${payloadAttributes.query_name} - update increments - ${dateString}`;
+	const incrementUpdateQueryName = `Update increments - ${dateString} - ${payloadAttributes.query_name}`;
 	const incrementUpdateQueryId = await salesforceApi.createSQLQuery(marketingCloud.commCellIncrementDataExtension
 													, incrementUpdateQuery
 													, updateTypes.AddUpdate
 													, marketingCloud.promotionIncrementsName
 													, incrementUpdateQueryName
 													, `${payloadAttributes.query_name} - update increments`);
+
+	const incrementUpdateActivity = {
+		name: incrementUpdateQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: incrementUpdateQueryId
+	};
+	const automationStep4 = {
+		annotation: "",
+		stepnumber: 4,
+		activities: [incrementUpdateActivity]
+	};
 
 	//Populate APP_RECURRING_CAMPAIGNS (Append)
 	const recurringCampaignQuery = `SELECT	scc.CAMPAIGN_CODE
@@ -240,13 +309,25 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	ON			scc.COMMUNICATION_CELL_ID = storespd.COMMUNICATION_CELL_ID
 	AND			storevss.BARCODE_REDEEMING_ID = storespd.PROMOTION_ID`;
 
-	const recurringCampaignQueryName = `${payloadAttributes.query_name} - add to recurring campaigns - ${dateString}`;
+	const recurringCampaignQueryName = `Add to recurring campaigns - ${dateString} - ${payloadAttributes.query_name}`;
 	const recurringCampaignQueryId = await salesforceApi.createSQLQuery(marketingCloud.recurringCampaignsId
 													, recurringCampaignQuery
 													, updateTypes.Append
 													, marketingCloud.recurringCampaignsName
 													, recurringCampaignQueryName
 													, `${payloadAttributes.query_name} - add to recurring campaigns`);
+											
+	const recurringCampaignActivity = {
+		name: recurringCampaignQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: recurringCampaignQueryId
+	};
+	const automationStep5 = {
+		annotation: "",
+		stepnumber: 5,
+		activities: [recurringCampaignActivity]
+	};
 
 	//Populate PARTY_COMMUNICATION_HISTORY (Append)
 	const partyCommunicationQuery = `SELECT	parties.PARTY_ID
@@ -274,13 +355,25 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	WHERE	arc.SELECTION_DATE = CAST(GETUTCDATE() AS DATE)
 	AND		parties.CARD_RN = 1`;
 
-	const partyCommunicationQueryName = `${payloadAttributes.query_name} - add to party communication - ${dateString}`;
+	const partyCommunicationQueryName = `Add to party communication - ${dateString} - ${payloadAttributes.query_name}`;
 	const partyCommunicationQueryId = await salesforceApi.createSQLQuery(marketingCloud.communicationHistoryKey
 													, partyCommunicationQuery
 													, updateTypes.Append
 													, marketingCloud.communicationTableName
 													, partyCommunicationQueryName
 													, `${payloadAttributes.query_name} - add to party communication`);
+
+	const partyCommunicationActivity = {
+		name: partyCommunicationQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: partyCommunicationQueryId
+	};
+	const automationStep6 = {
+		annotation: "",
+		stepnumber: 6,
+		activities: [partyCommunicationActivity]
+	};
 
 	//Populate Promotion Assignemnt (Append)
 	const assignmentQuery = `SELECT	parties.PARTY_ID
@@ -319,7 +412,7 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	) AS arc
 	WHERE parties.CARD_RN = 1`;
 
-	const assignmentQueryName = `${payloadAttributes.query_name} - add to promo assignment - ${dateString}`;
+	const assignmentQueryName = `Add to promo assignment - ${dateString} - ${payloadAttributes.query_name}`;
 	const assignmentQueryId = await salesforceApi.createSQLQuery(marketingCloud.assignmentKey
 													, assignmentQuery
 													, updateTypes.Append
@@ -327,9 +420,22 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 													, assignmentQueryName
 													, `${payloadAttributes.query_name} - add to promo assignment`);
 
+	const assignmentActivity = {
+		name: assignmentQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: assignmentQueryId
+	};
+	const automationStep7 = {
+		annotation: "",
+		stepnumber: 7,
+		activities: [assignmentActivity]
+	};
+											
+
 	//master offer query
 	const masterOfferQuery = `SELECT	gv.GLOBAL_VOUCHER_CODE 									AS VOUCHER_IN_STORE_CODE
-		,	ISNULL(mo.START_DATE_TIME, FORMAT(arc.[VALID_FROM_TIME] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')) AS START_DATE_TIME
+		,	ISNULL(o.START_DATE_TIME, FORMAT(arc.[VALID_FROM_TIME] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')) AS START_DATE_TIME
 		,	FORMAT(arc.VALID_TO_TIME AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss') AS END_DATE_TIME
 		,	CASE    WHEN o.STATUS IS NULL THEN 'A'
 					WHEN o.STATUS = 'A' AND (o.DATE_MOBILIZE_SYNC < o.DATE_UPDATED OR o.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
@@ -357,13 +463,25 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	ON		arc.INSTORE_VSS_ID = gv.VOUCHER_SUBSET_ID
 	WHERE	mpt.PUSH_KEY = ${payloadAttributes.key}`;
 
-	const masterOfferQueryName = `${payloadAttributes.query_name} - master offer - ${dateString}`;
+	const masterOfferQueryName = `Master offer - ${dateString} - ${payloadAttributes.query_name}`;
 	const masterOfferQueryId = await salesforceApi.createSQLQuery(marketingCloud.masterOfferKey
 													, masterOfferQuery
 													, updateTypes.AddUpdate
 													, marketingCloud.masterOfferTableName
 													, masterOfferQueryName
 													, `${payloadAttributes.query_name} - master offer`);
+
+	const masterOfferActivity = {
+		name: masterOfferQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: masterOfferQueryId
+	};
+	const automationStep8 = {
+		annotation: "",
+		stepnumber: 8,
+		activities: [masterOfferActivity]
+	};
 
 	//Member Offer Query Part 1
 	const memberQueryPart1 = `SELECT	'Matalan' AS SCHEME_ID
@@ -421,13 +539,25 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	ON		gvo.VOUCHER_SUBSET_ID = arc.ONLINE_VSS_ID
 	WHERE parties.CARD_RN = 1`;
 
-	const memberQueryPart1Name = `${payloadAttributes.query_name} - part 1 member offer - ${dateString}`;
+	const memberQueryPart1Name = `Part 1 member offer - ${dateString} - ${payloadAttributes.query_name}`;
 	const memberQueryPart1Id = await salesforceApi.createSQLQuery(marketingCloud.stagingMemberOfferId
 													, memberQueryPart1
-													, updateTypes.Overwirte
+													, updateTypes.Overwrite
 													, marketingCloud.stagingMemberOfferName
 													, memberQueryPart1Name
 													, `${payloadAttributes.query_name} - part 1 member offer`);
+
+	const memberQueryPart1Activity = {
+		name: memberQueryPart1Name,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: memberQueryPart1Id
+	};
+	const automationStep9 = {
+		annotation: "",
+		stepnumber: 9,
+		activities: [memberQueryPart1Activity]
+	};
 
 	//Member Offer Query Part 2
 	const memberQueryPart2 = `SELECT pt1.SCHEME_ID,
@@ -456,13 +586,25 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	) VP
 	ON pt1.RN = VP.RN`;
 
-	const memberQueryPart2Name = `${payloadAttributes.query_name} - part 2 member offer - ${dateString}`;
+	const memberQueryPart2Name = `Part 2 member offer - ${dateString} - ${payloadAttributes.query_name}`;
 	const memberQueryPart2Id = await salesforceApi.createSQLQuery(marketingCloud.memberOfferKey
 													, memberQueryPart2
 													, updateTypes.AddUpdate
 													, marketingCloud.memberOfferTableName
 													, memberQueryPart2Name
 													, `${payloadAttributes.query_name} - part 2 member offer`);
+
+	const memberQueryPart2Activity = {
+		name: memberQueryPart2Name,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: memberQueryPart2Id
+	};
+	const automationStep10 = {
+		annotation: "",
+		stepnumber: 10,
+		activities: [memberQueryPart2Activity]
+	};
 
 	//Claim Vouchers
 	const claimVoucherQuery = `SELECT	uv.VOUCHER_CODE
@@ -481,7 +623,7 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 	WHERE	uv.ASSIGNED_FLAG = 0
 	AND	 	mpt.push_key = ${payloadAttributes.key}`;
 
-	const claimVoucherQueryName = `${payloadAttributes.query_name} - claim vouchers - ${dateString}`;
+	const claimVoucherQueryName = `Claim vouchers - ${dateString} - ${payloadAttributes.query_name}`;
 	const claimVoucherQueryId = await salesforceApi.createSQLQuery(marketingCloud.uniqueVoucherId
 													, claimVoucherQuery
 													, updateTypes.AddUpdate
@@ -489,166 +631,30 @@ exports.recurringCamapign = async function(marketingCloud, payloadAttributes){
 													, claimVoucherQueryName
 													, `${payloadAttributes.query_name} - set assigned flag for claimed vouchers`);
 
+	const claimVoucherActivity = {
+		name: claimVoucherQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: claimVoucherQueryId
+	};
+	const automationStep11 = {
+		annotation: "",
+		stepnumber: 11,
+		activities: [claimVoucherActivity]
+	};
 
-	const AutomationKey = uuidv4();												
-	const createAutomationBody = `{
-	    "name": "App Recurring Campaign - ${payloadAttributes.query_name}",
-	    "key": "${AutomationKey}",
-	    "steps": [
-	        {
-	            "annotation": "",
-	            "stepNumber": 0,
-	            "activities": [
-	                {
-	                    "name": "${stagingCommunicationCellQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${stagingCommunicationCellQueryId}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 1,
-	            "activities": [
-	                {
-	                    "name": "${stagingVoucherSubsetsQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${stagingVoucherSubsetsQueryId}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 2,
-	            "activities": [
-	                {
-	                    "name": "${stagingPromoDescriptionQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${stagingPromoDescriptionQueryId}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 3,
-	            "activities": [
-	                {
-	                    "name": "${appendCommunicationCellQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${appendCommunicationCellQueryId}"
-					},
-					{
-	                    "name": "${appendPromoDescriptionQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 1,
-	                    "activityObjectId": "${appendPromoDescriptionQueryId}"
-	                },
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 4,
-	            "activities": [
-	                {
-	                    "name": "${incrementUpdateQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${incrementUpdateQueryId}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 5,
-	            "activities": [
-	                {
-	                    "name": "${recurringCampaignQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${recurringCampaignQueryId}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 6,
-	            "activities": [
-	                {
-	                    "name": "${partyCommunicationQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${partyCommunicationQueryId}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 7,
-	            "activities": [
-	                {
-	                    "name": "${assignmentQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${assignmentQueryId}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 8,
-	            "activities": [
-	                {
-	                    "name": "${masterOfferQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${masterOfferQueryId}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 9,
-	            "activities": [
-	                {
-	                    "name": "${memberQueryPart1Name}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${memberQueryPart1Id}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 10,
-	            "activities": [
-	                {
-	                    "name": "${memberQueryPart2Name}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${memberQueryPart2Id}"
-	                }
-	            ]
-			},
-			{
-	            "annotation": "",
-	            "stepNumber": 11,
-	            "activities": [
-	                {
-	                    "name": "${claimVoucherQueryName}",
-	                    "objectTypeId": 300,
-	                    "displayOrder": 0,
-	                    "activityObjectId": "${claimVoucherQueryId}"
-	                }
-	            ]
-	        }
-	    ],
-	    "startSource": {
-	        "typeId": 1
-	    },
-	    "categoryId": 3579
-	}`;
+
+	const AutomationKey = uuidv4();	
+	const sourceType = {typeId: 1};
+	const queriesInAutomation =[automationStep0, automationStep1, automationStep2, automationStep3, automationStep4, automationStep5, automationStep6, automationStep7, automationStep8, automationStep9, automationStep10, automationStep11];
+
+	const createAutomationBody = {
+	    name: "App Recurring Campaign - " + dateString + " - " + payloadAttributes.query_name,
+	    key: AutomationKey,
+	    steps: queriesInAutomation,
+	    startSource: sourceType,
+		categoryId: 3579
+	};
+	
+	await salesforceApi.createSQLAutomation(createAutomationBody);
 }
