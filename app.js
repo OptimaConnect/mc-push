@@ -631,8 +631,24 @@ app.post('/send/createautomation', async function (req, res, next){
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
-		const returnedAutomationId = await recurringSql.recurringCamapign(marketingCloud, definePayloadAttributes(req.body));
+		const returnedAutomationId = await recurringSql.recurringCamapign(definePayloadAttributes(req.body));
 		res.send(JSON.stringify(returnedAutomationId));
+	} catch(err) {
+		console.dir(err);
+		const error_message = err.response?.data?.additionalErrors[0]?.message;
+		if (error_message){
+			res.status(400).send(error_message);
+		}
+		res.status(500).send(JSON.stringify(err));
+	}
+});
+
+app.post('/send/recurringseed', async function (req, res, next){ 
+	console.dir("Dump request body");
+	console.dir(req.body);
+	try {
+		const returnedQueryId = await recurringSql.recurringCamapignToSeeds(definePayloadAttributes(req.body));
+		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
 		const error_message = err.response?.data?.additionalErrors[0]?.message;

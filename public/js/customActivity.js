@@ -393,6 +393,16 @@ define([
             }
         });
 
+        $("#recurring_action_seed").click(async function(){
+            if (validateSummaryPage()) {
+            $("#recurring_action_seed").prop("disabled", true);
+            await sendCampaignToSeeds(buildActivityPayload());
+            $("#seed_sent").val(true);
+            $("#recurring_action_seed").html("Resend recurring to seeds");
+            $("#recurring_action_seed").prop("disabled", false);
+            }
+        });
+
         $("#control_action_broadcast").click(async function(){
             if (validateSummaryPage()) {
             await broadcastCampaign(buildActivityPayload());
@@ -450,6 +460,10 @@ define([
             $("#offer_type").hide();
             $("#adhoc_timings_box").hide();
             $("#recurring_timings_box").show();
+            $("#recurring_action_broadcast").show();
+            $("#control_action_broadcast").hide();
+            $("#recurring_action_seed").show();
+            $("#control_action_seed").hide();
             if ($("#offer_channel").val() == '3'){
                 //Recurring Info Only
                 $("#promotion_box").hide();
@@ -468,6 +482,10 @@ define([
             $("#offer_type").show();
             $("#adhoc_timings_box").show();
             $("#recurring_timings_box").hide();
+            $("#recurring_action_broadcast").hide();
+            $("#control_action_broadcast").show();
+            $("#recurring_action_seed").hide();
+            $("#control_action_seed").show();
             if ( $("#offer_channel").val() == '3'){
                 //Adhoc Info Only Offers
                 $("#offer_cell_box").show();
@@ -1093,6 +1111,7 @@ define([
                     $("#control_action_save").prop('disabled', true);
                     $("#control_action_update").prop('disabled', false);
                     $("#control_action_seed").prop('disabled', false);
+                    $("#recurring_action_seed").prop('disabled', false);
                     $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
@@ -1137,6 +1156,7 @@ define([
                     $("#control_action_save").html("Data has been updated");
                     $("#control_action_update").prop('disabled', false);
                     $("#control_action_seed").prop('disabled', false);
+                    $("#recurring_action_seed").prop('disabled', false);
                     $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
@@ -1220,6 +1240,37 @@ define([
             $("#control_action_broadcast").prop('disabled', false);
         }
     }
+
+    async function sendRecurringCampaignToSeeds(payloadToSave) {
+
+        if ( debug ) {
+            console.log("Data Object to be saved is: ");
+            console.log(payloadToSave);
+        }
+
+        try {            
+            const data = await $.ajax({ 
+                url: '/send/recurringseed',
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                },
+                type: 'POST',
+                data: JSON.stringify(payloadToSave),
+                contentType: 'application/json'
+            });
+;
+            console.log('success');
+            console.log(data);
+            toggleStepError(3, "hide");
+            $("#query_key_hidden").val(data);
+
+        } catch(e) {
+            console.log("Error saving data");
+            console.log(e);
+            document.getElementById("step3alerttext").innerText = e.responseText;
+            toggleStepError(3, "show");
+        }
+    } 
 
     async function createRecurringAutomation(payloadToSave) {
 
