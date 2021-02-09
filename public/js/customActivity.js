@@ -396,7 +396,7 @@ define([
         $("#recurring_action_seed").click(async function(){
             if (validateSummaryPage()) {
             $("#recurring_action_seed").prop("disabled", true);
-            await sendCampaignToSeeds(buildActivityPayload());
+            await sendRecurringCampaignToSeeds(buildActivityPayload());
             $("#seed_sent").val(true);
             $("#recurring_action_seed").html("Resend recurring to seeds");
             $("#recurring_action_seed").prop("disabled", false);

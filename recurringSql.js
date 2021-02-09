@@ -349,7 +349,8 @@ exports.recurringCamapign = async function(payloadAttributes){
 	AND			onlinevss.PROMOTION_ID = onlinespd.PROMOTION_ID
 	LEFT JOIN	[${environment.stagingPromotionDescriptionName}] storespd
 	ON			scc.COMMUNICATION_CELL_ID = storespd.COMMUNICATION_CELL_ID
-	AND			storevss.BARCODE_REDEEMING_ID = storespd.PROMOTION_ID`;
+	AND			storevss.BARCODE_REDEEMING_ID = storespd.PROMOTION_ID
+	WHERE		mpmt.PUSH_KEY = ${payloadAttributes.key}`;
 
 	const recurringCampaignQueryName = `Add to recurring campaigns - ${dateString} - ${payloadAttributes.query_name}`;
 	const recurringCampaignQueryId = await salesforceApi.createSQLQuery(environment.recurringCampaignsId
@@ -702,6 +703,13 @@ exports.recurringCamapign = async function(payloadAttributes){
 
 exports.recurringCamapignToSeeds = async function(payloadAttributes){
 	const returnIds = [];
+	const m = new Date();
+	const dateString =
+	("0" + m.getUTCFullYear()).slice(-2) +
+	("0" + (m.getUTCMonth() + 1)).slice(-2) +
+	("0" + m.getUTCDate()).slice(-2) +
+	("0" + m.getUTCHours()).slice(-2) +
+	("0" + m.getUTCMinutes()).slice(-2);
 
 	const stagingVoucherSubsetsQuery = `SELECT	vsubset.PUSH_KEY
 			,	vsubset.VOUCHER_SUBSET_ID
@@ -767,7 +775,8 @@ exports.recurringCamapignToSeeds = async function(payloadAttributes){
 		LEFT JOIN	[${environment.voucherSubsetName}] onlinevss
 		ON			vsubset.ONLINE_VOUCHER_SUBSET_ID = onlinevss.VOUCHER_SUBSET_ID
 		LEFT JOIN	[${environment.voucherSubsetName}] storevss
-		ON			vsubset.INSTORE_VOUCHER_SUBSET_ID = storevss.VOUCHER_SUBSET_ID`;
+		ON			vsubset.INSTORE_VOUCHER_SUBSET_ID = storevss.VOUCHER_SUBSET_ID
+		WHERE		mpmt.PUSH_KEY = ${payloadAttributes.key}`;
 
 	const recurringCampaignQueryName = `SEED - Add to recurring campaigns - ${dateString} - ${payloadAttributes.query_name}`;
 	const recurringCampaignQueryId = await salesforceApi.createSQLQuery(environment.seedRecurringCampaignsId
@@ -803,7 +812,6 @@ exports.recurringCamapignToSeeds = async function(payloadAttributes){
 		ON      mpt.OFFER_ID = o.OFFER_ID
 		JOIN 	[${environment.seedRecurringCampaignsName}] arc
 		ON 		arc.PUSH_KEY = mpt.PUSH_KEY
-		AND		arc.SELECTION_DATE = CAST(GETUTCDATE() AS DATE)
 		LEFT JOIN [${environment.globalVoucherName}] gv
 		ON		arc.INSTORE_VSS_ID = gv.VOUCHER_SUBSET_ID
 		WHERE	mpt.PUSH_KEY = ${payloadAttributes.key}
