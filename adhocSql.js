@@ -15,7 +15,7 @@ const environment = {
 	memberOfferKey: 					process.env.memberOfferKey,
 	messageKey: 						process.env.messageKey,
 	messageTableName: 					process.env.messageTableName,
-	partyCardDetailsTable:  			process.env.partyCardDetailsTable
+	partyCardDetailsTable:  			process.env.partyCardDetailsTable,
 };
 
 exports.addQueryActivity = async function(payloadAttributes, seed, updateTypes){

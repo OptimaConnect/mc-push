@@ -46,6 +46,8 @@ const environment = {
 	uniqueVoucherName:					process.env.uniqueVoucherName,	
 	voucherSetName:						process.env.voucherSetName,
 	voucherSubsetName:					process.env.voucherSubsetName,
+	messageTableName: 					process.env.messageTableName,
+	messageKey: 						process.env.messageKey
 };
 
 exports.recurringCamapign = async function(payloadAttributes){
@@ -66,7 +68,7 @@ exports.recurringCamapign = async function(payloadAttributes){
 	,   mpmt.OFFER_CAMPAIGN_NAME AS CAMPAIGN_NAME
 	,   mpmt.OFFER_CAMPAIGN_ID AS CAMPAIGN_ID
 	,   1 AS CELL_TYPE
-	,   CASE WHEN mpmt.PUSH_TYPE = 'offer' THEN 5 ELSE 6 END AS CHANNEL
+	,   5 AS CHANNEL
 	,   1 AS IS_PUTPUT_FLAG
 	,   DATEADD(DAY, mpmt.RECURRING_OFFER_DELAY_DAYS, CAST(GETUTCDATE() AS DATE)) AS BASE_CONTACT_DATE
 	from [${environment.mobilePushMainTable}] mpmt
@@ -383,9 +385,6 @@ exports.recurringCamapign = async function(payloadAttributes){
 		,		ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
 		FROM
 		(
-			SELECT PARTY_ID, MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 1 AS [SEED_FLAG]
-			FROM [${environment.seedListTable}]
-			UNION ALL 
 			SELECT UC.PARTY_ID, PCD.APP_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 0 AS [SEED_FLAG]
 			FROM [${payloadAttributes.update_contact}]  AS UC 
 			JOIN [${environment.partyCardDetailsTable}] AS PCD
@@ -949,5 +948,285 @@ exports.recurringCamapignToSeeds = async function(payloadAttributes){
 	await salesforceApi.runSQLQuery(claimVoucherQueryId, claimVoucherQueryName);
 	returnIds["claimVoucherQueryId"] = claimVoucherQueryId;
 	
+	return returnIds;
+}
+
+exports.recurringPush = async function(payloadAttributes){
+	
+	const m = new Date();
+	const dateString =
+	("0" + m.getUTCFullYear()).slice(-2) +
+	("0" + (m.getUTCMonth() + 1)).slice(-2) +
+	("0" + m.getUTCDate()).slice(-2) +
+	("0" + m.getUTCHours()).slice(-2) +
+	("0" + m.getUTCMinutes()).slice(-2);
+
+	// overwrite staging communication cell
+	const stagingCommunicationCellQuery = `select  pi.communication_cell_code_id_increment + 1 AS COMMUNICATION_CELL_ID
+	,   mpmt.CAMPAIGN_CODE
+	,   mpmt.CELL_CODE
+	,   mpmt.CELL_NAME
+	,   mpmt.CAMPAIGN_NAME
+	,   mpmt.CAMPAIGN_ID
+	,   1 AS CELL_TYPE
+	,   6 AS CHANNEL
+	,   1 AS IS_PUTPUT_FLAG
+	,   DATEADD(DAY, mpmt.RECURRING_PUSH_OFFER_DELAY_DAYS, CAST(GETUTCDATE() AS DATE)) AS BASE_CONTACT_DATE
+	from [${environment.mobilePushMainTable}] mpmt
+	CROSS JOIN [${environment.promotionIncrementsName}] pi
+	where mpmt.push_key = ${payloadAttributes.key}`;
+
+	const stagingCommunicationCellQueryName = `Push Staging comm cell - ${dateString} - ${payloadAttributes.query_name}`;
+	const stagingCommunicationCellQueryId = await salesforceApi.createSQLQuery(environment.stagingCommunicationCellId
+													, stagingCommunicationCellQuery
+													, updateTypes.Overwrite
+													, environment.stagingCommunicationCellName
+													, stagingCommunicationCellQueryName
+													, `${payloadAttributes.query_name} - push staging comm cell`);
+
+	const stagingCommunicationCellActivity = {
+		name: stagingCommunicationCellQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: stagingCommunicationCellQueryId
+	};
+	const automationStep0 = {
+		annotation: "",
+		stepnumber: 0,
+		activities: [stagingCommunicationCellActivity],
+
+	};
+
+	//from staging into comm cell
+	const appendCommunicationCellQuery = `SELECT	*
+	FROM	[${environment.stagingCommunicationCellName}]`;
+
+	const appendCommunicationCellQueryName = `Push Append comm cell - ${dateString} - ${payloadAttributes.query_name}`;
+	const appendCommunicationCellQueryId = await salesforceApi.createSQLQuery(environment.communicationCellId
+													, appendCommunicationCellQuery
+													, updateTypes.Append
+													, environment.communicationCellName
+													, appendCommunicationCellQueryName
+													, `${payloadAttributes.query_name} - Push append comm cell`);
+
+	const appendCommunicationCellActivity = {
+		name: appendCommunicationCellQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: appendCommunicationCellQueryId
+	};												
+
+	const automationStep1 = {
+		annotation: "",
+		stepnumber: 1,
+		activities: [appendCommunicationCellActivity]
+	};
+
+	//update increments
+	const incrementUpdateQuery = `SELECT	1 AS INCREMENT_KEY
+		,	newcommid AS communication_cell_code_id_increment
+		,	newmcid AS mc_unique_promotion_id_increment
+	FROM
+	(
+		SELECT MAX(cc_id) + 1 AS newcommid
+		FROM
+		(
+			SELECT MAX(CAST(COMMUNICATION_CELL_ID AS INT)) AS cc_id
+			FROM [${environment.communicationCellName}]  
+			UNION ALL 
+			SELECT communication_cell_code_id_increment AS cc_id
+			FROM [${environment.promotionIncrementsName}]
+		) AS comm
+	) AS maxcomm
+	CROSS JOIN 
+	(
+		SELECT MAX(mc_id) + 1 AS newmcid
+		FROM
+		(
+			SELECT MAX(CAST(MC_UNIQUE_PROMOTION_ID AS INT)) AS mc_id
+			FROM [${environment.promotionDescriptionName}]
+			UNION ALL 
+			SELECT mc_unique_promotion_id_increment AS mc_id
+			FROM [${environment.promotionIncrementsName}]
+		) AS promo
+	) AS maxpromo`;
+
+	const incrementUpdateQueryName = `Push Update increments - ${dateString} - ${payloadAttributes.query_name}`;
+	const incrementUpdateQueryId = await salesforceApi.createSQLQuery(environment.promotionIncrementsId
+													, incrementUpdateQuery
+													, updateTypes.AddUpdate
+													, environment.promotionIncrementsName
+													, incrementUpdateQueryName
+													, `${payloadAttributes.query_name} - Push update increments`);
+
+	const incrementUpdateActivity = {
+		name: incrementUpdateQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: incrementUpdateQueryId
+	};
+	const automationStep2 = {
+		annotation: "",
+		stepnumber: 2,
+		activities: [incrementUpdateActivity]
+	};
+
+
+	//Populate PARTY_COMMUNICATION_HISTORY (Append)
+	const partyCommunicationQuery = `SELECT	parties.PARTY_ID
+		,	cc.COMMUNICATION_CELL_ID
+		,	CAST(DATEADD(DAY,mpmt.RECURRING_PUSH_OFFER_DELAY_DAYS, CAST(GETUTCDATE() AS DATE)) AS DATETIME) + CAST(mpmt.RECURRING_PUSH_OFFER_TIME AS DATETIME) AS CONTACT_DATE
+	FROM
+	(
+		SELECT	PARTY_ID
+		,		LOYALTY_CARD_NUMBER
+		,		ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
+		FROM
+		(
+			SELECT UC.PARTY_ID, PCD.APP_CARD_NUMBER AS [LOYALTY_CARD_NUMBER], 0 AS [SEED_FLAG]
+			FROM [${payloadAttributes.update_contact}]  AS UC 
+			JOIN [${environment.partyCardDetailsTable}] AS PCD
+			ON UC.PARTY_ID = PCD.PARTY_ID
+		) AS UpdateContactDE
+		WHERE	UpdateContactDE.LOYALTY_CARD_NUMBER IS NOT NULL
+	) AS parties
+	JOIN [${environment.mobilePushMainTable}] AS mpmt 
+	ON		mpmt.push_key = ${payloadAttributes.key}
+	JOIN [${environment.communicationCellName}] AS cc 
+	ON		DATEADD(DAY, mpmt.RECURRING_PUSH_OFFER_DELAY_DAYS, CAST(GETUTCDATE() AS DATE)) = cc.BASE_CONTACT_DATE
+	AND		cc.CAMPAIGN_CODE = mpmt.CAMPAIGN_CODE
+	AND		cc.CELL_CODE = mpmt.CELL_CODE
+	AND		cc.CHANNEL = 6
+	WHERE	parties.CARD_RN = 1`;
+
+	const partyCommunicationQueryName = `Push add to party communication - ${dateString} - ${payloadAttributes.query_name}`;
+	const partyCommunicationQueryId = await salesforceApi.createSQLQuery(environment.communicationHistoryKey
+													, partyCommunicationQuery
+													, updateTypes.Append
+													, environment.communicationHistoryName
+													, partyCommunicationQueryName
+													, `${payloadAttributes.query_name} - Push add to party communication`);
+
+	const partyCommunicationActivity = {
+		name: partyCommunicationQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: partyCommunicationQueryId
+	};
+	const automationStep3 = {
+		annotation: "",
+		stepnumber: 3,
+		activities: [partyCommunicationActivity]
+	};
+
+	
+
+	//Member Offer Query Push
+	const memberQuery = `SELECT  MPT.push_key
+			,	(CAST(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS MOBILE_MESSAGE_ID
+		    ,   'Matalan'                   AS SCHEME_ID
+		    ,   parties.LOYALTY_CARD_NUMBER
+		    ,   MPT.message_content         AS MESSAGE_CONTENT
+		    ,   FORMAT(CAST(DATEADD(DAY,mpt.RECURRING_PUSH_OFFER_DELAY_DAYS, CAST(GETUTCDATE() AS DATE)) AS DATETIME) + CAST(mpt.RECURRING_PUSH_OFFER_TIME AS DATETIME) AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME
+		    ,   'A'							AS STATUS
+		    ,   MPT.message_title           AS TITLE
+		    ,   ISNULL(NULLIF(MPT.message_url,''),'content://my_rewards/my_offers_list')	            AS [URL]
+			,   SYSDATETIME()   AS DATE_CREATED
+			,   SYSDATETIME()   AS DATE_UPDATED
+		FROM
+		(
+		    SELECT  PCD.PARTY_ID
+		    ,       PCD.APP_CARD_NUMBER AS LOYALTY_CARD_NUMBER
+		    ,       ROW_NUMBER() OVER (PARTITION BY PCD.APP_CARD_NUMBER ORDER BY PCD.PARTY_ID) AS CARD_RN
+		    FROM    [${payloadAttributes.update_contact}] AS UpdateContactDE
+		    INNER JOIN [${environment.partyCardDetailsTable}] AS PCD
+		    ON      PCD.PARTY_ID = UpdateContactDE.PARTY_ID
+		    WHERE   PCD.APP_CARD_NUMBER IS NOT NULL
+		) AS parties
+		INNER JOIN [${environment.mobilePushMainTable}] as MPT
+		ON MPT.push_key = ${payloadAttributes.key}
+		WHERE parties.CARD_RN = 1`;
+
+	const pushMemberQueryName = `Push member offer - ${dateString} - ${payloadAttributes.query_name}`;
+	const pushMemberQueryId = await salesforceApi.createSQLQuery(environment.messageKey
+													, memberQuery
+													, updateTypes.Append
+													, environment.messageTableName
+													, pushMemberQueryName
+													, `${payloadAttributes.query_name} - push member offer`);
+
+	const pushMemberQueryActivity = {
+		name: pushMemberQueryName,
+		objectTypeId: 300,
+		displayOrder: 0,
+		activityObjectId: pushMemberQueryId
+	};
+	const automationStep4 = {
+		annotation: "",
+		stepnumber: 4,
+		activities: [pushMemberQueryActivity]
+	};
+
+
+	const AutomationKey = uuidv4();	
+	const sourceType = {typeId: 1};
+	const queriesInAutomation =[automationStep0, automationStep1, automationStep2, automationStep3, automationStep4];
+
+	const createAutomationBody = {
+	    name: "Push Recurring Campaign - " + dateString + " - " + payloadAttributes.query_name,
+	    key: AutomationKey,
+	    steps: queriesInAutomation,
+	    startSource: sourceType,
+		categoryId: 3579
+	};
+	
+	await salesforceApi.createSQLAutomation(createAutomationBody);
+}
+
+exports.recurringPushToSeeds = async function(payloadAttributes){
+	
+	const returnIds = [];
+	const m = new Date();
+	const dateString =
+	("0" + m.getUTCFullYear()).slice(-2) +
+	("0" + (m.getUTCMonth() + 1)).slice(-2) +
+	("0" + m.getUTCDate()).slice(-2) +
+	("0" + m.getUTCHours()).slice(-2) +
+	("0" + m.getUTCMinutes()).slice(-2);
+
+	//Member Offer Query Push
+	const memberQuery = `SELECT  MPT.push_key
+			,	(CAST(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS MOBILE_MESSAGE_ID
+		    ,   'Matalan'                   AS SCHEME_ID
+		    ,   parties.LOYALTY_CARD_NUMBER
+		    ,   MPT.message_content         AS MESSAGE_CONTENT
+		    ,   FORMAT(CAST(DATEADD(DAY, mpt.RECURRING_PUSH_OFFER_DELAY_DAYS, CAST(GETUTCDATE() AS DATE)) AS DATETIME) + CAST(mpt.RECURRING_PUSH_OFFER_TIME AS DATETIME) AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME
+		    ,   'A'							AS STATUS
+		    ,   MPT.message_title           AS TITLE
+		    ,   ISNULL(NULLIF(MPT.message_url,''),'content://my_rewards/my_offers_list') AS [URL]
+			,   SYSDATETIME() AS DATE_CREATED
+    	    ,   SYSDATETIME() AS DATE_UPDATED
+		FROM
+		(
+			SELECT	PARTY_ID
+				,	MATALAN_CARD_NUMBER AS [LOYALTY_CARD_NUMBER]
+				,	ROW_NUMBER() OVER (PARTITION BY MATALAN_CARD_NUMBER ORDER BY PARTY_ID) AS CARD_RN
+			FROM [${environment.seedListTable}]				
+			WHERE  MATALAN_CARD_NUMBER  IS NOT NULL
+		) AS parties
+		INNER JOIN [${environment.mobilePushMainTable}] as MPT
+		ON MPT.push_key = ${payloadAttributes.key}
+		WHERE parties.CARD_RN = 1`;
+
+	const pushMemberQueryName = `SEED - Push member offer - ${dateString} - ${payloadAttributes.query_name}`;
+	const pushMemberQueryId = await salesforceApi.createSQLQuery(environment.messageKey
+													, memberQuery
+													, updateTypes.Append
+													, environment.messageTableName
+													, pushMemberQueryName
+													, `SEED - ${payloadAttributes.query_name} - push member offer`);
+
+	returnIds["pushMemberQueryId"] = pushMemberQueryId;
+	await salesforceApi.runSQLQuery(pushMemberQueryId, pushMemberQueryName);
 	return returnIds;
 }

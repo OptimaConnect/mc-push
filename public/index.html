@@ -257,7 +257,7 @@
             <div class="slds-col slds-size_1-of-2">
                 <div class="slds-box slds-box_xx-small slds-m-vertical_xx-small">
                     <h2>Setup</h2>
-                    <div class="slds-grid slds-gutters">
+                    <div class="slds-grid slds-gutters" id="adhoc_push_target_send_datetime_box">
                         <div class="slds-col slds-form-element">
                             <label class="slds-form-element__label" for="text-input-id-1">
                                 <abbr class="slds-required" title="required">* </abbr>Target Send Datetime</label>
@@ -266,7 +266,21 @@
                             </div>
                         </div>
                     </div>
-                    <div class="slds-grid slds-gutters">
+                    <div class="slds-form-element" id="recurring_push_offer_time_box">
+                        <label class="slds-form-element__label" for="text-input-id-1">
+                            <abbr class="slds-required" title="required">* </abbr>Target Send Time</label>
+                        <div class="slds-form-element__control">
+                            <input type="time" id="recurring_push_offer_time" required="" class="slds-input" />
+                        </div>
+                    </div>
+                    <div class="slds-form-element" id="recurring_push_delay_days_box">
+                        <label class="slds-form-element__label" for="text-input-id-1">
+                            <abbr class="slds-required" title="required">* </abbr>Push Delay Days (Selection to Send)</label>
+                        <div class="slds-form-element__control">
+                            <input type="number" min="0" step="1" id="recurring_push_offer_delay_days" required="" class="slds-input" />
+                        </div>
+                    </div>
+                    <div class="slds-grid slds-gutters" id="message_seed_send_datetime">
                         <div class="slds-col slds-form-element">
                             <label class="slds-form-element__label" for="text-input-id-1">
                                 <abbr class="slds-required" title="required">* </abbr>Seed Send Datetime</label>

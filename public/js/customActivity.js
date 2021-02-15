@@ -38,7 +38,9 @@ define([
     input_field_dictionary.set("update_contacts", [0, 200, "always", "Data Extension Name"]);
     input_field_dictionary.set("widget_name", [0, 100, "always", "Widget Name"]);
 
-    input_field_dictionary.set("message_target_send_datetime", [1, 100, "always"]);
+    input_field_dictionary.set("message_target_send_datetime", [1, 100, "adhoc"]);
+    input_field_dictionary.set("recurring_push_offer_time", [1, 100, "recurring"]);
+    input_field_dictionary.set("recurring_push_offer_delay_days", [1, 100, "recurring"]);
     input_field_dictionary.set("message_seed_send_datetime", [1, 100, "always"]);
     input_field_dictionary.set("message_title", [1, 30, "always", "Title"]);
     input_field_dictionary.set("cell_code", [1, 16, "always", "Cell Code"]);
@@ -46,7 +48,7 @@ define([
     input_field_dictionary.set("campaign_name", [1, 100, "always", "Campaign Name"]);
     input_field_dictionary.set("campaign_code", [1, 12, "always", "Campaign Code"]);
     input_field_dictionary.set("message_content", [1, 140, "always", "Message Content"]);
-    input_field_dictionary.set("message_url", [1, 250, 0, "Deep Link URL (Leave Blank For Default)"]);
+    input_field_dictionary.set("message_url", [1, 250, "Optional", "Deep Link URL (Leave Blank For Default)"]);
 
     input_field_dictionary.set("offer_short_content", [2, 30, "always", "Short Description"]);
     input_field_dictionary.set("offer_image_url", [2, 250, "always", "Image URL"]);
@@ -464,6 +466,9 @@ define([
             $("#control_action_broadcast").hide();
             $("#recurring_action_seed").show();
             $("#control_action_seed").hide();
+            $("#recurring_push_offer_time_box").show();
+            $("#recurring_push_delay_days_box").show();
+            $("#adhoc_push_target_send_datetime_box").hide();
             if ($("#offer_channel").val() == '3'){
                 //Recurring Info Only
                 $("#promotion_box").hide();
@@ -486,6 +491,9 @@ define([
             $("#control_action_broadcast").show();
             $("#recurring_action_seed").hide();
             $("#control_action_seed").show();
+            $("#recurring_push_offer_time_box").hide();
+            $("#recurring_push_delay_days_box").hide();
+            $("#adhoc_push_target_send_datetime_box").show();
             if ( $("#offer_channel").val() == '3'){
                 //Adhoc Info Only Offers
                 $("#offer_cell_box").show();
@@ -659,7 +667,7 @@ define([
                 console.log("An update contact data extension is required for offers and loyalty pushes");
                 ErrorCount++;
             }
-            if ( stepToValidate == 1 && (document.getElementById("message_target_send_datetime").value < document.getElementById("message_seed_send_datetime").value)){
+            if ( stepToValidate == 1 && recurringType == "adhoc" && (document.getElementById("message_target_send_datetime").value < document.getElementById("message_seed_send_datetime").value)){
                 document.getElementById(`step${currentPage}alerttext`).innerText = "The target send datetime must be after the seed send datetime.";
                 console.log("The target send datetime must be after the seed send datetime.");
 			     ErrorCount++;
