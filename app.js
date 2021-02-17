@@ -613,7 +613,7 @@ app.post('/send/broadcast', async function (req, res, next){
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
-		const returnedQueryId = await adhocSql.addQueryActivity(definePayloadAttributes(req.body), false, marketingCloud, updateTypes);
+		const returnedQueryId = await adhocSql.addQueryActivity(definePayloadAttributes(req.body), false, updateTypes);
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
@@ -671,7 +671,7 @@ app.post('/send/seed', async function (req, res, next){
 	console.dir("Dump request body");
 	console.dir(req.body);
 	try {
-		const returnedQueryId = await adhocSql.addQueryActivity(definePayloadAttributes(req.body), true, marketingCloud, updateTypes);
+		const returnedQueryId = await adhocSql.addQueryActivity(definePayloadAttributes(req.body), true, updateTypes);
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
