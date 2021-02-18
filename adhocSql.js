@@ -357,7 +357,7 @@ exports.addQueryActivity = async function(payloadAttributes, seed, updateTypes){
 	}
 	else if (payloadAttributes.push_type.includes("message")) {
 
-		let messageFinalQuery = CreatePushMessageQuery(payloadAttributes);
+		let messageFinalQuery = CreatePushMessageQuery(payloadAttributes, seed);
 
 		console.dir(messageFinalQuery);
 
@@ -369,7 +369,7 @@ exports.addQueryActivity = async function(payloadAttributes, seed, updateTypes){
     return returnIds;
 }
 
-function CreatePushMessageQuery(payloadAttributes) {
+function CreatePushMessageQuery(payloadAttributes, seed) {
     let messageUrl;
     if (payloadAttributes.push_type == "message_non_loyalty") {
         messageUrl = `CASE 	WHEN ISNULL(MPT.message_url, '') LIKE  'content://my_rewards%' 	THEN 'content://home'
