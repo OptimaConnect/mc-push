@@ -555,6 +555,16 @@ define([
                         $("#push_type_message_non_loyalty").click();
                     } 
                 }
+                else if (argumentsSummaryPayload[q].key == "recurring_type") {
+                    if (argumentsSummaryPayload[q].value == "adhoc") {
+                        $("#recurring_type_adhoc").prop('checked', true);
+                        $("#recurring_type_adhoc").click();
+                    }
+                    else if (argumentsSummaryPayload[q].value == "recurring") {
+                        $("#recurring_type_recurring").prop('checked', true);
+                        $("#recurring_type_recurring").click();
+                    }
+                }
             }
 
             $("#step" + (argumentsSummaryPayload[q].step - 1) + " #" + argumentsSummaryPayload[q].key).val(argumentsSummaryPayload[q].value);

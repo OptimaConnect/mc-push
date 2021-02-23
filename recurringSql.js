@@ -96,7 +96,7 @@ exports.recurringCamapign = async function(payloadAttributes){
 
 	};
 
-	// overwirte staging vouceher subsets
+	// overwirte staging voucher subsets
 	const stagingVoucherSubsetsQuery = `SELECT	vsubset.PUSH_KEY
 	,	vsubset.VOUCHER_SUBSET_ID
 	,	vsubset.BARCODE_FLAG
