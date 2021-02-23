@@ -413,7 +413,11 @@ define([
 
         $("#recurring_action_broadcast").click(async function(){
             if (validateSummaryPage()) {
+            $("#recurring_action_broadcast").prop("disabled", true);
             await createRecurringAutomation(buildActivityPayload());
+            $("#is_broadcast").val(true);
+            $("#recurring_action_broadcast").html("Recreate Automation");
+            $("#recurring_action_broadcast").prop("disabled", false);
             }
         });
 
