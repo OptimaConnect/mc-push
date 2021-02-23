@@ -1,5 +1,6 @@
 const { v4: uuidv4 } 	= require('uuid');
 const salesforceApi		= require("./salesforceApi.js");
+const axios 				= require('axios');
 
 const environment = {
 	seedListTable: 						process.env.seedListTable,
@@ -16,7 +17,11 @@ const environment = {
 	messageKey: 						process.env.messageKey,
 	messageTableName: 					process.env.messageTableName,
 	partyCardDetailsTable:  			process.env.partyCardDetailsTable,
+	restUrl:							process.env.restUrl,
+	uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey
 };
+const uniqueVoucherPotsUrl 			= environment.restUrl + "data/v1/customobjectdata/key/" 	+ environment.uniqueVoucherPotsKey			+ "/rowset";
+
 
 exports.addQueryActivity = async function(payloadAttributes, seed, updateTypes){
 
@@ -480,4 +485,24 @@ function CreatePushMessageQuery(payloadAttributes, seed) {
             ${pushSubquery}
         ) AS A`;
     return messageFinalQuery;
+}
+
+async function getKeyForVoucherDataExtensionByName(voucherDEName) {
+	let tokenResponse = await salesforceApi.getOauth2Token();
+
+	const fullRequestUrl = `${uniqueVoucherPotsUrl}?$filter=dataExtensionName eq ${voucherDEName}`;
+
+	try {
+		let response = await axios.get(fullRequestUrl, { 
+			headers: { 
+				Authorization: tokenResponse
+			}
+		});
+
+		let data = response.data.items[0];
+		return data.keys.id;
+	}
+	catch (error) {
+		throw new Error(`Error getting voucher DE key: ${error}`);
+	}
 }

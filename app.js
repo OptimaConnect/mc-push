@@ -429,26 +429,6 @@ async function sendBackUpdatedPayload(payload) {
 	return messageKeyToUpdate;
 }
 
-async function getKeyForVoucherDataExtensionByName(voucherDEName) {
-	let tokenResponse = await salesforceApi.getOauth2Token();
-
-	const fullRequestUrl = `${uniqueVoucherPotsUrl}?$filter=dataExtensionName eq ${voucherDEName}`;
-
-	try {
-		let response = await axios.get(fullRequestUrl, { 
-			headers: { 
-				Authorization: tokenResponse
-			}
-		});
-
-		let data = response.data.items[0];
-		return data.keys.id;
-	}
-	catch (error) {
-		throw new Error(`Error getting voucher DE key: ${error}`);
-	}
-}
-
 async function getExistingAppData(message_key) {
 	let token = await salesforceApi.getOauth2Token();
 	const fullRequestUrl = `${mobilePushMainTableUrl}?$filter=push_key eq ${message_key}`;
