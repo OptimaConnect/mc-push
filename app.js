@@ -611,7 +611,7 @@ app.post('/send/createautomation', async function (req, res, next){
 	try {
 		let returnedAutomationId;
 		if (req.body.find(prop => prop.key == "push_type")?.value == "offer"){
-			returnedAutomationId = await recurringSql.recurringCamapign(definePayloadAttributes(req.body));
+			returnedAutomationId = await recurringSql.recurringCampaign(definePayloadAttributes(req.body));
 		} else {
 			returnedAutomationId = await recurringSql.recurringPush(definePayloadAttributes(req.body));
 		}
@@ -632,7 +632,7 @@ app.post('/send/recurringseed', async function (req, res, next){
 	try {
 		let returnedQueryId;
 		if(req.body.find(prop => prop.key == "push_type")?.value == "offer"){
-			returnedQueryId = await recurringSql.recurringCamapignToSeeds(definePayloadAttributes(req.body));
+			returnedQueryId = await recurringSql.recurringCampaignToSeeds(definePayloadAttributes(req.body));
 		}else{
 			returnedQueryId = await recurringSql.recurringPushToSeeds(definePayloadAttributes(req.body));
 		}
