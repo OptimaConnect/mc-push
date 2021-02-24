@@ -50,7 +50,7 @@ const environment = {
 	messageKey: 						process.env.messageKey
 };
 
-exports.recurringCamapign = async function(payloadAttributes){
+exports.recurringCampaign = async function(payloadAttributes){
 	
 	const m = new Date();
 	const dateString =
@@ -700,7 +700,7 @@ exports.recurringCamapign = async function(payloadAttributes){
 	await salesforceApi.createSQLAutomation(createAutomationBody);
 }
 
-exports.recurringCamapignToSeeds = async function(payloadAttributes){
+exports.recurringCampaignToSeeds = async function(payloadAttributes){
 	const returnIds = [];
 	const m = new Date();
 	const dateString =
@@ -1200,8 +1200,8 @@ exports.recurringPushToSeeds = async function(payloadAttributes){
 		    ,   'Matalan'                   AS SCHEME_ID
 		    ,   parties.LOYALTY_CARD_NUMBER
 		    ,   MPT.message_content         AS MESSAGE_CONTENT
-		    ,   FORMAT(CAST(DATEADD(DAY, mpt.RECURRING_PUSH_OFFER_DELAY_DAYS, CAST(GETUTCDATE() AS DATE)) AS DATETIME) + CAST(mpt.RECURRING_PUSH_OFFER_TIME AS DATETIME) AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME
-		    ,   'A'							AS STATUS
+			,	FORMAT(mpt.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME		    
+			,   'A'							AS STATUS
 		    ,   MPT.message_title           AS TITLE
 		    ,   ISNULL(NULLIF(MPT.message_url,''),'content://my_rewards/my_offers_list') AS [URL]
 			,   SYSDATETIME() AS DATE_CREATED
