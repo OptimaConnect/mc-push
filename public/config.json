@@ -7,10 +7,10 @@
     },
     "type": "REST",
     "lang": {
-        "en-US": {
-          "name": "Mobilize App Offer/Push - Prod",
-          "description": "Create an offer or push for the Mobilize app."
-        }
+      "en-US": {
+        "name": "SIT - Mobilize App Offer/Push",
+        "description": "Create an offer or push for the Mobilize app."
+      }
     },
     "arguments": {
         "execute": {
@@ -20,7 +20,7 @@
         }                 
       ],
           "outArguments": [],
-          "url": "https://journey-builder-push-mat.herokuapp.com/journeybuilder/execute",
+          "url": "https://mc-jb-custom-activity-ca-popm.herokuapp.com/journeybuilder/execute",
            "verb": "POST",
             "body": "",
             "header": "",
@@ -31,22 +31,22 @@
     },
     "configurationArguments": {
       "save": {
-        "url": "https://journey-builder-push-mat.herokuapp.com/journeybuilder/save",
+        "url": "https://mc-jb-custom-activity-ca-popm.herokuapp.com/journeybuilder/save",
           "verb": "POST",
         "useJwt": true
        },
        "publish": {
-        "url": "https://journey-builder-push-mat.herokuapp.com/journeybuilder/publish",
+        "url": "https://mc-jb-custom-activity-ca-popm.herokuapp.com/journeybuilder/publish",
            "verb": "POST",
         "useJwt": true
        },
       "stop": {
-        "url": "https://journey-builder-push-mat.herokuapp.com/journeybuilder/stop",
+        "url": "https://mc-jb-custom-activity-ca-popm.herokuapp.com/journeybuilder/stop",
            "verb": "POST",
         "useJwt": true
       },
       "validate": {
-        "url": "https://journey-builder-push-mat.herokuapp.com/journeybuilder/validate",
+        "url": "https://mc-jb-custom-activity-ca-popm.herokuapp.com/journeybuilder/validate",
         "verb": "POST",
         "useJwt": true
       }

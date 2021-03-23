@@ -35,32 +35,36 @@ define([
 
     var input_field_dictionary= new Map(); 
     //"fieldname":["Step","CharacterLimit","Required", "Fixed Text"]
-    input_field_dictionary.set("update_contacts", [0, 200, 1, "Data Extension Name"]);
-    input_field_dictionary.set("widget_name", [0, 100, 1, "Widget Name"]);
+    input_field_dictionary.set("update_contacts", [0, 200, "always", "Data Extension Name"]);
+    input_field_dictionary.set("widget_name", [0, 100, "always", "Widget Name"]);
 
-    input_field_dictionary.set("message_target_send_datetime", [1, 100, 1]);
-    input_field_dictionary.set("message_seed_send_datetime", [1, 100, 1]);
-    input_field_dictionary.set("message_title", [1, 30, 1, "Title"]);
-    input_field_dictionary.set("cell_code", [1, 16, 1, "Cell Code"]);
-    input_field_dictionary.set("cell_name", [1, 100, 1, "Cell Name"]);
-    input_field_dictionary.set("campaign_name", [1, 100, 1, "Campaign Name"]);
-    input_field_dictionary.set("campaign_code", [1, 12, 1, "Campaign Code"]);
-    input_field_dictionary.set("message_content", [1, 140, 1, "Message Content"]);
-    input_field_dictionary.set("message_url", [1, 250, 0, "Deep Link URL (Leave Blank For Default)"]);
+    input_field_dictionary.set("message_target_send_datetime", [1, 100, "adhoc"]);
+    input_field_dictionary.set("recurring_push_offer_time", [1, 100, "recurring"]);
+    input_field_dictionary.set("recurring_push_offer_delay_days", [1, 100, "recurring"]);
+    input_field_dictionary.set("message_seed_send_datetime", [1, 100, "always"]);
+    input_field_dictionary.set("message_title", [1, 30, "always", "Title"]);
+    input_field_dictionary.set("cell_code", [1, 16, "always", "Cell Code"]);
+    input_field_dictionary.set("cell_name", [1, 100, "always", "Cell Name"]);
+    input_field_dictionary.set("campaign_name", [1, 100, "always", "Campaign Name"]);
+    input_field_dictionary.set("campaign_code", [1, 12, "always", "Campaign Code"]);
+    input_field_dictionary.set("message_content", [1, 140, "always", "Message Content"]);
+    input_field_dictionary.set("message_url", [1, 250, "Optional", "Deep Link URL (Leave Blank For Default)"]);
 
-    input_field_dictionary.set("offer_short_content", [2, 30, 1, "Short Description"]);
-    input_field_dictionary.set("offer_start_datetime", [2, 100, 1]);
-    input_field_dictionary.set("offer_end_datetime", [2, 100, 1]);
-    input_field_dictionary.set("offer_type", [2, 20, 1]);
-    input_field_dictionary.set("offer_image_url", [2, 250, 1, "Image URL"]);
-    input_field_dictionary.set("offer_more_info", [2, 1000, 1, "More Info/Terms & Conditions"]);
-    input_field_dictionary.set("offer_click_through_url", [2, 250, 1, "Click Through URL"]);
-    input_field_dictionary.set("offer_info_button_text", [2, 20, 0, "Info Button Text"]);
-    input_field_dictionary.set("offer_id", [2, 16, 1, "Offer ID"]);
-    input_field_dictionary.set("offer_cell_code", [2, 16, "Info Only", "Cell Code"]);
-    input_field_dictionary.set("offer_cell_name", [2, 100, "Info Only", "Cell Name"]);
-    input_field_dictionary.set("offer_campaign_name", [2, 100, "Info Only", "Campaign Name"]);
-    input_field_dictionary.set("offer_campaign_code", [2, 12, "Info Only", "Campaign Code"]);
+    input_field_dictionary.set("offer_short_content", [2, 30, "always", "Short Description"]);
+    input_field_dictionary.set("offer_image_url", [2, 250, "always", "Image URL"]);
+    input_field_dictionary.set("offer_more_info", [2, 1000, "always", "More Info/Terms & Conditions"]);
+    input_field_dictionary.set("offer_click_through_url", [2, 250, "always", "Click Through URL"]);
+    input_field_dictionary.set("offer_info_button_text", [2, 20, "informational", "Info Button Text"]);
+    input_field_dictionary.set("offer_id", [2, 16, "always", "Offer ID"]);
+    input_field_dictionary.set("offer_start_datetime", [2, 100, "adhoc"]);
+    input_field_dictionary.set("offer_end_datetime", [2, 100, "adhoc"]);
+    input_field_dictionary.set("recurring_offer_time", [2, 100, "recurring"]);
+    input_field_dictionary.set("recurring_offer_delay_days", [2, 100, "recurring"]);
+    input_field_dictionary.set("recurring_offer_validity_days", [2, 100, "recurring"]);
+    input_field_dictionary.set("offer_cell_code", [2, 16, ["informational", "recurring"], "Cell Code"]);
+    input_field_dictionary.set("offer_cell_name", [2, 100, ["informational", "recurring"], "Cell Name"]);
+    input_field_dictionary.set("offer_campaign_name", [2, 100, ["informational", "recurring"], "Campaign Name"]);
+    input_field_dictionary.set("offer_campaign_code", [2, 12, ["informational", "recurring"], "Campaign Code"]);
 
     
     //Running Character Counts on Input Fields
@@ -94,6 +98,25 @@ define([
                 document.getElementById(count_field_name).style.color = 'black';
             }
         }
+    });
+
+    $("#offer_promotion_filter").on("input", function(){
+        var searchValue = document.getElementById("offer_promotion_filter").value.toLowerCase();
+        $("#offer_promotion option").filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(searchValue) > -1)
+        });
+    });
+
+    $("#voucher_group_filter").on("input", function(){
+        var searchValue = document.getElementById("voucher_group_filter").value.toLowerCase();
+        $("#recurring_voucher_group_id option").filter(function() {
+            var voucherGroupName = $(this).text().toLowerCase();
+            var voucherGroupfiltered = voucherGroupName.indexOf(searchValue) > -1;
+            $(this).toggle(voucherGroupfiltered)
+            //if (voucherGroupfiltered == 1){
+            //    console.log(`${searchValue} found in ${voucherGroupName}`);
+            //}
+        });
     });
 
     if (development) {
@@ -145,6 +168,7 @@ define([
 
         let lookupTasks = [
             lookupPromos(),
+            lookupVoucherGroups(),
             lookupControlGroups(),
             lookupUpdateContacts()
         ];
@@ -158,6 +182,7 @@ define([
 
         if (development) {
             showOrHideOfferFormsBasedOnType();
+            showOrHideSeedsSelectionDate();
         }
     }
 
@@ -242,6 +267,7 @@ define([
         }
 
         showOrHideOfferFormsBasedOnType();
+        showOrHideSeedsSelectionDate();
     }
 
     function loadEvents() {
@@ -315,6 +341,8 @@ define([
 
         // render relevant steps based on input
         $('#offer_channel').change(showOrHideOfferFormsBasedOnType);
+        $('#recurring_type').change(showOrHideOfferFormsBasedOnType); 
+        $('#seed_selection_type').change(showOrHideSeedsSelectionDate); 
 
         $('#offer_promotion').change(function() {
             // get data attributes from dd and prepop hidden fields
@@ -328,6 +356,7 @@ define([
             $("#offer_mc_id_1").val(promoData.mc_id_1);
             $("#offer_mc_id_6").val(promoData.mc_id_6);
             $("#communication_key").val(promoData.communication_cell_id);
+            $("#offer_redemptions").val(promoData.instore_code_1_redemptions);
             $("#offer_campaign_code").val(promoData.campaign_code);
             $("#offer_campaign_name").val(promoData.campaign_name);
             $("#offer_cell_code").val(promoData.cell_code);
@@ -366,9 +395,29 @@ define([
             }
         });
 
+        $("#recurring_action_seed").click(async function(){
+            if (validateSummaryPage()) {
+            $("#recurring_action_seed").prop("disabled", true);
+            await sendRecurringCampaignToSeeds(buildActivityPayload());
+            $("#seed_sent").val(true);
+            $("#recurring_action_seed").html("Resend recurring to seeds");
+            $("#recurring_action_seed").prop("disabled", false);
+            }
+        });
+
         $("#control_action_broadcast").click(async function(){
             if (validateSummaryPage()) {
             await broadcastCampaign(buildActivityPayload());
+            }
+        });
+
+        $("#recurring_action_broadcast").click(async function(){
+            if (validateSummaryPage()) {
+            $("#recurring_action_broadcast").prop("disabled", true);
+            await createRecurringAutomation(buildActivityPayload());
+            $("#is_broadcast").val(true);
+            $("#recurring_action_broadcast").html("Recreate Automation");
+            $("#recurring_action_broadcast").prop("disabled", false);
             }
         });
 
@@ -410,24 +459,68 @@ define([
     }
 
     function showOrHideOfferFormsBasedOnType() {
-
-        if ( $("#offer_channel").val() == '3' || $("#offer_channel").val() == 3) {
-            // informational, show cell code and de-couple from promotion widget
+        var recurringType = $("input[name='recurring_type']:checked").val();
+        if (recurringType == 'recurring'){
+            //Recurring Camapaigns
             $("#offer_cell_box").show();
-            // hide promotion dropdown
-            $("#promotion_element").hide();
-            $("#show_validity_form").hide();
-            $("#redemptions_allowed_form").hide();
-            $("#info_button_text_form").show();
+            $("#offer_type").hide();
+            $("#adhoc_timings_box").hide();
+            $("#recurring_timings_box").show();
+            $("#recurring_action_broadcast").show();
+            $("#control_action_broadcast").hide();
+            $("#recurring_action_seed").show();
+            $("#control_action_seed").hide();
+            $("#recurring_push_offer_time_box").show();
+            $("#recurring_push_delay_days_box").show();
+            $("#adhoc_push_target_send_datetime_box").hide();
+            if ($("#offer_channel").val() == '3'){
+                //Recurring Info Only
+                $("#promotion_box").hide();
+                $("#info_button_text_form").show();
+            } else {
+                //Recurring Vouchers
+                $("#promotion_box").show();
+                $("#voucher_group_element").show(); //Voucher groups or promotions
+                $("#promotion_element").hide(); //Imagine a voucher world without promo widgets...
+                $("#seed_selection_type").show(); //It would be so nice
+                $("#info_button_text_form").hide();
+            }     
+        }
+        else {
+            //Adhoc Camapaigns
+            $("#offer_type").show();
+            $("#adhoc_timings_box").show();
+            $("#recurring_timings_box").hide();
+            $("#recurring_action_broadcast").hide();
+            $("#control_action_broadcast").show();
+            $("#recurring_action_seed").hide();
+            $("#control_action_seed").show();
+            $("#recurring_push_offer_time_box").hide();
+            $("#recurring_push_delay_days_box").hide();
+            $("#adhoc_push_target_send_datetime_box").show();
+            if ( $("#offer_channel").val() == '3'){
+                //Adhoc Info Only Offers
+                $("#offer_cell_box").show();
+                $("#promotion_box").hide();
+                $("#info_button_text_form").show();
+            } else {
+                //Adhoc Voucher Offers
+                $("#offer_cell_box").hide();
+                $("#promotion_box").show();
+                $("#voucher_group_element").hide(); //Voucher groups or promotions
+                $("#promotion_element").show(); //Imagine a voucher world without promo widgets... 
+                $("#seed_selection_type").hide(); //It would be so nice           
+                $("#info_button_text_form").hide();
+            }
+        }
+    }
 
-        } else {
-
-            $("#offer_cell_box").hide();
-            // show offer promotion
-            $("#promotion_element").show();
-            $("#show_validity_form").show();
-            $("#redemptions_allowed_form").show();
-            $("#info_button_text_form").hide();
+    function showOrHideSeedsSelectionDate() {
+        var seedSelectionToday = $("input[name='seed_selection_type']:checked").val();
+        if (seedSelectionToday == 'today'){
+            $("#seed_selection_date_element").hide();
+        }else{
+            $("#seed_selection_date_element").show();
         }
     }
 
@@ -465,6 +558,16 @@ define([
                         $("#push_type_message_non_loyalty").prop('checked', true);
                         $("#push_type_message_non_loyalty").click();
                     } 
+                }
+                else if (argumentsSummaryPayload[q].key == "recurring_type") {
+                    if (argumentsSummaryPayload[q].value == "adhoc") {
+                        $("#recurring_type_adhoc").prop('checked', true);
+                        $("#recurring_type_adhoc").click();
+                    }
+                    else if (argumentsSummaryPayload[q].value == "recurring") {
+                        $("#recurring_type_recurring").prop('checked', true);
+                        $("#recurring_type_recurring").click();
+                    }
                 }
             }
 
@@ -538,10 +641,16 @@ define([
 
         } else {
             var ErrorCount = 0;
+            var recurringType = $("input[name='recurring_type']:checked").val();
+            var seedSelectionToday = $("input[name='seed_selection_type']:checked").val();
             for (let [field_name, field_name_info] of  input_field_dictionary.entries()) {
                 if (stepToValidate == field_name_info[0]){
                     console.log("The selector is " + field_name);
-                    if ( !document.getElementById(field_name).value && (field_name_info[2]==1 || (document.getElementById("offer_channel").value == '3' && field_name_info[2]=="Info Only")) ) {
+                    if ( !document.getElementById(field_name).value && 
+                            (   field_name_info[2]=="always"
+                            ||  (document.getElementById("offer_channel").value == '3' && field_name_info[2].includes("informational"))
+                            ||  field_name_info[2].includes(recurringType)
+                            )){
                         document.getElementById(`step${currentPage}alerttext`).innerText = `The field ${field_name} is missing.`;
                         console.log(`The field ${field_name} is missing.`);
                         ErrorCount++;
@@ -552,17 +661,27 @@ define([
                     }
                 }
             }
-            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("offer_promotion").value == "no-code") {
+            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("offer_promotion").value == "no-code" && recurringType == "adhoc") {
                     document.getElementById(`step${currentPage}alerttext`).innerText = "Voucher offers must have an Offer Promotion"
                     console.log("Voucher offers must have an Offer Promotion");
                     ErrorCount++;  
+            }
+            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && document.getElementById("recurring_voucher_group_id").value == "no-code" && recurringType == "recurring") {
+                document.getElementById(`step${currentPage}alerttext`).innerText = "Voucher offers must have an Voucher Group"
+                console.log("Voucher offers must have an Voucher Group");
+                ErrorCount++;  
+            }
+            if ( stepToValidate == 2 && document.getElementById("offer_channel").value != '3' && !document.getElementById("seed_selection_date").value  && recurringType == "recurring" && seedSelectionToday == "specific_date") {
+                document.getElementById(`step${currentPage}alerttext`).innerText = "Choose a date to treat seeds as if selected on that date"
+                console.log("Choose a date to treat seeds as if selected on that date");
+                ErrorCount++;  
             }
             if ( stepToValidate == 0 && document.getElementById("update_contacts").value == "none" && !$("#push_type_message_non_loyalty").is(":checked")) {
                 document.getElementById(`step${currentPage}alerttext`).innerText = "An update contact data extension is required for offers and loyalty pushes";
                 console.log("An update contact data extension is required for offers and loyalty pushes");
                 ErrorCount++;
             }
-            if ( stepToValidate == 1 && (document.getElementById("message_target_send_datetime").value < document.getElementById("message_seed_send_datetime").value)){
+            if ( stepToValidate == 1 && recurringType == "adhoc" && (document.getElementById("message_target_send_datetime").value < document.getElementById("message_seed_send_datetime").value)){
                 document.getElementById(`step${currentPage}alerttext`).innerText = "The target send datetime must be after the seed send datetime.";
                 console.log("The target send datetime must be after the seed send datetime.");
 			     ErrorCount++;
@@ -634,24 +753,19 @@ define([
                 }
             });
 
-            if ( debug ) {
-                console.log('lookup promotions executed');
-                console.log(result.items);               
-            }
-
+            console.log('lookup promotions executed');
+            console.log(result.items); 
             var i;
             if ( result.items ) {
                 for (i = 0; i < result.items.length; ++i) {
-                    if ( debug ) {
-                        console.log(result.items[i].keys);
-                    }
-
+                    
+                    console.log(result.items[i].keys); 
                     const deRow = result.items[i].values;
                     const promotionKey = result.items[i].keys.promotion_key;
                     const deRowData = encodeURI(JSON.stringify(deRow));
 
                     if (deRow.promotiontype != "nocode"){
-                        $("#offer_promotion").append(`<option data-attribute-promotionobject=${deRowData} value=${promotionKey}>${deRow.cell_name}</option>`)
+                        $("#offer_promotion").append(`<option data-attribute-promotionobject=${deRowData} value=${promotionKey}>${deRow.cell_name}</option>`);
                     }
                 }
             }
@@ -659,6 +773,36 @@ define([
             updateApiStatus("promotions-api", true);
         } catch (error) {
             updateApiStatus("promotions-api", false);
+        }
+        
+    }
+
+    async function lookupVoucherGroups() {
+        try{
+            // access offer types and build select input
+            let result = await $.ajax({
+                url: "/dataextension/lookup/vouchergroups",
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                }
+            });
+
+            console.log('lookup voucher groups executed');
+            console.log(result.items); 
+            var i;
+            if ( result.items ) {
+                for (i = 0; i < result.items.length; ++i) {
+                    
+                    console.log(result.items[i].keys); 
+                    const deRow = result.items[i].values;
+                    const voucherGroupId = result.items[i].keys.voucher_group_id;
+                    $("#recurring_voucher_group_id").append(`<option value=${voucherGroupId}>${deRow.voucher_group_name} - ${voucherGroupId}</option>`);
+               }
+            }
+
+            updateApiStatus("vouchergroup-api", true);
+        } catch (error) {
+            updateApiStatus("vouchergroup-api", false);
         }
         
     }
@@ -989,6 +1133,7 @@ define([
                     $("#control_action_save").prop('disabled', true);
                     $("#control_action_update").prop('disabled', false);
                     $("#control_action_seed").prop('disabled', false);
+                    $("#recurring_action_seed").prop('disabled', false);
                     $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
@@ -1033,6 +1178,7 @@ define([
                     $("#control_action_save").html("Data has been updated");
                     $("#control_action_update").prop('disabled', false);
                     $("#control_action_seed").prop('disabled', false);
+                    $("#recurring_action_seed").prop('disabled', false);
                     $("#control_action_broadcast").prop('disabled', false);
                 }
                 , error: function(jqXHR, textStatus, err){
@@ -1114,6 +1260,73 @@ define([
             document.getElementById("step3alerttext").innerText = e.responseText;
             toggleStepError(3, "show");
             $("#control_action_broadcast").prop('disabled', false);
+        }
+    }
+
+    async function sendRecurringCampaignToSeeds(payloadToSave) {
+
+        if ( debug ) {
+            console.log("Data Object to be saved is: ");
+            console.log(payloadToSave);
+        }
+
+        try {            
+            const data = await $.ajax({ 
+                url: '/send/recurringseed',
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                },
+                type: 'POST',
+                data: JSON.stringify(payloadToSave),
+                contentType: 'application/json'
+            });
+;
+            console.log('success');
+            console.log(data);
+            toggleStepError(3, "hide");
+            $("#query_key_hidden").val(data);
+
+        } catch(e) {
+            console.log("Error saving data");
+            console.log(e);
+            document.getElementById("step3alerttext").innerText = e.responseText;
+            toggleStepError(3, "show");
+        }
+    } 
+
+    async function createRecurringAutomation(payloadToSave) {
+
+        if ( debug ) {
+            console.log("Data Object to be saved is: ");
+            console.log(payloadToSave);
+        }
+
+        try {            
+            //$("#control_action_broadcast").prop('disabled', true);
+            const data = await $.ajax({ 
+                url: '/send/createautomation',
+                headers: {
+                    Authorization: `Bearer ${fuelToken}`
+                },
+                type: 'POST',
+                data: JSON.stringify(payloadToSave),
+                contentType: 'application/json'
+            });
+
+            //$("#is_broadcast").val(true);
+            //$("#control_action_broadcast").html("Scheduled");
+            //$("#control_action_cancel").prop('disabled', false);
+            console.log('success');
+            console.log(data);
+            toggleStepError(3, "hide");
+            $("#query_key_hidden").val(data);
+
+        } catch(e) {
+            console.log("Error saving data");
+            console.log(e);
+            document.getElementById("step3alerttext").innerText = e.responseText;
+            toggleStepError(3, "show");
+            //$("#control_action_broadcast").prop('disabled', false);
         }
     }
 
