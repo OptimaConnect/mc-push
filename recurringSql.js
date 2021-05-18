@@ -47,7 +47,8 @@ const environment = {
 	voucherSetName:						process.env.voucherSetName,
 	voucherSubsetName:					process.env.voucherSubsetName,
 	messageTableName: 					process.env.messageTableName,
-	messageKey: 						process.env.messageKey
+	messageKey: 						process.env.messageKey,
+	automationFolderId:					process.env.automationCategoryId
 };
 
 exports.recurringCampaign = async function(payloadAttributes){
@@ -541,7 +542,7 @@ exports.recurringCampaign = async function(payloadAttributes){
 			ELSE NULL
 		END 																										AS GLOBAL_OR_EXISTING_ONLINE_CODE
 	,	CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]
-	ELSE FORMAT(arc.[VALID_FROM_TIME] AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
+	ELSE FORMAT(arc.[VALID_FROM_TIME] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 	END 																											AS [VISIBLE_FROM_DATE_TIME]		
 	,	FORMAT(arc.[VALID_FROM_TIME] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')			AS [START_DATE_TIME]
 	,	FORMAT(arc.[VALID_TO_TIME] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')			AS [END_DATE_TIME]
@@ -694,7 +695,7 @@ exports.recurringCampaign = async function(payloadAttributes){
 	    key: AutomationKey,
 	    steps: queriesInAutomation,
 	    startSource: sourceType,
-		categoryId: 3579
+		categoryId: environment.automationFolderId
 	};
 	
 	await salesforceApi.createSQLAutomation(createAutomationBody);
@@ -840,7 +841,7 @@ exports.recurringCampaignToSeeds = async function(payloadAttributes){
 					ELSE NULL
 				END 																										AS GLOBAL_OR_EXISTING_ONLINE_CODE
 			,	CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]
-			ELSE FORMAT(arc.[VALID_FROM_TIME] AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
+			ELSE FORMAT(arc.[VALID_FROM_TIME] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
 			END 																											AS [VISIBLE_FROM_DATE_TIME]		
 			,	FORMAT(arc.[VALID_FROM_TIME] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')			AS [START_DATE_TIME]
 			,	FORMAT(arc.[VALID_TO_TIME] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')			AS [END_DATE_TIME]
@@ -1177,7 +1178,7 @@ exports.recurringPush = async function(payloadAttributes){
 	    key: AutomationKey,
 	    steps: queriesInAutomation,
 	    startSource: sourceType,
-		categoryId: 3579
+		categoryId: environment.automationFolderId
 	};
 	
 	await salesforceApi.createSQLAutomation(createAutomationBody);
@@ -1195,12 +1196,18 @@ exports.recurringPushToSeeds = async function(payloadAttributes){
 	("0" + m.getUTCMinutes()).slice(-2);
 
 	//Member Offer Query Push
+	const seedPushTargetTime = `CASE 
+								WHEN mpt.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
+								THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
+								ELSE mpt.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time
+								END'`;
+
 	const memberQuery = `SELECT  MPT.push_key
 			,	(CAST(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS MOBILE_MESSAGE_ID
 		    ,   'Matalan'                   AS SCHEME_ID
 		    ,   parties.LOYALTY_CARD_NUMBER
 		    ,   MPT.message_content         AS MESSAGE_CONTENT
-			,	FORMAT(mpt.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME		    
+			,	FORMAT(${seedPushTargetTime} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')	AS TARGET_SEND_DATE_TIME		    
 			,   'A'							AS STATUS
 		    ,   MPT.message_title           AS TITLE
 		    ,   ISNULL(NULLIF(MPT.message_url,''),'content://my_rewards/my_offers_list') AS [URL]
