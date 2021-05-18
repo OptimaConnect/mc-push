@@ -24,7 +24,7 @@
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "bower": "^1.8.8",
-    "dotenv": "^8.2.0",
+    "dotenv": "^8.6.0",
     "easy-soap-request": "^3.3.1",
     "emojionearea": "3.1.8",
     "errorhandler": "^1.5.1",

@@ -71,7 +71,6 @@ exports.createSQLQuery = async function(targetKey, query, updateType, target, na
 
 exports.createSQLAutomation = async function(body){
 	const tokenResponse = await getOauth2Token();
-	const bodyString = JSON.stringify(body);
     const response = await axios({
 		method: 'post',
 		url: automationUrl,
