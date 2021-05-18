@@ -1199,8 +1199,8 @@ exports.recurringPushToSeeds = async function(payloadAttributes){
 	const seedPushTargetTime = `CASE 
 								WHEN mpt.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time' < SYSDATETIMEOFFSET()
 								THEN SYSDATETIMEOFFSET() AT TIME ZONE 'GMT Standard Time'
-								ELSE mpt.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time
-								END'`;
+								ELSE mpt.message_seed_send_datetime AT TIME ZONE 'GMT Standard Time'
+								END`;
 
 	const memberQuery = `SELECT  MPT.push_key
 			,	(CAST(DATEDIFF(SS,'2020-01-01',getdate()) AS bigint) * 100000) + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS MOBILE_MESSAGE_ID
