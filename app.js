@@ -516,9 +516,17 @@ async function cancelPush(message_key, push_content) {
 	await salesforceApi.runSQLQuery(cancelPushQueryId, cancelPushQueryName);
 }
 
+function TryExtractErrorMessage(err){
+	let error_message;
+	if (err.response?.data?.additionalErrors){
+		error_message = err.response?.data?.additionalErrors[0]?.message;
+	} else if (err.response?.data?.errors){
+		error_message = err.response?.data?.errors[0]?.message;
+	}
+	return error_message;
+}
 
 //#region endpoints
-
 // insert data into mobile_push_main data extension
 app.post('/dataextension/add/', async function (req, res, next){ 
 	console.dir("Dump request body");
@@ -528,12 +536,7 @@ app.post('/dataextension/add/', async function (req, res, next){
 		res.status(201).send(JSON.stringify(newPushKey));
 	} catch(err) {
 		console.dir(err);
-		let error_message;
-		if (err.response?.data?.additionalErrors){
-			error_message = err.response?.data?.additionalErrors[0]?.message;
-		} else if (err.response?.data?.errors){
-			error_message = err.response?.data?.errors[0]?.message;
-		}
+		const error_message = TryExtractErrorMessage(err);
 		if (error_message){
 			res.status(400).send(error_message);
 		}
@@ -550,12 +553,7 @@ app.post('/dataextension/update/', async function (req, res, next){
 		res.send(JSON.stringify(returnedUpdatePayload));
 	} catch(err) {
 		console.dir(err);
-		let error_message;
-		if (err.response?.data?.additionalErrors){
-			error_message = err.response?.data?.additionalErrors[0]?.message;
-		} else if (err.response?.data?.errors){
-			error_message = err.response?.data?.errors[0]?.message;
-		}
+		const error_message = TryExtractErrorMessage(err);
 		if (error_message){
 			res.status(400).send(error_message);
 		}
@@ -591,12 +589,7 @@ app.post('/cancel/:message_key', async function (req, res, next) {
 		res.sendStatus(202);
 	} catch (error) {
 		console.dir(error);
-		let error_message;
-		if (err.response?.data?.additionalErrors){
-			error_message = err.response?.data?.additionalErrors[0]?.message;
-		} else if (err.response?.data?.errors){
-			error_message = err.response?.data?.errors[0]?.message;
-		}
+		const error_message = TryExtractErrorMessage(err);
 		if (error_message){
 			res.status(400).send(error_message);
 		}
@@ -612,12 +605,7 @@ app.post('/send/broadcast', async function (req, res, next){
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
-		let error_message;
-		if (err.response?.data?.additionalErrors){
-			error_message = err.response?.data?.additionalErrors[0]?.message;
-		} else if (err.response?.data?.errors){
-			error_message = err.response?.data?.errors[0]?.message;
-		}
+		const error_message = TryExtractErrorMessage(err);
 		if (error_message){
 			res.status(400).send(error_message);
 		}
@@ -638,12 +626,7 @@ app.post('/send/createautomation', async function (req, res, next){
 		res.send(JSON.stringify(returnedAutomationId));
 	} catch(err) {
 		console.dir(err);
-		let error_message;
-		if (err.response?.data?.additionalErrors){
-			error_message = err.response?.data?.additionalErrors[0]?.message;
-		} else if (err.response?.data?.errors){
-			error_message = err.response?.data?.errors[0]?.message;
-		}
+		const error_message = TryExtractErrorMessage(err);
 		if (error_message){
 			res.status(400).send(error_message);
 		}
@@ -664,12 +647,7 @@ app.post('/send/recurringseed', async function (req, res, next){
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
-		let error_message;
-		if (err.response?.data?.additionalErrors){
-			error_message = err.response?.data?.additionalErrors[0]?.message;
-		} else if (err.response?.data?.errors){
-			error_message = err.response?.data?.errors[0]?.message;
-		}
+		const error_message = TryExtractErrorMessage(err);
 		if (error_message){
 			res.status(400).send(error_message);
 		}
@@ -685,12 +663,7 @@ app.post('/send/seed', async function (req, res, next){
 		res.send(JSON.stringify(returnedQueryId));
 	} catch(err) {
 		console.dir(err);
-		let error_message;
-		if (err.response?.data?.additionalErrors){
-			error_message = err.response?.data?.additionalErrors[0]?.message;
-		} else if (err.response?.data?.errors){
-			error_message = err.response?.data?.errors[0]?.message;
-		}
+		const error_message = TryExtractErrorMessage(err);
 		if (error_message){
 			res.status(400).send(error_message);
 		}
