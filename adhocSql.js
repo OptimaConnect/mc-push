@@ -20,7 +20,9 @@ const environment = {
 	restUrl:							process.env.restUrl,
 	uniqueVoucherPotsKey:				process.env.uniqueVoucherPotsKey,
 	stagingMemberOfferId:				process.env.stagingMemberOfferId,
-	stagingMemberOfferName:				process.env.stagingMemberOfferName
+	stagingMemberOfferName:				process.env.stagingMemberOfferName,
+	stagingMemberOfferVouchersKey:		process.env.stagingMemberOfferVouchersKey,
+	stagingMemberOfferVouchersName:		process.env.stagingMemberOfferVouchersName
 };
 const uniqueVoucherPotsUrl 			= environment.restUrl + "data/v1/customobjectdata/key/" 	+ environment.uniqueVoucherPotsKey			+ "/rowset";
 
@@ -210,63 +212,63 @@ exports.addQueryActivity = async function(payloadAttributes, seed, updateTypes){
 			// Query to handle any offers that use unique online codes
 			let memberOfferPart1Query;
 			let memberOfferPart2Query;
-			memberOfferPart1Query = 
-				`SELECT 'Matalan' AS SCHEME_ID,
-					parties.LOYALTY_CARD_NUMBER,
-					parties.PARTY_ID,
-					MPT.offer_id AS OFFER_ID,
-					NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
-					mo.VOUCHER_ON_LINE_CODE						AS GLOBAL_OR_EXISTING_ONLINE_CODE,
-					CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
-							ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
-							END AS [VISIBLE_FROM_DATE_TIME],
-					FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
-					FORMAT(${offer_end_datetime} AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
-					MPT.offer_redemptions                           AS NO_REDEMPTIONS_ALLOWED,
-					CASE    WHEN mo.STATUS IS NULL THEN 'A'
-							WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
-							ELSE 'C' END			    AS STATUS,
-					SYSDATETIME()                       AS DATE_UPDATED,
-					ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
-					FROM 
-					(
-						SELECT  PARTY_ID
-						,       LOYALTY_CARD_NUMBER
-						,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
-						FROM    (${partiesAndCards}) AS UpdateContactDE						
-						WHERE  LOYALTY_CARD_NUMBER  IS NOT NULL
-					) AS parties
-					INNER JOIN [${environment.mobilePushMainTable}] AS MPT
-					ON MPT.push_key = ${payloadAttributes.key}
-					LEFT JOIN [${environment.memberOfferTableName}] AS mo
-					ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
-					AND MPT.OFFER_ID = mo.OFFER_ID
-					WHERE parties.CARD_RN = 1`
-				
+			let memberOfferPart3Query;
 			
-			memberOfferPart2Query =  `SELECT pt1.SCHEME_ID,
-			pt1.LOYALTY_CARD_NUMBER,
-			pt1.PARTY_ID,
-			pt1.OFFER_ID,
-			ISNULL(pt1.GLOBAL_OR_EXISTING_ONLINE_CODE, vp.CouponCode) AS VOUCHER_ON_LINE_CODE,
-			pt1.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
-			pt1.[VISIBLE_FROM_DATE_TIME],
-			pt1.[START_DATE_TIME],
-			pt1.[END_DATE_TIME],
-			pt1.NO_REDEMPTIONS_ALLOWED,
-			pt1.STATUS,
-			pt1.DATE_UPDATED
-			FROM	[${environment.stagingMemberOfferName}] pt1
-			LEFT JOIN (
-				SELECT  CouponCode
+			memberOfferPart1Query = `SELECT 'Matalan' AS SCHEME_ID,
+				parties.LOYALTY_CARD_NUMBER,
+				parties.PARTY_ID,
+				MPT.offer_id AS OFFER_ID,
+				NULLIF(MPT.offer_instore_code_1, 'no-code') AS VOUCHER_IN_STORE_CODE,
+				mo.VOUCHER_ON_LINE_CODE						AS GLOBAL_OR_EXISTING_ONLINE_CODE,
+				CASE 	WHEN mo.[VISIBLE_FROM_DATE_TIME] <> mo.START_DATE_TIME THEN mo.[VISIBLE_FROM_DATE_TIME]  /* If a seed, keep the existing visible from datetime */
+						ELSE FORMAT(${visible_from_date_time} AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')
+						END AS [VISIBLE_FROM_DATE_TIME],
+				FORMAT(MPT.[offer_start_datetime] AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')  AS [START_DATE_TIME],
+				FORMAT(${offer_end_datetime} AT TIME ZONE 'GMT Standard Time' AT TIME ZONE 'UTC', 'yyyy-MM-dd HH:mm:ss')    AS [END_DATE_TIME],
+				MPT.offer_redemptions                           AS NO_REDEMPTIONS_ALLOWED,
+				CASE    WHEN mo.STATUS IS NULL THEN 'A'
+						WHEN mo.STATUS = 'A' AND (mo.DATE_MOBILIZE_SYNC < mo.DATE_UPDATED OR mo.DATE_MOBILIZE_SYNC IS NULL) THEN 'A'
+						ELSE 'C' END			    AS STATUS,
+				SYSDATETIME()                       AS DATE_UPDATED,
+				ROW_NUMBER() OVER (ORDER BY (SELECT NULL))      AS RN
+				FROM 
+				(
+					SELECT  PARTY_ID
+					,       LOYALTY_CARD_NUMBER
+					,       ROW_NUMBER() OVER (PARTITION BY LOYALTY_CARD_NUMBER ORDER BY SEED_FLAG DESC, PARTY_ID) AS CARD_RN
+					FROM    (${partiesAndCards}) AS UpdateContactDE						
+					WHERE  LOYALTY_CARD_NUMBER  IS NOT NULL
+				) AS parties
+				INNER JOIN [${environment.mobilePushMainTable}] AS MPT
+				ON MPT.push_key = ${payloadAttributes.key}
+				LEFT JOIN [${environment.memberOfferTableName}] AS mo
+				ON  parties.LOYALTY_CARD_NUMBER = mo.LOYALTY_CARD_NUMBER
+				AND MPT.OFFER_ID = mo.OFFER_ID
+				WHERE parties.CARD_RN = 1`
+				
+			memberOfferPart2Query =  `SELECT  CouponCode
 				,       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RN
 				FROM    [${payloadAttributes.unique_code_1}]
-				WHERE   IsClaimed = 0
-			) vp
-			ON pt1.RN = vp.RN`;
+				WHERE   IsClaimed = 0`;
 
-			claimUniqueVoucherQuery =
-				`SELECT uv.CouponCode
+
+			memberOfferPart3Query =  `SELECT pt1.SCHEME_ID,
+				pt1.LOYALTY_CARD_NUMBER,
+				pt1.PARTY_ID,
+				pt1.OFFER_ID,
+				ISNULL(pt1.GLOBAL_OR_EXISTING_ONLINE_CODE, vp.CouponCode) AS VOUCHER_ON_LINE_CODE,
+				pt1.VOUCHER_IN_STORE_CODE AS VOUCHER_IN_STORE_CODE,
+				pt1.[VISIBLE_FROM_DATE_TIME],
+				pt1.[START_DATE_TIME],
+				pt1.[END_DATE_TIME],
+				pt1.NO_REDEMPTIONS_ALLOWED,
+				pt1.STATUS,
+				pt1.DATE_UPDATED
+				FROM	[${environment.stagingMemberOfferName}] pt1
+				LEFT JOIN [${environment.stagingMemberOfferVouchersName}] vp
+				ON pt1.RN = vp.RN`;
+
+			claimUniqueVoucherQuery = `SELECT uv.CouponCode
 				,       1           AS IsClaimed
 				,       mo.PARTY_ID AS SubscriberKey
 				,       mo.PARTY_ID AS PARTY_ID
@@ -278,18 +280,24 @@ exports.addQueryActivity = async function(payloadAttributes, seed, updateTypes){
 				ON      mo.VOUCHER_ON_LINE_CODE = uv.CouponCode
 				WHERE   mpt.push_key = ${payloadAttributes.key}
 				AND 	uv.IsClaimed = 0`
-		
-				console.dir(memberOfferPart1Query);
-				const memberOfferPart1QueryName = `Member Offer Part 1 - ${dateString} - ${payloadAttributes.query_name}`;
-				const memberOfferPart1QueryId = await salesforceApi.createSQLQuery(environment.stagingMemberOfferId, memberOfferPart1Query, updateTypes.Overwrite, environment.stagingMemberOfferName, memberOfferPart1QueryName, `Part 1 Member Offer Assignment for ${payloadAttributes.query_name}`);
-				await salesforceApi.runSQLQuery(memberOfferPart1QueryId, memberOfferPart1QueryName);
-				returnIds["member_offer_part1_query_id"] = memberOfferPart1QueryId;
+	
+			console.dir(memberOfferPart1Query);
+			const memberOfferPart1QueryName = `Member Offer Part 1 - ${dateString} - ${payloadAttributes.query_name}`;
+			const memberOfferPart1QueryId = await salesforceApi.createSQLQuery(environment.stagingMemberOfferId, memberOfferPart1Query, updateTypes.Overwrite, environment.stagingMemberOfferName, memberOfferPart1QueryName, `Part 1 Member Offer Assignment for ${payloadAttributes.query_name}`);
+			await salesforceApi.runSQLQuery(memberOfferPart1QueryId, memberOfferPart1QueryName);
+			returnIds["member_offer_part1_query_id"] = memberOfferPart1QueryId;
 
-				console.dir(memberOfferPart2Query);
-				const memberOfferPart2QueryName = `Member Offer Part 2 - ${dateString} - ${payloadAttributes.query_name}`;
-				const memberOfferPart2QueryId = await salesforceApi.createSQLQuery(environment.memberOfferKey, memberOfferPart2Query, updateTypes.AddUpdate, environment.memberOfferTableName, memberOfferPart2QueryName, `Part 2 Member Offer Assignment for ${payloadAttributes.query_name}`);
-				await salesforceApi.runSQLQuery(memberOfferPart2QueryId, memberOfferPart2QueryName);
-				returnIds["member_offer_part2_query_id"] = memberOfferPart2QueryId;
+			console.dir(memberOfferPart2Query);
+			const memberOfferPart2QueryName = `Member Offer Part 2 - ${dateString} - ${payloadAttributes.query_name}`;
+			const memberOfferPart2QueryId = await salesforceApi.createSQLQuery(environment.stagingMemberOfferVouchersKey, memberOfferPart2Query, updateTypes.Overwrite, environment.stagingMemberOfferVouchersName, memberOfferPart2QueryName, `Part 2 Member Offer Assignment for ${payloadAttributes.query_name}`);
+			await salesforceApi.runSQLQuery(memberOfferPart2QueryId, memberOfferPart2QueryName);
+			returnIds["member_offer_part2_query_id"] = memberOfferPart2QueryId;
+			
+			console.dir(memberOfferPart3Query);
+			const memberOfferPart3QueryName = `Member Offer Part 3 - ${dateString} - ${payloadAttributes.query_name}`;
+			const memberOfferPart3QueryId = await salesforceApi.createSQLQuery(environment.memberOfferKey, memberOfferPart3Query, updateTypes.AddUpdate, environment.memberOfferTableName, memberOfferPart3QueryName, `Part 3 Member Offer Assignment for ${payloadAttributes.query_name}`);
+			await salesforceApi.runSQLQuery(memberOfferPart3QueryId, memberOfferPart3QueryName);
+			returnIds["member_offer_part3_query_id"] = memberOfferPart3QueryId;
 		}
 		else {
 
